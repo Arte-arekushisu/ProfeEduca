@@ -14,7 +14,7 @@ def inicializar_servicios():
             st.error("Faltan secretos en la configuración.")
             return None
         
-        url = st.secrets["SUPABASE_URL"]
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
         key = st.secrets["SUPABASE_KEY"]
         return create_client(url, key)
     except Exception as e:
