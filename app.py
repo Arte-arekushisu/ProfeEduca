@@ -21,11 +21,11 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. Función para Generar Tabla de Planeación en Word
+# 2. Función para Generar Tabla Profesional en Word
 def generar_word_tabla(titulo, contenido_ia, d):
     doc = Document()
     
-    # Título y Encabezado
+    # Encabezado General
     h = doc.add_heading(titulo, 0)
     h.alignment = WD_ALIGN_PARAGRAPH.CENTER
     
@@ -39,27 +39,24 @@ def generar_word_tabla(titulo, contenido_ia, d):
 
     doc.add_paragraph("\n")
 
-    # Crear Tabla de Actividades (Similar a tu ejemplo de PPTX)
+    # Tabla de Actividades
     table = doc.add_table(rows=1, cols=4)
     table.style = 'Table Grid'
     hdr_cells = table.rows[0].cells
-    hdr_cells[0].text = 'Actividad'
-    hdr_cells[1].text = 'Desarrollo / Introducción'
+    hdr_cells[0].text = 'Actividad / Momento'
+    hdr_cells[1].text = 'Desarrollo Sugerido'
     hdr_cells[2].text = 'Materiales'
     hdr_cells[3].text = 'Tiempo'
 
-    # Procesar el contenido de la IA para llenar la tabla
-    # (La IA enviará las filas separadas por líneas)
+    # Procesar filas enviadas por la IA
     lineas = contenido_ia.replace("**", "").split('\n')
     for linea in lineas:
         if '|' in linea:
             partes = linea.split('|')
             if len(partes) >= 4:
                 row_cells = table.add_row().cells
-                row_cells[0].text = partes[0].strip()
-                row_cells[1].text = partes[1].strip()
-                row_cells[2].text = partes[2].strip()
-                row_cells[3].text = partes[3].strip()
+                for i in range(4):
+                    row_cells[i].text = partes[i].strip()
 
     buffer = BytesIO()
     doc.save(buffer)
@@ -81,26 +78,27 @@ datos_id = {"comunidad": comunidad, "nombre": nombre_ec, "eca": eca, "nivel": ni
 def llamar_ia(prompt):
     api_key = st.secrets["GEMINI_API_KEY"]
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
-    payload = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": 0.3}}
+    payload = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": 0.4}}
     res = requests.post(url, json=payload, headers={'Content-Type': 'application/json'})
     return res.json()['candidates'][0]['content']['parts'][0]['text']
 
 # --- SECCIONES ---
 if opcion == "📅 Planeación Semanal":
     st.header(f"🗓️ Planeación Semanal: {nivel}")
-    tema = st.text_input("Tema de la Unidad:")
+    tema = st.text_input("Tema de la Unidad (UAA):")
     rincón = st.text_input("Rincón Permanente:")
     
-    if st.button("🚀 Generar Tabla de Planeación"):
+    if st.button("🚀 Generar Tabla de Planeación con Temas de Inicio"):
         prompt = f"""Actúa como experto CONAFE. Genera la planeación de Lunes a Viernes para {tema}.
-        Usa estrictamente este formato de tabla por cada actividad, separando columnas con el símbolo '|'.
-        NO USES ASTERISCOS.
+        Usa el formato de tabla separando columnas con '|'. NO USES ASTERISCOS.
         
-        Ejemplo de formato:
-        Nombre de Actividad | Explicación detallada del desarrollo | Lista de materiales | Tiempo en minutos
+        IMPORTANTE: Para cada día, los primeros 3 registros de la tabla DEBEN ser:
+        1. Bienvenida | Propon una dinámica lúdica específica | Ninguno o materiales simples | 10 min
+        2. Pase de Lista | Propon una temática creativa para el pase de lista | Lista de asistencia | 5 min
+        3. Regalo de Lectura | Propon un título de cuento o texto y cómo leerlo | Libro o lectura sugerida | 15 min
         
-        Incluye: Bienvenida, Regalo de Lectura, Estación en Rincón {rincón} y Cierre.
-        Al final, agrega la 'Caja de Herramientas del Educador' con enlaces de estudio."""
+        Luego continua con: Estación de trabajo en {rincón}, Relación Tutora y Cierre.
+        Al final agrega enlaces de YouTube y Google para que el educador estudie sobre {tema}."""
         
         resultado = llamar_ia(prompt)
         st.markdown(resultado)
