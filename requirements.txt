@@ -1,4 +1,5 @@
 streamlit
-python-docx
 pandas
+python-docx
 supabase
+google-generativeai
