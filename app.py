@@ -1,26 +1,22 @@
-import streamlit as st
-from supabase import create_client
-import requests
-
-# 1. Configuración de página
-st.set_page_config(page_title="Profe.Educa IA", page_icon="🍎")
-
-# 2. Función para leer secretos sin que la app explote
-def obtener_secreto(nombre):
-    if nombre in st.secrets:
-        return st.secrets[nombre]
-    else:
-        st.error(f"❌ No encuentro la llave: **{nombre}** en los Secrets de Streamlit.")
-        st.stop()
-
-# 3. Inicialización
-url = obtener_secreto("SUPABASE_URL")
-key = obtener_secreto("SUPABASE_KEY")
-gemini_key = obtener_secreto("GEMINI_API_KEY")
-
-supabase = create_client(url, key)
-
-st.title("🍎 Planeador ABCD (CONAFE)")
-st.success("¡Conexión establecida correctamente!")
-
-# El resto de tu lógica de IA aquí...
+def generar_con_gemini(tema):
+    api_key = st.secrets["GEMINI_API_KEY"]
+    # Usamos v1beta que es la más compatible con el plan gratuito actual
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    
+    headers = {'Content-Type': 'application/json'}
+    payload = {
+        "contents": [{
+            "parts": [{"text": f"Actúa como tutor CONAFE experto en el Modelo ABCD. Para el tema '{tema}', genera un desafío, una meta y una ruta de aprendizaje clara."}]
+        }]
+    }
+    
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        if response.status_code == 200:
+            return response.json()['candidates'][0]['content']['parts'][0]['text']
+        else:
+            # Esto nos dirá exactamente qué falta si no es 200
+            error_msg = response.json().get('error', {}).get('message', 'Error desconocido')
+            return f"Error de Google ({response.status_code}): {error_msg}"
+    except Exception as e:
+        return f"Error de conexión: {e}"
