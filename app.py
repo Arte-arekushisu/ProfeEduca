@@ -1,23 +1,58 @@
 import streamlit as st
 import requests
+from supabase import create_client
 
-st.title("Prueba de Conexión Real")
+# 1. Configuración de la página
+st.set_page_config(page_title="Profe.Educa IA", page_icon="🍎")
+st.title("🍎 Profe.Educa: Planeador ABCD")
 
-api_key = st.secrets["GEMINI_API_KEY"]
-
-# Esta URL no genera contenido, solo LISTA qué modelos puedes usar
-url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
-
-if st.button("Verificar mi API Key"):
+# 2. Inicialización de servicios
+def conectar_supabase():
     try:
-        response = requests.get(url)
+        if "SUPABASE_URL" in st.secrets:
+            return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+        return None
+    except:
+        return None
+
+supabase = conectar_supabase()
+if supabase:
+    st.success("✅ Conexión con la base de datos establecida.")
+
+# 3. Función de IA usando el modelo Gemini 3 (Confirmado en tu lista)
+def generar_planeacion(tema):
+    if "GEMINI_API_KEY" not in st.secrets:
+        return "Error: No se encontró la GEMINI_API_KEY en Secrets."
+
+    api_key = st.secrets["GEMINI_API_KEY"]
+    
+    # URL actualizada al modelo que SÍ tienes: gemini-3-flash-preview
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={api_key}"
+    
+    headers = {'Content-Type': 'application/json'}
+    payload = {
+        "contents": [{
+            "parts": [{"text": f"Actúa como tutor CONAFE experto en el Modelo ABCD. Crea una planeación para el tema: {tema}. Incluye desafío, meta y ruta de aprendizaje."}]
+        }]
+    }
+    
+    try:
+        response = requests.post(url, json=payload, headers=headers)
         if response.status_code == 200:
-            st.success("¡Tu llave funciona!")
-            st.write("Modelos que Google te permite usar:")
-            modelos = response.json()
-            for m in modelos['models']:
-                st.code(m['name'])
+            return response.json()['candidates'][0]['content']['parts'][0]['text']
         else:
-            st.error(f"Error {response.status_code}: {response.text}")
+            return f"Error de Google ({response.status_code}): {response.text}"
     except Exception as e:
-        st.error(f"Fallo total: {e}")
+        return f"Error de conexión: {e}"
+
+# 4. Interfaz de usuario
+tema_input = st.text_input("Escribe el tema de tu tutoría:", placeholder="Ej. El ciclo del agua")
+
+if st.button("Generar Desafío y Meta"):
+    if tema_input:
+        with st.spinner("Generando contenido con Gemini 3..."):
+            resultado = generar_planeacion(tema_input)
+            st.markdown("### Resultado:")
+            st.write(resultado)
+    else:
+        st.warning("Por favor, introduce un tema.")
