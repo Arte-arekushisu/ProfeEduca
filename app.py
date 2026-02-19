@@ -2,39 +2,38 @@ import streamlit as st
 import requests
 from supabase import create_client
 
-# 1. Configuración básica
+# 1. Configuración de la página
 st.set_page_config(page_title="Profe.Educa IA", page_icon="🍎")
 
 st.title("🍎 Profe.Educa: Planeador ABCD")
 
-# 2. Inicialización de servicios (Con manejo de errores para evitar pantalla blanca)
-def inicializar_servicios():
+# 2. Inicialización de servicios con manejo de errores
+def conectar_supabase():
     try:
-        if "SUPABASE_URL" not in st.secrets:
-            st.error("Faltan secretos en la configuración.")
-            return None
-        
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-        key = st.secrets["SUPABASE_KEY"]
-        return create_client(url, key)
+        if "SUPABASE_URL" in st.secrets:
+            return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+        return None
     except Exception as e:
-        st.error(f"Error de inicio: {e}")
+        st.error(f"Error en base de datos: {e}")
         return None
 
-supabase = inicializar_servicios()
-
+supabase = conectar_supabase()
 if supabase:
     st.success("✅ Conexión con la base de datos establecida.")
 
-# 3. Lógica de la IA (URL v1 para evitar Error 404)
+# 3. Función de IA corregida (v1beta + variable definida)
 def generar_planeacion(tema):
+    # Definimos la llave justo antes de usarla para evitar el error de "not defined"
+    if "GEMINI_API_KEY" not in st.secrets:
+        return "Error: No se encontró la GEMINI_API_KEY en Secrets."
+    
     api_key = st.secrets["GEMINI_API_KEY"]
-    # Usamos la ruta estable v1 que Google prefiere para Gemini 1.5 Flash
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
+    # URL v1beta: La única que acepta gemini-1.5-flash actualmente
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
     
     headers = {'Content-Type': 'application/json'}
     payload = {
-        "contents": [{"parts": [{"text": f"Actúa como experto CONAFE. Crea una planeación ABCD para: {tema}"}]}]
+        "contents": [{"parts": [{"text": f"Actúa como tutor CONAFE experto en el Modelo ABCD. Crea una planeación para el tema: {tema}. Incluye desafío, meta y ruta."}]}]
     }
     
     try:
@@ -46,7 +45,7 @@ def generar_planeacion(tema):
     except Exception as e:
         return f"Error de conexión: {e}"
 
-# 4. Interfaz
+# 4. Interfaz de usuario
 tema_input = st.text_input("Escribe el tema de tu tutoría:", placeholder="Ej. El ciclo del agua")
 
 if st.button("Generar Desafío y Meta"):
