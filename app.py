@@ -2,10 +2,10 @@ import streamlit as st
 import requests
 from io import BytesIO
 from docx import Document
-from docx.shared import Pt
+from docx.shared import Pt, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
-# 1. Configuración de Estilo y Página
+# 1. Configuración de Estilo
 st.set_page_config(page_title="Profe.Educa ABCD", page_icon="🍎", layout="wide")
 
 st.markdown("""
@@ -13,11 +13,6 @@ st.markdown("""
     .stApp { background-color: #0e1117; color: #ffffff; }
     .stSidebar { background-color: #1a1c24; }
     h1, h2, h3 { color: #00d4ff !important; }
-    .welcome-box {
-        padding: 30px; border-radius: 15px;
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-        border: 2px solid #00d4ff; margin-bottom: 25px;
-    }
     .stButton>button {
         width: 100%; border-radius: 10px;
         background: linear-gradient(45deg, #00d4ff, #0055ff);
@@ -26,105 +21,87 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. Funciones de Exportación a Word
-def generar_word_limpio(titulo, contenido, d, con_firmas=False):
+# 2. Función para Generar Tabla de Planeación en Word
+def generar_word_tabla(titulo, contenido_ia, d):
     doc = Document()
+    
+    # Título y Encabezado
     h = doc.add_heading(titulo, 0)
     h.alignment = WD_ALIGN_PARAGRAPH.CENTER
     
-    table = doc.add_table(rows=3, cols=2)
-    table.cell(0, 0).text = f"Comunidad: {d['comunidad']}"
-    table.cell(0, 1).text = f"Fecha: {d['fecha']}"
-    table.cell(1, 0).text = f"Educador: {d['nombre']}"
-    table.cell(1, 1).text = f"Nivel: {d['nivel']}"
-    table.cell(2, 0).text = f"ECA: {d['eca']}"
-    
-    doc.add_paragraph("\n" + "="*50 + "\n")
-    
-    texto_limpio = contenido.replace("**", "").replace("*", "-")
-    para = doc.add_paragraph(texto_limpio)
-    para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    
-    if con_firmas:
-        doc.add_paragraph("\n\n\n")
-        f_table = doc.add_table(rows=1, cols=2)
-        f_table.cell(0, 0).text = "__________________________\nFirma del Educador"
-        f_table.cell(0, 1).text = "__________________________\nFirma Padre/APEC"
-    
+    header_table = doc.add_table(rows=3, cols=2)
+    header_table.style = 'Table Grid'
+    header_table.cell(0, 0).text = f"Comunidad: {d['comunidad']}"
+    header_table.cell(0, 1).text = f"Fecha: {d['fecha']}"
+    header_table.cell(1, 0).text = f"Educador: {d['nombre']}"
+    header_table.cell(1, 1).text = f"Nivel: {d['nivel']}"
+    header_table.cell(2, 0).text = f"ECA: {d['eca']}"
+
+    doc.add_paragraph("\n")
+
+    # Crear Tabla de Actividades (Similar a tu ejemplo de PPTX)
+    table = doc.add_table(rows=1, cols=4)
+    table.style = 'Table Grid'
+    hdr_cells = table.rows[0].cells
+    hdr_cells[0].text = 'Actividad'
+    hdr_cells[1].text = 'Desarrollo / Introducción'
+    hdr_cells[2].text = 'Materiales'
+    hdr_cells[3].text = 'Tiempo'
+
+    # Procesar el contenido de la IA para llenar la tabla
+    # (La IA enviará las filas separadas por líneas)
+    lineas = contenido_ia.replace("**", "").split('\n')
+    for linea in lineas:
+        if '|' in linea:
+            partes = linea.split('|')
+            if len(partes) >= 4:
+                row_cells = table.add_row().cells
+                row_cells[0].text = partes[0].strip()
+                row_cells[1].text = partes[1].strip()
+                row_cells[2].text = partes[2].strip()
+                row_cells[3].text = partes[3].strip()
+
     buffer = BytesIO()
     doc.save(buffer)
     buffer.seek(0)
     return buffer
 
-# 3. Identificación y Menú
+# 3. Sidebar y Datos
 with st.sidebar:
     st.title("🍎 Profe.Educa")
     opcion = st.radio("MENÚ:", ["🏠 Inicio", "📅 Planeación Semanal", "✍️ Reflexión Diaria", "📊 Evaluación Trimestral"])
-    st.divider()
     comunidad = st.text_input("Comunidad", "PARAJES DEL VALLE")
     nombre_ec = st.text_input("Educador", "AXEL REYES")
     eca = st.text_input("ECA", "MOISES ROSAS")
-    nivel = st.selectbox("Nivel:", ["Secundaria Multigrado", "Primaria Multigrado", "Preescolar", "Primaria 1-6", "Secundaria 1-3"])
+    nivel = st.selectbox("Nivel:", ["Secundaria Multigrado", "Primaria Multigrado", "Preescolar"])
     fecha_hoy = st.date_input("Fecha")
 
-# DICCIONARIO CORREGIDO (Línea 72 de tu imagen original)
-datos_id = {
-    "comunidad": comunidad, 
-    "nombre": nombre_ec, 
-    "eca": eca, 
-    "nivel": nivel, 
-    "fecha": str(fecha_hoy)
-}
+datos_id = {"comunidad": comunidad, "nombre": nombre_ec, "eca": eca, "nivel": nivel, "fecha": str(fecha_hoy)}
 
-# 4. Función de IA
 def llamar_ia(prompt):
     api_key = st.secrets["GEMINI_API_KEY"]
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
-    payload = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"maxOutputTokens": 4096, "temperature": 0.5}}
-    try:
-        res = requests.post(url, json=payload, headers={'Content-Type': 'application/json'})
-        return res.json()['candidates'][0]['content']['parts'][0]['text']
-    except:
-        return "⚠️ Error al conectar. Revisa tu API Key."
+    payload = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": 0.3}}
+    res = requests.post(url, json=payload, headers={'Content-Type': 'application/json'})
+    return res.json()['candidates'][0]['content']['parts'][0]['text']
 
 # --- SECCIONES ---
-
-if opcion == "🏠 Inicio":
-    st.markdown("""
-    <div class="welcome-box">
-        <h1>Planeación Estructural ABCD 🚀</h1>
-        <p>Tu espacio seguro para organizar la comunidad. Genera planeaciones con horarios pedagógicos, enlaces de estudio y estaciones renovables.</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-elif opcion == "📅 Planeación Semanal":
-    st.header(f"🗓️ Planeación: {nivel}")
-    tema = st.text_input("Tema de la Unidad (UAA):")
+if opcion == "📅 Planeación Semanal":
+    st.header(f"🗓️ Planeación Semanal: {nivel}")
+    tema = st.text_input("Tema de la Unidad:")
     rincón = st.text_input("Rincón Permanente:")
-    obj = st.text_area("Objetivo General:")
     
-    if st.button("🚀 Generar Planeación Completa"):
-        prompt = f"Genera planeación SEMANAL CONAFE para {nivel}. Tema: {tema}. Rincón: {rincón}. HORARIOS DIARIOS (8:00 a 14:00): - Bienvenida, Pase de Lista, Regalo de Lectura. - Relación Tutora: Propón una ESTACIÓN DE TRABAJO semanal para el rincón {rincón}. CAJA DE HERRAMIENTAS: - Incluye frases de búsqueda para YouTube y Google sobre {tema} para que el educador estudie. - 3 conceptos clave. Sin asteriscos ni firmas."
-        res = llamar_ia(prompt)
-        st.markdown(res)
-        st.download_button("📥 Descargar Planeación (Word)", generar_word_limpio("PLANEACIÓN SEMANAL", res, datos_id), "Planeacion.docx")
-
-elif opcion == "✍️ Reflexión Diaria":
-    st.header("✍️ Reflexión Diaria")
-    alumno = st.text_input("Nombre del Alumno:")
-    notas = st.text_area("Notas del día:")
-    if st.button("🪄 Redactar"):
-        prompt = f"Redacta reflexión diaria de 2.5 páginas para {alumno} en {nivel}. Basado en: {notas}. Con firmas."
-        res = llamar_ia(prompt)
-        st.markdown(res)
-        st.download_button("📥 Descargar (Word)", generar_word_limpio(f"REFLEXIÓN - {alumno}", res, datos_id, True), f"Reflexion_{alumno}.docx")
-
-elif opcion == "📊 Evaluación Trimestral":
-    st.header("📊 Evaluación Trimestral")
-    alumno_ev = st.text_input("Alumno:")
-    resumen = st.text_area("Notas del trimestre:")
-    if st.button("📈 Generar Evaluación"):
-        prompt = f"Genera texto evaluatorio trimestral para {alumno_ev} nivel {nivel} por campos formativos. Basado en: {resumen}. Con firmas."
-        res = llamar_ia(prompt)
-        st.markdown(res)
-        st.download_button("📥 Descargar (Word)", generar_word_limpio(f"EVALUACIÓN - {alumno_ev}", res, datos_id, True), f"Evaluacion_{alumno_ev}.docx")
+    if st.button("🚀 Generar Tabla de Planeación"):
+        prompt = f"""Actúa como experto CONAFE. Genera la planeación de Lunes a Viernes para {tema}.
+        Usa estrictamente este formato de tabla por cada actividad, separando columnas con el símbolo '|'.
+        NO USES ASTERISCOS.
+        
+        Ejemplo de formato:
+        Nombre de Actividad | Explicación detallada del desarrollo | Lista de materiales | Tiempo en minutos
+        
+        Incluye: Bienvenida, Regalo de Lectura, Estación en Rincón {rincón} y Cierre.
+        Al final, agrega la 'Caja de Herramientas del Educador' con enlaces de estudio."""
+        
+        resultado = llamar_ia(prompt)
+        st.markdown(resultado)
+        st.download_button("📥 Descargar Word con Tabla", generar_word_tabla("PLANEACIÓN SEMANAL", resultado, datos_id), "Planeacion.docx")
