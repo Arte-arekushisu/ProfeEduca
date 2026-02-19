@@ -2,10 +2,10 @@ import streamlit as st
 import requests
 from io import BytesIO
 from docx import Document
-from docx.shared import Pt, Inches
+from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
-# 1. Configuración de Estilo
+# 1. Estilo y Configuración
 st.set_page_config(page_title="Profe.Educa ABCD", page_icon="🍎", layout="wide")
 
 st.markdown("""
@@ -21,11 +21,9 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. Función para Generar Tabla Profesional en Word
+# 2. Función para Generar el Word con Tabla Estructurada
 def generar_word_tabla(titulo, contenido_ia, d):
     doc = Document()
-    
-    # Encabezado General
     h = doc.add_heading(titulo, 0)
     h.alignment = WD_ALIGN_PARAGRAPH.CENTER
     
@@ -39,16 +37,14 @@ def generar_word_tabla(titulo, contenido_ia, d):
 
     doc.add_paragraph("\n")
 
-    # Tabla de Actividades
     table = doc.add_table(rows=1, cols=4)
     table.style = 'Table Grid'
     hdr_cells = table.rows[0].cells
-    hdr_cells[0].text = 'Actividad / Momento'
-    hdr_cells[1].text = 'Desarrollo Sugerido'
+    hdr_cells[0].text = 'Momento / Actividad'
+    hdr_cells[1].text = 'Desarrollo y Explicación'
     hdr_cells[2].text = 'Materiales'
     hdr_cells[3].text = 'Tiempo'
 
-    # Procesar filas enviadas por la IA
     lineas = contenido_ia.replace("**", "").split('\n')
     for linea in lineas:
         if '|' in linea:
@@ -71,7 +67,7 @@ with st.sidebar:
     nombre_ec = st.text_input("Educador", "AXEL REYES")
     eca = st.text_input("ECA", "MOISES ROSAS")
     nivel = st.selectbox("Nivel:", ["Secundaria Multigrado", "Primaria Multigrado", "Preescolar"])
-    fecha_hoy = st.date_input("Fecha")
+    fecha_hoy = st.date_input("Fecha de Inicio")
 
 datos_id = {"comunidad": comunidad, "nombre": nombre_ec, "eca": eca, "nivel": nivel, "fecha": str(fecha_hoy)}
 
@@ -82,24 +78,33 @@ def llamar_ia(prompt):
     res = requests.post(url, json=payload, headers={'Content-Type': 'application/json'})
     return res.json()['candidates'][0]['content']['parts'][0]['text']
 
-# --- SECCIONES ---
+# --- SECCIÓN PLANEACIÓN ---
 if opcion == "📅 Planeación Semanal":
-    st.header(f"🗓️ Planeación Semanal: {nivel}")
-    tema = st.text_input("Tema de la Unidad (UAA):")
-    rincón = st.text_input("Rincón Permanente:")
-    
-    if st.button("🚀 Generar Tabla de Planeación con Temas de Inicio"):
-        prompt = f"""Actúa como experto CONAFE. Genera la planeación de Lunes a Viernes para {tema}.
-        Usa el formato de tabla separando columnas con '|'. NO USES ASTERISCOS.
+    st.header(f"🗓️ Planeación de Jornada Completa: {nivel}")
+    col1, col2 = st.columns(2)
+    with col1:
+        tema_interes = st.text_input("Tema Principal (UAA):")
+        materias_extra = st.text_input("Materias post-receso:", placeholder="Ej. Matemáticas (Fracciones) y Ciencias")
+    with col2:
+        rincón = st.text_input("Rincón Permanente:")
+        objetivo = st.text_area("Objetivo de la Semana:")
+
+    if st.button("🚀 Generar Planeación Estructurada"):
+        prompt = f"""Actúa como experto pedagogo CONAFE. Genera la planeación de Lunes a Viernes para {nivel}.
+        Tema UAA: {tema_interes} | Materias post-receso: {materias_extra} | Rincón: {rincón}.
+        Usa el formato de tabla con '|'. NO USES ASTERISCOS.
         
-        IMPORTANTE: Para cada día, los primeros 3 registros de la tabla DEBEN ser:
-        1. Bienvenida | Propon una dinámica lúdica específica | Ninguno o materiales simples | 10 min
-        2. Pase de Lista | Propon una temática creativa para el pase de lista | Lista de asistencia | 5 min
-        3. Regalo de Lectura | Propon un título de cuento o texto y cómo leerlo | Libro o lectura sugerida | 15 min
+        ESTRUCTURA DIARIA OBLIGATORIA:
+        1. BIENVENIDA | Propon dinámica lúdica específica | Varios | 10 min
+        2. PASE DE LISTA | Propon temática creativa diaria | Lista | 5 min
+        3. REGALO DE LECTURA | Título de texto y estrategia de mediación | Libro | 15 min
+        4. RELACIÓN TUTORA | Desarrollo en el rincón {rincón} con una estación de trabajo sobre {tema_interes} | Material rincón | 90 min
+        5. RECESO | Tiempo de alimentación y juego libre | Alimentos | 30 min
+        6. BLOQUE ASIGNATURAS | Desarrolla temas y ACTIVIDADES PRÁCTICAS de {materias_extra}. Si es matemáticas, incluye ejemplos de ejercicios | Cuadernos, pizarrón | 90 min
+        7. PUESTA EN COMÚN | Reflexión de lo aprendido | Cuaderno | 20 min
         
-        Luego continua con: Estación de trabajo en {rincón}, Relación Tutora y Cierre.
-        Al final agrega enlaces de YouTube y Google para que el educador estudie sobre {tema}."""
+        Al final agrega 'Caja de Herramientas' con enlaces para el educador."""
         
         resultado = llamar_ia(prompt)
         st.markdown(resultado)
-        st.download_button("📥 Descargar Word con Tabla", generar_word_tabla("PLANEACIÓN SEMANAL", resultado, datos_id), "Planeacion.docx")
+        st.download_button("📥 Descargar Planeación (Word)", generar_word_tabla("PLANEACIÓN SEMANAL", resultado, datos_id), "Planeacion.docx")
