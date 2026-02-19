@@ -3,17 +3,14 @@ import requests
 from io import BytesIO
 from docx import Document
 
-# 1. Configuración de Estilo y Modo Oscuro
+# 1. Configuración de Estilo Oscuro
 st.set_page_config(page_title="Profe.Educa ABCD", page_icon="🍎", layout="wide")
 
 st.markdown("""
     <style>
-    /* Fondo oscuro y fuentes */
     .stApp { background-color: #0e1117; color: #ffffff; }
     .stSidebar { background-color: #1a1c24; }
     h1, h2, h3 { color: #00d4ff !important; }
-    
-    /* Botones personalizados */
     .stButton>button {
         width: 100%;
         border-radius: 10px;
@@ -23,115 +20,97 @@ st.markdown("""
         border: none;
         padding: 10px;
     }
-    
-    /* Inputs y Textareas */
-    textarea { background-color: #262730 !important; color: white !important; }
-    input { background-color: #262730 !important; color: white !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. Navegación Lateral
+# 2. Navegación y Datos en el Sidebar
 with st.sidebar:
     st.title("🍎 Profe.Educa")
-    st.markdown("---")
-    opcion = st.radio("MENÚ DE NAVEGACIÓN:", 
-                      ["🏠 Inicio", "📅 Planeación Semanal", "✍️ Texto Reflexivo Diario", "📊 Evaluación Trimestral"])
+    opcion = st.radio("MENÚ:", ["🏠 Inicio", "📅 Planeación Semanal", "✍️ Texto Reflexivo Diario", "📊 Evaluación"])
     
     st.divider()
-    st.subheader("📍 Datos Generales")
+    st.subheader("📍 Datos de Identificación")
     comunidad = st.text_input("Comunidad")
     nombre_ec = st.text_input("Educador Comunitario")
-    eca = st.text_input("ECA (Acompañamiento)")
-    fecha_hoy = st.date_input("Fecha de hoy")
+    eca = st.text_input("ECA")
+    
+    # NUEVO: Selección de Nivel Educativo
+    nivel = st.selectbox("Nivel Educativo:", [
+        "Preescolar", 
+        "Primaria 1º", "Primaria 2º", "Primaria 3º", "Primaria 4º", "Primaria 5º", "Primaria 6º",
+        "Secundaria 1º", "Secundaria 2º", "Secundaria 3º", "Secundaria 4º", "Secundaria 5º"
+    ])
+    fecha_hoy = st.date_input("Fecha")
 
-# 3. Función para llamar a Gemini (Extensivo)
+# 3. Función de IA (Extensiva)
 def llamar_gemini(prompt):
     api_key = st.secrets["GEMINI_API_KEY"]
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.7, "maxOutputTokens": 4000} # Aumentado para textos largos
+        "generationConfig": {"temperature": 0.7, "maxOutputTokens": 4096}
     }
     try:
         res = requests.post(url, json=payload, headers={'Content-Type': 'application/json'})
         return res.json()['candidates'][0]['content']['parts'][0]['text']
     except:
-        return "⚠️ Error de conexión con la IA."
+        return "⚠️ Error al conectar con la IA."
 
-# --- SECCIÓN 🏠 INICIO ---
+# --- Lógica de Secciones ---
+
 if opcion == "🏠 Inicio":
-    st.header("¡Bienvenido, Profe!")
-    st.subheader("Sistema Inteligente de Gestión ABCD")
-    st.markdown(f"""
-    Hola **{nombre_ec if nombre_ec else "Colega"}**, esta herramienta está diseñada para facilitar tu labor docente.
-    
-    - **📅 Planeación:** Organiza tus temas, tiempos y trayectorias.
-    - **✍️ Reflexión Diaria:** Captura lo que sucede en el tutoría o estaciones.
-    - **📊 Evaluación:** Genera reportes profundos basados en tus reflexiones diarias.
-    """)
-    st.info("Utiliza el menú de la izquierda para navegar por las secciones.")
+    st.header(f"¡Bienvenido, Profe!")
+    st.write(f"Nivel actual configurado: **{nivel}**")
+    st.info("Configura tus datos en el menú lateral y selecciona una herramienta para comenzar.")
 
-# --- SECCIÓN 📅 PLANEACIÓN ---
 elif opcion == "📅 Planeación Semanal":
-    st.header("🗓️ Planeación Semanal ABCD")
-    
+    st.header(f"🗓️ Planeación: {nivel}")
     col1, col2 = st.columns(2)
     with col1:
         tema_semana = st.text_input("Tema de la semana")
-        tiempos = st.text_input("Tiempos pedagógicos (IE)", "8:00 AM - 2:30 PM")
+        tiempos = st.text_input("Horario IE", "8:00 AM - 2:30 PM")
     with col2:
-        trayectorias = st.text_area("Trayectorias Educativas (Ingresa los niveles o metas de los alumnos)")
+        trayectorias = st.text_area("Trayectorias Educativas del alumno")
 
-    if st.button("Generar Planeación Completa"):
+    if st.button("Generar Planeación ABCD"):
         prompt = f"""
-        Actúa como experto CONAFE. Genera una PLANEACIÓN extensa para la comunidad {comunidad}.
-        EDUCADOR: {nombre_ec} | ECA: {eca} | FECHA: {fecha_hoy}
+        Actúa como experto CONAFE. Genera una PLANEACIÓN ABCD EXTENSA para el nivel {nivel}.
+        COMUNIDAD: {comunidad} | EDUCADOR: {nombre_ec} | ECA: {eca}
         TEMA: {tema_semana} | TIEMPOS: {tiempos} | TRAYECTORIAS: {trayectorias}
         
-        Desglosa: Objetivo General, Cronograma Lunes-Viernes, Rincones/Estaciones sugeridos y 
-        cómo vincular las trayectorias mencionadas con el modelo ABCD.
+        Adecua el lenguaje y los desafíos al nivel {nivel}. 
+        Incluye: Objetivo, Cronograma Lunes-Viernes y Rincones de aprendizaje específicos.
         """
         resultado = llamar_gemini(prompt)
-        st.session_state.temp_content = resultado
         st.markdown(resultado)
 
-# --- SECCIÓN ✍️ REFLEXIÓN DIARIA ---
 elif opcion == "✍️ Texto Reflexivo Diario":
-    st.header("✍️ Texto Reflexivo (Bitácora Diaria)")
-    st.info("Captura tus observaciones sobre los aprendizajes en tutoría, rincones o estaciones.")
-    
-    notas_dia = st.text_area("¿Qué observaste hoy con tus alumnos?", height=200,
-                             placeholder="Ej: Durante la tutoría en el rincón de matemáticas, Luis logró entender la suma...")
+    st.header(f"✍️ Bitácora Diaria: {nivel}")
+    notas_dia = st.text_area("Notas breves de lo observado hoy:", height=200)
 
     if st.button("Redactar Reflexión Profunda"):
         prompt = f"""
-        Genera un TEXTO REFLEXIVO DIARIO EXTENSO (mínimo 1.5 a 2 páginas de contenido teórico-práctico).
-        BASADO EN: '{notas_dia}'
-        COMUNIDAD: {comunidad} | EDUCADOR: {nombre_ec} | FECHA: {fecha_hoy}
+        Genera un TEXTO REFLEXIVO DIARIO MUY EXTENSO (2 a 2.5 páginas).
+        NIVEL: {nivel} | COMUNIDAD: {comunidad} | EDUCADOR: {nombre_ec}
+        NOTAS DEL DÍA: '{notas_dia}'
         
-        Usa terminología del Modelo ABCD: diálogo, aprendizaje autónomo, relación tutora, metacognición.
-        Analiza cómo el alumno interactuó en las estaciones o rincones. Debe ser una narrativa profesional y profunda.
+        Usa terminología ABCD: relación tutora, diálogo, autonomía. Analiza el proceso de aprendizaje 
+        específicamente para un alumno de {nivel}. Sé muy detallado en la narrativa pedagógica.
         """
         resultado = llamar_gemini(prompt)
-        st.session_state.temp_content = resultado
         st.markdown(resultado)
 
-# --- SECCIÓN 📊 EVALUACIÓN ---
-elif opcion == "📊 Evaluación Trimestral":
-    st.header("📊 Texto Evaluatorio Trimestral")
-    st.info("Este documento une tus reflexiones diarias para dar un veredicto del avance del alumno.")
-    
-    resumen_notas = st.text_area("Pega aquí un resumen de tus reflexiones diarias o notas clave de los últimos meses:")
+elif opcion == "📊 Evaluación":
+    st.header(f"📊 Evaluación de Proceso: {nivel}")
+    resumen = st.text_area("Notas acumuladas del trimestre:")
 
-    if st.button("Generar Evaluación de Proceso"):
+    if st.button("Generar Texto Evaluatorio"):
         prompt = f"""
-        Actúa como supervisor pedagógico CONAFE. Genera un TEXTO EVALUATORIO extenso.
-        CONTEXTO: {comunidad} | EDUCADOR: {nombre_ec}
-        NOTAS DEL PROCESO: {resumen_notas}
+        Genera un TEXTO EVALUATORIO TRIMESTRAL extenso para {nivel}.
+        EDUCADOR: {nombre_ec} | COMUNIDAD: {comunidad}
+        NOTAS ACUMULADAS: {resumen}
         
-        Analiza el avance trimestral del alumno, los logros en su trayectoria educativa, 
-        el nivel de autonomía alcanzado y áreas de oportunidad. El texto debe ser muy formal y detallado.
+        Evalúa el avance en la trayectoria educativa, la autonomía y el dominio del modelo ABCD.
         """
         resultado = llamar_gemini(prompt)
-        st.session_state.temp_content = resultado
         st.markdown(resultado)
