@@ -21,16 +21,15 @@ supabase = conectar_supabase()
 if supabase:
     st.success("✅ Conexión con la base de datos establecida.")
 
-# 3. Función de IA corregida (Sin errores de espacios ni URL)
+# 3. Función de IA - VERSIÓN ESTABLE v1
 def generar_planeacion(tema):
-    # Verificación de llave
     if "GEMINI_API_KEY" not in st.secrets:
         return "Error: No se encontró la GEMINI_API_KEY en Secrets."
 
     api_key = st.secrets["GEMINI_API_KEY"]
     
-    # URL estable v1beta para evitar Error 404 con gemini-1.5-flash
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    # URL CAMBIADA A v1 (La versión estable que pide el error 404)
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
     
     headers = {'Content-Type': 'application/json'}
     payload = {
