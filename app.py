@@ -12,9 +12,10 @@ try:
     
     # Conectamos a la IA (Ajuste para evitar el error 404)
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    # Usamos gemini-1.5-flash-latest por ser la más estable actualmente
-    model = genai.GenerativeModel('gemini-1.5-flash-latest')
+    # Usamos gemini-1.5-flash por ser la más compatible
+    model = genai.GenerativeModel('gemini-1.5-flash')
 except Exception as e:
+    # Ahora 'st' ya está definido por set_page_config
     st.error(f"⚠️ Error en la conexión inicial: {e}")
     st.stop()
 
@@ -42,7 +43,7 @@ resultado = st.text_area("Resultado de la IA:", value=st.session_state.get('prop
 if st.button("Guardar Planeación"):
     try:
         supabase.table("planeaciones").insert({"meta_semana": resultado}).execute()
-        st.success("✅ ¡Planeación guardada con éxito en la nube!")
+        st.success("✅ ¡Planeación guardada con éxito!")
         st.balloons()
     except Exception as e:
-        st.error(f"Error al guardar en Supabase: {e}")
+        st.error(f"Error al guardar: {e}")
