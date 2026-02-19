@@ -2,7 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 from supabase import create_client
 
-# 1. CONFIGURACIÓN DE PÁGINA (Debe ser lo primero)
+# 1. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="Profe.Educa IA", page_icon="🍎")
 
 # 2. CONEXIÓN SEGURA A MOTORES
@@ -10,10 +10,13 @@ try:
     # Conexión Supabase
     supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
     
-    # Conexión Gemini
+    # Conexión Gemini (Ajuste para evitar error 404)
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    # Usamos la versión 'latest' para asegurar compatibilidad
-    model = genai.GenerativeModel('gemini-1.5-flash-latest') 
+    
+    # Forzamos el uso de la versión estable 1.5-flash
+    model = genai.GenerativeModel(
+        model_name="gemini-1.5-flash"
+    ) 
 except Exception as e:
     st.error(f"⚠️ Error de configuración: {e}")
     st.stop()
@@ -26,9 +29,16 @@ with st.expander("🤖 Asistente de IA (Tutoría CONAFE)", expanded=True):
     if st.button("Generar Desafío ABCD"):
         with st.spinner("La IA está diseñando la tutoría..."):
             try:
+                # Prompt optimizado para el modelo ABCD
                 prompt = f"Actúa como un experto en el Modelo ABCD de CONAFE. Para el tema '{tema}', genera un desafío inicial, una meta y una ruta de diálogo."
+                
+                # Llamada directa
                 res = model.generate_content(prompt)
-                st.session_state['propuesta'] = res.text
+                
+                if res.text:
+                    st.session_state['propuesta'] = res.text
+                else:
+                    st.error("La IA no pudo generar texto. Intenta con otro tema.")
             except Exception as e:
                 st.error(f"Error de la IA: {e}")
 
