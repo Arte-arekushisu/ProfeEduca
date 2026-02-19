@@ -1,0 +1,78 @@
+import streamlit as st
+from docx import Document
+from io import BytesIO
+import datetime
+
+def crear_texto_reflexivo(datos):
+    doc = Document()
+    
+    # Encabezado Institucional
+    doc.add_heading('REGISTRO DEL PROCESO DE APRENDIZAJE (TEXTO REFLEXIVO)', 0)
+    
+    # Datos de Identificación
+    table = doc.add_table(rows=2, cols=2)
+    table.cell(0,0).text = f"Educador Comunitario: {datos['ec']}"
+    table.cell(0,1).text = f"Nombre del Aprendiz: {datos['alumno']}"
+    table.cell(1,0).text = f"Comunidad: {datos['comunidad']}"
+    table.cell(1,1).text = f"Fecha: {datos['fecha']}"
+
+    doc.add_heading('Relato del Proceso de Aprendizaje', level=1)
+    
+    # Aquí la IA redacta de forma extensiva basada en las notas
+    cuerpo = f"""
+    Durante la sesión de tutoría, iniciamos el diálogo a partir del interés del aprendiz por {datos['interes']}. 
+    Se planteó el desafío inicial centrado en {datos['desafio']}, lo cual generó una reacción de {datos['reaccion_inicial']} en el alumno.
+    
+    A medida que avanzamos, el aprendiz enfrentó dificultades en {datos['dificultades']}. En este punto, como educador, 
+    intervine mediante la estrategia de {datos['estrategia_ec']}, permitiendo que el alumno descubriera por sí mismo el error. 
+    Fue gratificante observar cómo, a través del diálogo, logró llegar a la conclusión de que {datos['logro']}.
+    
+    El proceso concluyó con una reflexión sobre lo aprendido, donde el aprendiz manifestó sentirse {datos['sentimiento_alumno']} 
+    y mostró disposición para tutorar este tema a otros compañeros en las próximas jornadas.
+    """
+    
+    p = doc.add_paragraph(cuerpo)
+    
+    # Firma
+    doc.add_paragraph("\n\n__________________________\nFirma del Educador")
+
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+    return buffer
+
+# --- INTERFAZ DEL GENERADOR ---
+st.title("✍️ Generador de Textos Reflexivos")
+st.write("Convierte tus notas rápidas en un relato pedagógico de una cuartilla.")
+
+with st.form("form_reflexivo"):
+    col1, col2 = st.columns(2)
+    with col1:
+        ec = st.text_input("Nombre del Educador")
+        alumno = st.text_input("Nombre del Alumno")
+        fecha = st.date_input("Fecha de la sesión", datetime.date.today())
+    with col2:
+        comunidad = st.text_input("Comunidad")
+        interes = st.text_input("¿Qué tema le interesó al niño?")
+
+    st.subheader("📝 Notas del Proceso (Anotaciones rápidas)")
+    desafio = st.text_area("¿Cuál fue el desafío que le pusiste?")
+    reaccion = st.text_input("¿Cómo reaccionó al principio? (Ej: Dudoso, emocionado)")
+    dificultad = st.text_area("¿En qué se trabó o qué le costó trabajo?")
+    estrategia = st.text_area("¿Qué pista o pregunta le hiciste tú para ayudarlo?")
+    logro = st.text_area("¿Qué logró entender al final?")
+    sentimiento = st.selectbox("¿Cómo se sintió el alumno al final?", ["Motivado", "Satisfecho", "Con ganas de aprender más", "Seguro"])
+
+    enviar = st.form_submit_button("Redactar Texto Reflexivo")
+
+if enviar:
+    datos_reflexion = {
+        "ec": ec, "alumno": alumno, "fecha": fecha, "comunidad": comunidad,
+        "interes": interes, "desafio": desafio, "reaccion_inicial": reaccion,
+        "dificultades": dificultad, "estrategia_ec": estrategia, 
+        "logro": logro, "sentimiento_alumno": sentimiento
+    }
+    
+    archivo = crear_texto_reflexivo(datos_reflexion)
+    st.success("¡Texto reflexivo redactado! Tiene la extensión ideal de una página.")
+    st.download_button("📥 Descargar Texto Reflexivo (.docx)", data=archivo, file_name=f"Reflexion_{alumno}.docx")
