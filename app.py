@@ -29,8 +29,8 @@ def generar_planeacion(tema):
 
     api_key = st.secrets["GEMINI_API_KEY"]
     
-    # URL estable v1 para evitar Error 404
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
+    # URL estable v1beta para evitar Error 404 con gemini-1.5-flash
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
     
     headers = {'Content-Type': 'application/json'}
     payload = {
