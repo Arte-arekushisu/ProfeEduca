@@ -21,20 +21,20 @@ supabase = conectar_supabase()
 if supabase:
     st.success("✅ Conexión con la base de datos establecida.")
 
-# 3. Función de IA - VERSIÓN ESTABLE v1 (La que nos pidió el error)
+# 3. Función de IA - Versión de compatibilidad total
 def generar_planeacion(tema):
     if "GEMINI_API_KEY" not in st.secrets:
         return "Error: No se encontró la GEMINI_API_KEY en Secrets."
 
     api_key = st.secrets["GEMINI_API_KEY"]
     
-    # URL apuntando a v1 para eliminar el error 404
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
+    # URL con v1beta y nombre de modelo explícito
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
     
     headers = {'Content-Type': 'application/json'}
     payload = {
         "contents": [{
-            "parts": [{"text": f"Actúa como experto en el Modelo ABCD de CONAFE. Genera una planeación para el tema: {tema}. Incluye un desafío, una meta y una ruta de aprendizaje."}]
+            "parts": [{"text": f"Actúa como experto en el Modelo ABCD de CONAFE. Genera una planeación pedagógica para el tema: {tema}. Incluye desafío, meta y ruta de aprendizaje."}]
         }]
     }
     
