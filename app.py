@@ -18,7 +18,7 @@ st.set_page_config(page_title="Profe.Educa", layout="wide", page_icon="🍎")
 st.sidebar.title("🍎 Profe.Educa")
 menu = st.sidebar.radio("Menú Principal", ["Inicio", "Planeación Semanal", "Texto Reflexivo Diario", "Evaluación Trimestral", "Admin"])
 
-# --- 3. MÓDULO: PLANEACIÓN SEMANAL (CON GUARDADO) ---
+# --- 3. MÓDULO: PLANEACIÓN SEMANAL (CON GUARDADO Y WORD) ---
 if menu == "Planeación Semanal":
     st.title("📋 Planeación de Trayectos")
     with st.form("form_p"):
@@ -48,6 +48,7 @@ if menu == "Planeación Semanal":
                 # 2. Generar Word
                 doc = Document()
                 doc.add_heading('PLANEACIÓN CONAFE', 0)
+                doc.add_paragraph(f"Fecha: {datetime.date.today()}")
                 doc.add_paragraph(f"EC: {ec}")
                 doc.add_paragraph(f"Acompañante: {eca}")
                 doc.add_paragraph(f"Meta: {meta}")
@@ -83,14 +84,13 @@ elif menu == "Evaluación Trimestral":
             if res.data:
                 st.write(f"Se encontraron {len(res.data)} registros:")
                 df = pd.DataFrame(res.data)
-                # Limpiamos un poco el formato de fecha para que se vea bien
                 df['created_at'] = pd.to_datetime(df['created_at']).dt.date
                 st.table(df[['created_at', 'alumno_nombre', 'contenido_reflexivo']])
             else:
                 st.warning("No se encontraron registros para ese nombre.")
 
     with tab2:
-        if st.button("Cargar Planeaciones Guardadas"):
+        if st.button("Actualizar Lista de Planeaciones"):
             res_p = supabase.table("planeaciones").select("*").execute()
             if res_p.data:
                 st.dataframe(pd.DataFrame(res_p.data))
