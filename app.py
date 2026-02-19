@@ -21,23 +21,22 @@ supabase = conectar_supabase()
 if supabase:
     st.success("✅ Conexión con la base de datos establecida.")
 
-# 3. Función de IA corregida (v1beta + variable definida)
+# 3. Función de IA corregida (Sin errores de espacios ni URL)
 def generar_planeacion(tema):
-    # Definimos la llave justo antes de usarla para evitar el error de "not defined"
+    # Verificación de llave
     if "GEMINI_API_KEY" not in st.secrets:
         return "Error: No se encontró la GEMINI_API_KEY en Secrets."
 
-     # Línea 30: Asegúrate de que tenga 4 espacios al inicio
     api_key = st.secrets["GEMINI_API_KEY"]
     
-    # Línea 32: Cámbiala a esta versión v1 exacta
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
-    # Línea 32 alineada con 4 espacios y usando v1
+    # URL estable v1 para evitar Error 404
     url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
     
     headers = {'Content-Type': 'application/json'}
     payload = {
-        "contents": [{"parts": [{"text": f"Actúa como tutor CONAFE experto en el Modelo ABCD. Crea una planeación para el tema: {tema}. Incluye desafío, meta y ruta."}]}]
+        "contents": [{
+            "parts": [{"text": f"Actúa como tutor CONAFE experto en el Modelo ABCD. Crea una planeación para el tema: {tema}. Incluye desafío, meta y ruta de aprendizaje."}]
+        }]
     }
     
     try:
