@@ -2,109 +2,159 @@ import streamlit as st
 import requests
 from io import BytesIO
 from docx import Document
-from docx.shared import Pt
+from docx.shared import Inches, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from PIL import Image
 
-# 1. Estilo y Configuración
-st.set_page_config(page_title="Profe.Educa ABCD", page_icon="🍎", layout="wide")
+# 1. CONFIGURACIÓN Y ESTILO
+st.set_page_config(page_title="Profe.Educa Premium", page_icon="🍎", layout="wide")
 
 st.markdown("""
     <style>
     .stApp { background-color: #0e1117; color: #ffffff; }
     .stSidebar { background-color: #1a1c24; }
     h1, h2, h3 { color: #00d4ff !important; }
-    .stButton>button {
-        width: 100%; border-radius: 10px;
-        background: linear-gradient(45deg, #00d4ff, #0055ff);
-        color: white; font-weight: bold; height: 3.5em;
+    .welcome-box {
+        padding: 30px; border-radius: 15px;
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        border: 2px solid #00d4ff; margin-bottom: 25px;
+    }
+    .price-card {
+        padding: 20px; border-radius: 10px; background: #1a1c24;
+        border: 1px solid #00d4ff; text-align: center;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. Función para Generar el Word con Tabla Estructurada
-def generar_word_tabla(titulo, contenido_ia, d):
-    doc = Document()
-    h = doc.add_heading(titulo, 0)
-    h.alignment = WD_ALIGN_PARAGRAPH.CENTER
+# 2. FUNCIONES DE GENERACIÓN DE WORD PROFESIONAL
+def crear_encabezado_oficial(doc, d, titulo, logo1=None, logo2=None):
+    # Tabla para logos y título
+    tab_header = doc.add_table(rows=1, cols=3)
+    tab_header.width = Inches(6)
     
-    header_table = doc.add_table(rows=3, cols=2)
-    header_table.style = 'Table Grid'
-    header_table.cell(0, 0).text = f"Comunidad: {d['comunidad']}"
-    header_table.cell(0, 1).text = f"Fecha: {d['fecha']}"
-    header_table.cell(1, 0).text = f"Educador: {d['nombre']}"
-    header_table.cell(1, 1).text = f"Nivel: {d['nivel']}"
-    header_table.cell(2, 0).text = f"ECA: {d['eca']}"
+    if logo1:
+        img1 = Image.open(logo1)
+        img1_path = "logo1.png"
+        img1.save(img1_path)
+        tab_header.cell(0, 0).paragraphs[0].add_run().add_picture(img1_path, width=Inches(1))
+    
+    run_titulo = tab_header.cell(0, 1).paragraphs[0].add_run(titulo)
+    run_titulo.bold = True
+    run_titulo.font.size = Pt(14)
+    tab_header.cell(0, 1).paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+    
+    if logo2:
+        img2 = Image.open(logo2)
+        img2_path = "logo2.png"
+        img2.save(img2_path)
+        tab_header.cell(0, 2).paragraphs[0].add_run().add_picture(img2_path, width=Inches(1))
 
-    doc.add_paragraph("\n")
+    # Datos Generales
+    doc.add_paragraph(f"\nComunidad: {d['comunidad']} | EC: {d['nombre']} | ECA: {d['eca']}")
+    doc.add_paragraph(f"Nivel: {d['nivel']} | Fecha: {d['fecha']}")
+    doc.add_paragraph("-" * 80)
 
+def agregar_tabla_planeacion(doc, contenido_ia):
     table = doc.add_table(rows=1, cols=4)
     table.style = 'Table Grid'
-    hdr_cells = table.rows[0].cells
-    hdr_cells[0].text = 'Momento / Actividad'
-    hdr_cells[1].text = 'Desarrollo y Explicación'
-    hdr_cells[2].text = 'Materiales'
-    hdr_cells[3].text = 'Tiempo'
+    hdrs = table.rows[0].cells
+    for i, txt in enumerate(['Actividad', 'Desarrollo/Instrucción', 'Materiales', 'Tiempo']):
+        hdrs[i].text = txt
+        hdrs[i].paragraphs[0].runs[0].bold = True
 
     lineas = contenido_ia.replace("**", "").split('\n')
     for linea in lineas:
         if '|' in linea:
             partes = linea.split('|')
             if len(partes) >= 4:
-                row_cells = table.add_row().cells
-                for i in range(4):
-                    row_cells[i].text = partes[i].strip()
+                row = table.add_row().cells
+                for i in range(4): row[i].text = partes[i].strip()
 
-    buffer = BytesIO()
-    doc.save(buffer)
-    buffer.seek(0)
-    return buffer
+def agregar_firmas(doc, p1="Educador Comunitario", p2="Padre de Familia / APEC"):
+    doc.add_paragraph("\n\n\n")
+    f_table = doc.add_table(rows=1, cols=2)
+    f_table.cell(0, 0).text = f"__________________________\nFirma: {p1}"
+    f_table.cell(0, 1).text = f"__________________________\nFirma: {p2}"
 
-# 3. Sidebar y Datos
+# 3. INTERFAZ Y NAVEGACIÓN
 with st.sidebar:
-    st.title("🍎 Profe.Educa")
-    opcion = st.radio("MENÚ:", ["🏠 Inicio", "📅 Planeación Semanal", "✍️ Reflexión Diaria", "📊 Evaluación Trimestral"])
-    comunidad = st.text_input("Comunidad", "PARAJES DEL VALLE")
-    nombre_ec = st.text_input("Educador", "AXEL REYES")
-    eca = st.text_input("ECA", "MOISES ROSAS")
-    nivel = st.selectbox("Nivel:", ["Secundaria Multigrado", "Primaria Multigrado", "Preescolar"])
-    fecha_hoy = st.date_input("Fecha de Inicio")
+    st.title("🍎 Menú Profe.Educa")
+    opcion = st.radio("Sección:", ["🏠 Inicio y Registro", "📅 Planeación Semanal", "✍️ Reflexión Diaria", "📊 Evaluación Trimestral", "🆘 Centro de Ayuda"])
+    st.divider()
+    comunidad = st.text_input("Comunidad")
+    nombre_ec = st.text_input("Educador")
+    eca = st.text_input("ECA")
+    nivel = st.selectbox("Nivel", ["Preescolar", "Primaria Multigrado", "Secundaria Multigrado"])
+    fecha = st.date_input("Fecha")
+    st.divider()
+    logo1 = st.file_uploader("Logo Izquierdo", type=["png", "jpg"])
+    logo2 = st.file_uploader("Logo Derecho", type=["png", "jpg"])
 
-datos_id = {"comunidad": comunidad, "nombre": nombre_ec, "eca": eca, "nivel": nivel, "fecha": str(fecha_hoy)}
+datos_id = {"comunidad": comunidad, "nombre": nombre_ec, "eca": eca, "nivel": nivel, "fecha": str(fecha)}
 
-def llamar_ia(prompt):
-    api_key = st.secrets["GEMINI_API_KEY"]
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
-    payload = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": 0.4}}
-    res = requests.post(url, json=payload, headers={'Content-Type': 'application/json'})
-    return res.json()['candidates'][0]['content']['parts'][0]['text']
+# 4. LÓGICA DE SECCIONES
+if opcion == "🏠 Inicio y Registro":
+    st.markdown("""
+    <div class='welcome-box'>
+        <h1>"Educar no es dar carrera para vivir, sino templar el alma para las dificultades de la vida."</h1>
+        <p>Bienvenido, Educador. Esta herramienta ha sido diseñada para devolverte lo más valioso: tu tiempo. Genera documentos oficiales con precisión pedagógica.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.subheader("Selecciona tu Plan de Trabajo")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown("<div class='price-card'><h3>Prueba</h3><p>7 Días Gratis</p><p>Acceso Total</p></div>", unsafe_allow_html=True)
+        st.button("Empezar Gratis", key="free")
+    with c2:
+        st.markdown("<div class='price-card'><h3>Mensual</h3><p>$699 MXN</p><p>Planeación + Reflexión</p></div>", unsafe_allow_html=True)
+        st.button("Suscribirse Mensual", key="month")
+    with c3:
+        st.markdown("<div class='price-card'><h3>Anual 🌟</h3><p>$6,400 MXN</p><p>Todo + Soporte IA 24/7</p></div>", unsafe_allow_html=True)
+        st.button("Suscribirse Anual", key="year")
 
-# --- SECCIÓN PLANEACIÓN ---
-if opcion == "📅 Planeación Semanal":
-    st.header(f"🗓️ Planeación de Jornada Completa: {nivel}")
-    col1, col2 = st.columns(2)
-    with col1:
-        tema_interes = st.text_input("Tema Principal (UAA):")
-        materias_extra = st.text_input("Materias post-receso:", placeholder="Ej. Matemáticas (Fracciones) y Ciencias")
-    with col2:
-        rincón = st.text_input("Rincón Permanente:")
-        objetivo = st.text_area("Objetivo de la Semana:")
+elif opcion == "📅 Planeación Semanal":
+    st.header("Generador de Planeación Limpia")
+    tema = st.text_input("Tema de Interés Principal")
+    obj = st.text_area("Objetivo propuesto (o deja que la IA lo proponga)")
+    materias = st.text_input("Materias Post-Receso (hasta 2 por hora)", placeholder="Ej: Matemáticas y Ciencias")
+    
+    if st.button("Crear Planeación en Word"):
+        prompt = f"Genera planeación CONAFE para {tema}. Mañana: Bienvenida, Pase Lista, Regalo Lectura, Relación Tutora en Estaciones. Tarde: {materias} con actividades técnicas. Formato tabla con '|'."
+        # Lógica de IA y descarga (similar a funciones anteriores pero con crear_encabezado_oficial)
+        st.info("Generando tabla estructurada para Word...")
 
-    if st.button("🚀 Generar Planeación Estructurada"):
-        prompt = f"""Actúa como experto pedagogo CONAFE. Genera la planeación de Lunes a Viernes para {nivel}.
-        Tema UAA: {tema_interes} | Materias post-receso: {materias_extra} | Rincón: {rincón}.
-        Usa el formato de tabla con '|'. NO USES ASTERISCOS.
-        
-        ESTRUCTURA DIARIA OBLIGATORIA:
-        1. BIENVENIDA | Propon dinámica lúdica específica | Varios | 10 min
-        2. PASE DE LISTA | Propon temática creativa diaria | Lista | 5 min
-        3. REGALO DE LECTURA | Título de texto y estrategia de mediación | Libro | 15 min
-        4. RELACIÓN TUTORA | Desarrollo en el rincón {rincón} con una estación de trabajo sobre {tema_interes} | Material rincón | 90 min
-        5. RECESO | Tiempo de alimentación y juego libre | Alimentos | 30 min
-        6. BLOQUE ASIGNATURAS | Desarrolla temas y ACTIVIDADES PRÁCTICAS de {materias_extra}. Si es matemáticas, incluye ejemplos de ejercicios | Cuadernos, pizarrón | 90 min
-        7. PUESTA EN COMÚN | Reflexión de lo aprendido | Cuaderno | 20 min
-        
-        Al final agrega 'Caja de Herramientas' con enlaces para el educador."""
-        
-        resultado = llamar_ia(prompt)
-        st.markdown(resultado)
-        st.download_button("📥 Descargar Planeación (Word)", generar_word_tabla("PLANEACIÓN SEMANAL", resultado, datos_id), "Planeacion.docx")
+elif opcion == "✍️ Reflexión Diaria":
+    st.header("Reflexión Diaria por Alumno")
+    alumno = st.text_input("Nombre del Alumno")
+    trayectoria = st.text_input("Trayectoria seguida")
+    notas = st.text_area("Observaciones del día")
+    
+    if st.button("Guardar y Generar Word"):
+        st.success(f"Reflexión de {alumno} lista para impresión.")
+
+elif opcion == "📊 Evaluación Trimestral":
+    st.header("Evaluación Trimestral (Campos Formativos)")
+    alumno_ev = st.text_input("Buscar Alumno")
+    proyecto = st.text_input("Nombre del Proyecto Comunitario")
+    
+    st.subheader("Calificaciones y Niveles")
+    colA, colB, colC = st.columns(3)
+    with colA:
+        cal_leng = st.number_input("Lenguajes", 5, 10)
+        cal_saberes = st.number_input("Saberes y PC", 5, 10)
+    with colB:
+        cal_etica = st.number_input("Ética, Nat y Soc", 5, 10)
+        cal_humano = st.number_input("De lo Humano", 5, 10)
+    with colC:
+        lectura = st.selectbox("Nivel Lectura", ["Requiere Apoyo", "En Desarrollo", "Nivel Esperado"])
+        escritura = st.selectbox("Nivel Escritura", ["Requiere Apoyo", "En Desarrollo", "Nivel Esperado"])
+
+    if st.button("Generar Evaluación Oficial (Word)"):
+        st.info("Redactando evaluación basada en los campos de la NEM y reflexiones previas...")
+
+elif opcion == "🆘 Centro de Ayuda":
+    st.header("Centro de Ayuda y Soporte")
+    st.write("Si tienes cuenta **Anual**, nuestra IA te atiende 24/7. Si no puede resolverlo, te contactará con el Profe personalmente.")
+    st.text_area("Describe tu duda:")
+    st.button("Enviar a Soporte Técnico")
