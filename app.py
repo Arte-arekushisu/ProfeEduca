@@ -27,8 +27,10 @@ def generar_planeacion(tema):
     if "GEMINI_API_KEY" not in st.secrets:
         return "Error: No se encontró la GEMINI_API_KEY en Secrets."
     
-  api_key = st.secrets["GEMINI_API_KEY"]
-    # URL actualizada a la versión estable v1
+  # Línea 30 alineada con 4 espacios
+    api_key = st.secrets["GEMINI_API_KEY"]
+    
+    # Línea 32 alineada con 4 espacios y usando v1
     url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
     
     headers = {'Content-Type': 'application/json'}
