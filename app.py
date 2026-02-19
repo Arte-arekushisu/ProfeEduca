@@ -2,19 +2,18 @@ import streamlit as st
 import google.generativeai as genai
 from supabase import create_client
 
-# 1. CONFIGURACIÓN DE PÁGINA
+# 1. CONFIGURACIÓN DE PÁGINA (Debe ser lo primero)
 st.set_page_config(page_title="Profe.Educa IA", page_icon="🍎")
 
-# 2. CONEXIÓN A LOS MOTORES
-# Usamos un bloque try/except para evitar que la app se bloquee si falta algo
+# 2. CONEXIÓN SEGURA A MOTORES
 try:
     # Conexión Supabase
     supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
     
     # Conexión Gemini
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    # Cambiamos a 'gemini-pro' para mayor estabilidad y evitar el error 404
-    model = genai.GenerativeModel('gemini-pro') 
+    # Usamos la versión 'latest' para asegurar compatibilidad
+    model = genai.GenerativeModel('gemini-1.5-flash-latest') 
 except Exception as e:
     st.error(f"⚠️ Error de configuración: {e}")
     st.stop()
