@@ -18,9 +18,11 @@ st.set_page_config(page_title="Profe.Educa", layout="wide", page_icon="🍎")
 st.sidebar.title("🍎 Profe.Educa")
 menu = st.sidebar.radio("Menú Principal", ["Inicio", "Planeación Semanal", "Texto Reflexivo Diario", "Evaluación Trimestral", "Admin"])
 
-# --- 3. MÓDULO: PLANEACIÓN SEMANAL (CON GUARDADO Y WORD) ---
+# --- 3. MÓDULO: PLANEACIÓN SEMANAL ---
 if menu == "Planeación Semanal":
     st.title("📋 Planeación de Trayectos")
+    
+    # Creamos un contenedor para el formulario
     with st.form("form_p"):
         col1, col2 = st.columns(2)
         with col1:
@@ -31,9 +33,12 @@ if menu == "Planeación Semanal":
         meta = st.text_area("Meta de la semana")
         actividades = st.text_area("Actividades principales")
         
-        enviar = st.form_submit_button("Guardar y Generar Word")
-        
-        if enviar:
+        # El botón del formulario SOLO sirve para procesar los datos
+        enviar = st.form_submit_button("Guardar Planeación")
+    
+    # ESTO VA FUERA DEL FORMULARIO para evitar el error rojo
+    if enviar:
+        try:
             # 1. Guardar en Supabase
             data_p = {
                 "educador_nombre": ec,
@@ -41,25 +46,31 @@ if menu == "Planeación Semanal":
                 "meta_semana": meta,
                 "actividades": actividades
             }
-            try:
-                supabase.table("planeaciones").insert(data_p).execute()
-                st.success("✅ Planeación guardada en la base de datos")
-                
-                # 2. Generar Word
-                doc = Document()
-                doc.add_heading('PLANEACIÓN CONAFE', 0)
-                doc.add_paragraph(f"Fecha: {datetime.date.today()}")
-                doc.add_paragraph(f"EC: {ec}")
-                doc.add_paragraph(f"Acompañante: {eca}")
-                doc.add_paragraph(f"Meta: {meta}")
-                doc.add_paragraph(f"Actividades: {actividades}")
-                
-                buffer = BytesIO()
-                doc.save(buffer)
-                buffer.seek(0)
-                st.download_button("📥 Descargar Archivo Word", buffer, f"Planeacion_{ec}.docx")
-            except Exception as e:
-                st.error(f"Error al guardar: {e}")
+            supabase.table("planeaciones").insert(data_p).execute()
+            st.success("✅ Planeación guardada en la base de datos")
+            
+            # 2. Preparar el Word
+            doc = Document()
+            doc.add_heading('PLANEACIÓN CONAFE', 0)
+            doc.add_paragraph(f"Fecha: {datetime.date.today()}")
+            doc.add_paragraph(f"EC: {ec}")
+            doc.add_paragraph(f"Acompañante: {eca}")
+            doc.add_paragraph(f"Meta: {meta}")
+            doc.add_paragraph(f"Actividades: {actividades}")
+            
+            buffer = BytesIO()
+            doc.save(buffer)
+            buffer.seek(0)
+            
+            # El botón de descarga ahora está fuera del form y no dará error
+            st.download_button(
+                label="📥 Descargar Archivo Word",
+                data=buffer,
+                file_name=f"Planeacion_{ec}.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            )
+        except Exception as e:
+            st.error(f"Hubo un detalle: {e}")
 
 # --- 4. MÓDULO: REFLEXIÓN DIARIA ---
 elif menu == "Texto Reflexivo Diario":
