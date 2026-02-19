@@ -2,8 +2,9 @@ import streamlit as st
 import requests
 from io import BytesIO
 from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 
-# 1. Configuración de Estilo Oscuro
+# 1. Estilo Visual Dark & Inspiring
 st.set_page_config(page_title="Profe.Educa ABCD", page_icon="🍎", layout="wide")
 
 st.markdown("""
@@ -11,6 +12,16 @@ st.markdown("""
     .stApp { background-color: #0e1117; color: #ffffff; }
     .stSidebar { background-color: #1a1c24; }
     h1, h2, h3 { color: #00d4ff !important; }
+    
+    /* Caja de Bienvenida */
+    .welcome-box {
+        padding: 30px;
+        border-radius: 15px;
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        border-left: 5px solid #00d4ff;
+        margin-bottom: 25px;
+    }
+    
     .stButton>button {
         width: 100%;
         border-radius: 10px;
@@ -18,31 +29,33 @@ st.markdown("""
         color: white;
         font-weight: bold;
         border: none;
-        padding: 10px;
+        padding: 12px;
+        transition: 0.3s;
+    }
+    .stButton>button:hover {
+        transform: scale(1.02);
+        box-shadow: 0 0 15px #00d4ff;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. Navegación y Datos en el Sidebar
+# 2. Navegación y Datos (Sidebar)
 with st.sidebar:
     st.title("🍎 Profe.Educa")
-    opcion = st.radio("MENÚ:", ["🏠 Inicio", "📅 Planeación Semanal", "✍️ Texto Reflexivo Diario", "📊 Evaluación"])
+    opcion = st.radio("NAVEGACIÓN:", ["🏠 Inicio", "📅 Planeación Semanal", "✍️ Texto Reflexivo Diario", "📊 Evaluación"])
     
     st.divider()
-    st.subheader("📍 Datos de Identificación")
+    st.subheader("📍 Identificación")
     comunidad = st.text_input("Comunidad")
     nombre_ec = st.text_input("Educador Comunitario")
     eca = st.text_input("ECA")
-    
-    # NUEVO: Selección de Nivel Educativo
     nivel = st.selectbox("Nivel Educativo:", [
-        "Preescolar", 
-        "Primaria 1º", "Primaria 2º", "Primaria 3º", "Primaria 4º", "Primaria 5º", "Primaria 6º",
+        "Preescolar", "Primaria 1º", "Primaria 2º", "Primaria 3º", "Primaria 4º", "Primaria 5º", "Primaria 6º",
         "Secundaria 1º", "Secundaria 2º", "Secundaria 3º", "Secundaria 4º", "Secundaria 5º"
     ])
     fecha_hoy = st.date_input("Fecha")
 
-# 3. Función de IA (Extensiva)
+# 3. Función de IA
 def llamar_gemini(prompt):
     api_key = st.secrets["GEMINI_API_KEY"]
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
@@ -56,61 +69,54 @@ def llamar_gemini(prompt):
     except:
         return "⚠️ Error al conectar con la IA."
 
-# --- Lógica de Secciones ---
+# --- SECCIONES ---
 
 if opcion == "🏠 Inicio":
-    st.header(f"¡Bienvenido, Profe!")
-    st.write(f"Nivel actual configurado: **{nivel}**")
-    st.info("Configura tus datos en el menú lateral y selecciona una herramienta para comenzar.")
+    st.markdown(f"""
+    <div class="welcome-box">
+        <h1>¡Bienvenido a tu espacio de confianza, Profe! 🍎</h1>
+        <p style="font-size: 1.2em; color: #cbd5e1;">
+            Sabemos que tu labor en la comunidad transforma vidas. Aquí, no solo generas papeles; 
+            <b>construyes el futuro.</b> Siéntete seguro: este sistema ha sido diseñado para que 
+            cada planeación y reflexión sea impecable, pedagógicamente sólida y libre de errores.
+        </p>
+        <hr style="border-color: #334155;">
+        <p style="font-style: italic; color: #00d4ff;">
+            "La educación no cambia al mundo, cambia a las personas que van a cambiar al mundo." 
+            ¡Vamos a planear con excelencia hoy!
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Nivel", nivel)
+    col2.metric("Comunidad", comunidad if comunidad else "---")
+    col3.metric("Estatus", "Listo para trabajar")
 
 elif opcion == "📅 Planeación Semanal":
     st.header(f"🗓️ Planeación: {nivel}")
-    col1, col2 = st.columns(2)
-    with col1:
-        tema_semana = st.text_input("Tema de la semana")
-        tiempos = st.text_input("Horario IE", "8:00 AM - 2:30 PM")
-    with col2:
-        trayectorias = st.text_area("Trayectorias Educativas del alumno")
-
-    if st.button("Generar Planeación ABCD"):
-        prompt = f"""
-        Actúa como experto CONAFE. Genera una PLANEACIÓN ABCD EXTENSA para el nivel {nivel}.
-        COMUNIDAD: {comunidad} | EDUCADOR: {nombre_ec} | ECA: {eca}
-        TEMA: {tema_semana} | TIEMPOS: {tiempos} | TRAYECTORIAS: {trayectorias}
-        
-        Adecua el lenguaje y los desafíos al nivel {nivel}. 
-        Incluye: Objetivo, Cronograma Lunes-Viernes y Rincones de aprendizaje específicos.
-        """
+    tema_semana = st.text_input("Tema de la semana")
+    trayectorias = st.text_area("Trayectorias Educativas del alumno")
+    
+    if st.button("🚀 Generar Planeación"):
+        prompt = f"Genera planeación ABCD nivel {nivel} para {tema_semana} con trayectorias {trayectorias} en comunidad {comunidad}. Sé extenso y profesional."
         resultado = llamar_gemini(prompt)
         st.markdown(resultado)
 
 elif opcion == "✍️ Texto Reflexivo Diario":
-    st.header(f"✍️ Bitácora Diaria: {nivel}")
-    notas_dia = st.text_area("Notas breves de lo observado hoy:", height=200)
-
-    if st.button("Redactar Reflexión Profunda"):
-        prompt = f"""
-        Genera un TEXTO REFLEXIVO DIARIO MUY EXTENSO (2 a 2.5 páginas).
-        NIVEL: {nivel} | COMUNIDAD: {comunidad} | EDUCADOR: {nombre_ec}
-        NOTAS DEL DÍA: '{notas_dia}'
-        
-        Usa terminología ABCD: relación tutora, diálogo, autonomía. Analiza el proceso de aprendizaje 
-        específicamente para un alumno de {nivel}. Sé muy detallado en la narrativa pedagógica.
-        """
+    st.header(f"✍️ Bitácora: {nivel}")
+    notas_dia = st.text_area("¿Qué observaste hoy?", height=200)
+    
+    if st.button("🪄 Redactar Reflexión Profunda"):
+        prompt = f"Genera texto reflexivo ABCD de 2.5 páginas para {nivel} basado en: {notas_dia}. Usa lenguaje de relación tutora y diálogo."
         resultado = llamar_gemini(prompt)
         st.markdown(resultado)
 
 elif opcion == "📊 Evaluación":
-    st.header(f"📊 Evaluación de Proceso: {nivel}")
-    resumen = st.text_area("Notas acumuladas del trimestre:")
-
-    if st.button("Generar Texto Evaluatorio"):
-        prompt = f"""
-        Genera un TEXTO EVALUATORIO TRIMESTRAL extenso para {nivel}.
-        EDUCADOR: {nombre_ec} | COMUNIDAD: {comunidad}
-        NOTAS ACUMULADAS: {resumen}
-        
-        Evalúa el avance en la trayectoria educativa, la autonomía y el dominio del modelo ABCD.
-        """
+    st.header(f"📊 Evaluación: {nivel}")
+    resumen = st.text_area("Notas acumuladas:")
+    
+    if st.button("📈 Generar Evaluación"):
+        prompt = f"Genera evaluación trimestral formal para {nivel} en {comunidad} basándote en: {resumen}."
         resultado = llamar_gemini(prompt)
         st.markdown(resultado)
