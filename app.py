@@ -2,46 +2,65 @@ import streamlit as st
 import requests
 from supabase import create_client
 
-# 1. Configuración de página (Debe ser la primera línea)
+# 1. Configuración de página
 st.set_page_config(page_title="Profe.Educa IA", page_icon="🍎")
 
-# 2. Conexión segura a Base de Datos
+# 2. Conexión segura a Supabase
 @st.cache_resource
-def iniciar_db():
-    # Esto elimina el KeyError: 'SUPABASE_URL'
-    return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+def conectar_base_datos():
+    try:
+        url = st.secrets["SUPABASE_URL"]
+        key = st.secrets["SUPABASE_KEY"]
+        return create_client(url, key)
+    except Exception as e:
+        st.error(f"Error de configuración: {e}")
+        return None
 
-db = iniciar_db()
+supabase = conectar_base_datos()
 
-# 3. Función de IA estable (Evita el Error 404)
-def generar_planeacion(tema):
+# 3. Función de IA Estable (Versión v1)
+def generar_con_gemini(tema):
     api_key = st.secrets["GEMINI_API_KEY"]
-    # Ruta v1 de producción: estable y gratuita
+    # Ruta de producción estable
     url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
     
+    headers = {'Content-Type': 'application/json'}
     payload = {
         "contents": [{
-            "parts": [{"text": f"Eres experto en Modelo ABCD CONAFE. Tema: {tema}. Crea desafío, meta y ruta."}]
+            "parts": [{"text": f"Actúa como tutor CONAFE experto en el Modelo ABCD. Para el tema '{tema}', genera un desafío, una meta y una ruta de aprendizaje clara."}]
         }]
     }
     
-    response = requests.post(url, json=payload)
+    response = requests.post(url, json=payload, headers=headers)
+    
     if response.status_code == 200:
         return response.json()['candidates'][0]['content']['parts'][0]['text']
     else:
-        return f"Error técnico ({response.status_code}): {response.text}"
+        return f"Error técnico: {response.status_code}. Revisa tu clave de Gemini."
 
-# 4. Interfaz
-st.title("🍎 Planeador ABCD")
-tema = st.text_input("¿Qué tema planeamos?")
+# 4. Interfaz de Usuario
+st.title("🍎 Planeador ABCD (CONAFE)")
+st.write("Generación pedagógica gratuita y estable.")
+
+tema = st.text_input("¿Qué tema vamos a planear hoy?", placeholder="Ej: Las estaciones del año")
 
 if st.button("Generar Planeación"):
     if tema:
-        with st.spinner("Conectando con Gemini 1.5 Flash..."):
-            resultado = generar_planeacion(tema)
-            st.session_state['resultado_ia'] = resultado
-            st.markdown(resultado)
+        with st.spinner("Conectando con Gemini..."):
+            resultado = generar_con_gemini(tema)
+            st.session_state['propuesta_guardada'] = resultado
+            st.markdown("### Propuesta Generada:")
+            st.write(resultado)
+    else:
+        st.warning("Por favor, escribe un tema primero.")
 
-if 'resultado_ia' in st.session_state and st.button("Guardar en Bitácora"):
-    db.table("planeaciones").insert({"meta_semana": st.session_state['resultado_ia']}).execute()
-    st.success("✅ ¡Guardado con éxito!")
+# 5. Guardado en Supabase
+if 'propuesta_guardada' in st.session_state and st.button("Guardar en mi Bitácora"):
+    if supabase:
+        try:
+            # Asegúrate de que la columna se llame 'meta_semana' en tu tabla 'planeaciones'
+            supabase.table("planeaciones").insert({"meta_semana": st.session_state['propuesta_guardada']}).execute()
+            st.success("✅ ¡Guardado con éxito!")
+            st.balloons()
+        except Exception as e:
+            st.error(f"Error al guardar: {e}. Verifica que la tabla 'planeaciones' exista.")
