@@ -7,7 +7,7 @@ st.set_page_config(page_title="Profe.Educa IA", page_icon="🍎")
 
 st.title("🍎 Profe.Educa: Planeador ABCD")
 
-# 2. Inicialización de servicios con manejo de errores
+# 2. Inicialización de servicios
 def conectar_supabase():
     try:
         if "SUPABASE_URL" in st.secrets:
@@ -21,20 +21,20 @@ supabase = conectar_supabase()
 if supabase:
     st.success("✅ Conexión con la base de datos establecida.")
 
-# 3. Función de IA - VERSIÓN ESTABLE v1
+# 3. Función de IA - VERSIÓN ESTABLE v1 (La que nos pidió el error)
 def generar_planeacion(tema):
     if "GEMINI_API_KEY" not in st.secrets:
         return "Error: No se encontró la GEMINI_API_KEY en Secrets."
 
     api_key = st.secrets["GEMINI_API_KEY"]
     
-    # URL CAMBIADA A v1 (La versión estable que pide el error 404)
+    # URL apuntando a v1 para eliminar el error 404
     url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
     
     headers = {'Content-Type': 'application/json'}
     payload = {
         "contents": [{
-            "parts": [{"text": f"Actúa como tutor CONAFE experto en el Modelo ABCD. Crea una planeación para el tema: {tema}. Incluye desafío, meta y ruta de aprendizaje."}]
+            "parts": [{"text": f"Actúa como experto en el Modelo ABCD de CONAFE. Genera una planeación para el tema: {tema}. Incluye un desafío, una meta y una ruta de aprendizaje."}]
         }]
     }
     
