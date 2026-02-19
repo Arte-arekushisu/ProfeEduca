@@ -104,10 +104,27 @@ elif opcion == "📅 Planeación Semanal":
     obj = st.text_area("Objetivo General:")
     
     if st.button("🚀 Generar Planeación Completa"):
-        prompt = f"""Genera planeación SEMANAL CONAFE para {nivel}. Tema: {tema}. Rincón: {rincón}.
-        HORARIOS DIARIOS (8:00 a 14:00):
-        - Bienvenida, Pase de Lista, Regalo de Lectura.
-        - Relación Tutora: Propón una ESTACIÓN DE TRABAJO semanal para el rincón {rincón}.
-        CAJA DE HERRAMIENTAS:
-        - Incluye frases de búsqueda para YouTube y Google sobre {tema} para que el educador estudie.
-        - 3
+        prompt = f"Genera planeación SEMANAL CONAFE para {nivel}. Tema: {tema}. Rincón: {rincón}. HORARIOS DIARIOS (8:00 a 14:00): - Bienvenida, Pase de Lista, Regalo de Lectura. - Relación Tutora: Propón una ESTACIÓN DE TRABAJO semanal para el rincón {rincón}. CAJA DE HERRAMIENTAS: - Incluye frases de búsqueda para YouTube y Google sobre {tema} para que el educador estudie. - 3 conceptos clave. Sin asteriscos ni firmas."
+        res = llamar_ia(prompt)
+        st.markdown(res)
+        st.download_button("📥 Descargar Planeación (Word)", generar_word_limpio("PLANEACIÓN SEMANAL", res, datos_id), "Planeacion.docx")
+
+elif opcion == "✍️ Reflexión Diaria":
+    st.header("✍️ Reflexión Diaria")
+    alumno = st.text_input("Nombre del Alumno:")
+    notas = st.text_area("Notas del día:")
+    if st.button("🪄 Redactar"):
+        prompt = f"Redacta reflexión diaria de 2.5 páginas para {alumno} en {nivel}. Basado en: {notas}. Con firmas."
+        res = llamar_ia(prompt)
+        st.markdown(res)
+        st.download_button("📥 Descargar (Word)", generar_word_limpio(f"REFLEXIÓN - {alumno}", res, datos_id, True), f"Reflexion_{alumno}.docx")
+
+elif opcion == "📊 Evaluación Trimestral":
+    st.header("📊 Evaluación Trimestral")
+    alumno_ev = st.text_input("Alumno:")
+    resumen = st.text_area("Notas del trimestre:")
+    if st.button("📈 Generar Evaluación"):
+        prompt = f"Genera texto evaluatorio trimestral para {alumno_ev} nivel {nivel} por campos formativos. Basado en: {resumen}. Con firmas."
+        res = llamar_ia(prompt)
+        st.markdown(res)
+        st.download_button("📥 Descargar (Word)", generar_word_limpio(f"EVALUACIÓN - {alumno_ev}", res, datos_id, True), f"Evaluacion_{alumno_ev}.docx")
