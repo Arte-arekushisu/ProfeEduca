@@ -1,0 +1,79 @@
+import streamlit as st
+from docx import Document
+from io import BytesIO
+
+def generar_word_semanal(datos):
+    doc = Document()
+    doc.add_heading('PLANEACIÓN SEMANAL / QUINCENAL - CONAFE', 0)
+    
+    # DATOS DE IDENTIFICACIÓN
+    table = doc.add_table(rows=4, cols=2)
+    table.cell(0,0).text = f"Educador Comunitario: {datos['ec']}"
+    table.cell(0,1).text = f"E.C. de Acompañamiento: {datos['eca']}"
+    table.cell(1,0).text = f"Comunidad: {datos['comunidad']}"
+    table.cell(1,1).text = f"Campo Formativo: {datos['campo']}"
+    
+    # METAS DE LA SEMANA
+    doc.add_heading('¿A qué queremos llegar en este periodo? (Meta)', level=1)
+    doc.add_paragraph(datos['meta'])
+    
+    # TIEMPOS PEDAGÓGICOS PERMANENTES
+    doc.add_heading('Tiempos Pedagógicos Diarios', level=1)
+    doc.add_paragraph("09:00 - 09:30 | Inicio del Vínculo (Pase de lista, Regalo de lectura).")
+    doc.add_paragraph("09:30 - 11:30 | Relación Tutora / Trabajo en Estaciones.")
+    doc.add_paragraph("11:30 - 12:00 | Receso y Convivencia.")
+    doc.add_paragraph("12:00 - 14:00 | Profundización y Cierre.")
+
+    # ESTACIONES Y RINCONES (ESTRUCTURA FIJA)
+    doc.add_heading('Organización de Rincones (Permanentes)', level=1)
+    doc.add_paragraph(f"Temas de Interés y Espacios: {datos['rincones']}")
+    
+    # PROGRESIÓN DE DESAFÍOS (PARA NO CAMBIAR CADA DÍA)
+    doc.add_heading('Progresión de Desafíos y Estrategias (Explicación Extensa)', level=1)
+    doc.add_paragraph("A continuación se detallan los procedimientos para el pizarrón y la mediación:")
+    doc.add_paragraph(datos['estrategia_extensa'])
+
+    # FUENTES DE CONSULTA
+    doc.add_heading('Fuentes de Consulta Sugeridas', level=1)
+    for f in datos['fuentes']:
+        doc.add_paragraph(f, style='List Bullet')
+
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+    return buffer
+
+# --- INTERFAZ ---
+st.title("📅 Planeador de Trayectos Semanales")
+
+with st.form("form_semanal"):
+    ec = st.text_input("Educador Comunitario")
+    eca = st.text_input("E.C. de Acompañamiento")
+    meta = st.text_area("Meta de la semana (¿A qué queremos llegar?)")
+    rincones = st.text_area("Describe los Rincones y Estaciones que quedarán fijos")
+    
+    st.subheader("🛠️ Desarrollo del Desafío")
+    descripcion_base = st.text_area("Escribe el tema base y la IA lo expandirá para toda la semana")
+    
+    enviar = st.form_submit_button("Generar Planeación de Periodo")
+
+if enviar:
+    # La IA genera una estrategia que escala en dificultad
+    estrategia_ia = (
+        f"MÉTODO DE IMPLEMENTACIÓN PARA EL PIZARRÓN:\n"
+        f"Fase 1 (Inicio de semana): Introducir el desafío '{descripcion_base}' mediante el rincón de exploración.\n"
+        f"Fase 2 (Desarrollo): Los niños usarán materiales concretos para resolver el problema.\n"
+        f"Fase 3 (Cierre de periodo): Demostración pública de lo aprendido.\n\n"
+        f"EXPLICACIÓN PARA EL MAESTRO: Mantenga los materiales en su lugar. Si el niño domina el reto, "
+        f"incremente la complejidad pidiendo que registre su proceso en su cuaderno de aprendizaje."
+    )
+    
+    fuentes = ["Redalyc: Aprendizaje Multigrado", "Google Académico: Relación Tutora", "Manual de Lectura CONAFE"]
+    
+    datos = {
+        "ec": ec, "eca": eca, "comunidad": "Comunidad Local", "campo": "Pensamiento Matemático",
+        "meta": meta, "rincones": rincones, "estrategia_extensa": estrategia_ia, "fuentes": fuentes
+    }
+    
+    doc = generar_word_semanal(datos)
+    st.download_button("📥 Descargar Planeación Semanal (.docx)", data=doc, file_name="Planeacion_Semanal_CONAFE.docx")
