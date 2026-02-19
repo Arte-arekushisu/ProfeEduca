@@ -26,10 +26,12 @@ def generar_planeacion(tema):
     # Definimos la llave justo antes de usarla para evitar el error de "not defined"
     if "GEMINI_API_KEY" not in st.secrets:
         return "Error: No se encontró la GEMINI_API_KEY en Secrets."
-    
-  # Línea 30 alineada con 4 espacios
+
+     # Línea 30: Asegúrate de que tenga 4 espacios al inicio
     api_key = st.secrets["GEMINI_API_KEY"]
     
+    # Línea 32: Cámbiala a esta versión v1 exacta
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
     # Línea 32 alineada con 4 espacios y usando v1
     url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
     
