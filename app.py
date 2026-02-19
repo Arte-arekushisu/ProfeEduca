@@ -10,13 +10,11 @@ try:
     # Conexión Supabase
     supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
     
-    # Conexión Gemini (Ajuste para evitar error 404)
+    # Conexión Gemini
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     
-    # Forzamos el uso de la versión estable 1.5-flash
-    model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash"
-    ) 
+    # Usamos el nombre base del modelo para evitar el error 404 de la versión v1beta
+    model = genai.GenerativeModel('gemini-1.5-flash') 
 except Exception as e:
     st.error(f"⚠️ Error de configuración: {e}")
     st.stop()
@@ -29,18 +27,20 @@ with st.expander("🤖 Asistente de IA (Tutoría CONAFE)", expanded=True):
     if st.button("Generar Desafío ABCD"):
         with st.spinner("La IA está diseñando la tutoría..."):
             try:
-                # Prompt optimizado para el modelo ABCD
-                prompt = f"Actúa como un experto en el Modelo ABCD de CONAFE. Para el tema '{tema}', genera un desafío inicial, una meta y una ruta de diálogo."
+                # Prompt optimizado para el modelo educativo de CONAFE
+                prompt = f"""Actúa como un experto en el Modelo ABCD de CONAFE. 
+                Para el tema '{tema}', genera un desafío inicial, una meta y una breve ruta de diálogo."""
                 
-                # Llamada directa
                 res = model.generate_content(prompt)
-                
-                if res.text:
-                    st.session_state['propuesta'] = res.text
-                else:
-                    st.error("La IA no pudo generar texto. Intenta con otro tema.")
+                st.session_state['propuesta'] = res.text
             except Exception as e:
-                st.error(f"Error de la IA: {e}")
+                # Si falla el 1.5-flash, intentamos con gemini-pro automáticamente
+                try:
+                    alt_model = genai.GenerativeModel('gemini-pro')
+                    res = alt_model.generate_content(prompt)
+                    st.session_state['propuesta'] = res.text
+                except:
+                    st.error(f"Error de la IA: {e}")
 
 # 4. RESULTADO Y GUARDADO
 resultado = st.text_area("Resultado de la IA:", value=st.session_state.get('propuesta', ''), height=300)
