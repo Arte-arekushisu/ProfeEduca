@@ -2,39 +2,37 @@ import streamlit as st
 import requests
 from supabase import create_client
 
-# 1. Configuración de la página
+# Configuración básica
 st.set_page_config(page_title="Profe.Educa IA", page_icon="🍎")
-
 st.title("🍎 Profe.Educa: Planeador ABCD")
 
-# 2. Inicialización de servicios
+# 1. Conexión a Base de Datos
 def conectar_supabase():
     try:
         if "SUPABASE_URL" in st.secrets:
             return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
         return None
-    except Exception as e:
-        st.error(f"Error en base de datos: {e}")
+    except:
         return None
 
 supabase = conectar_supabase()
 if supabase:
-    st.success("✅ Conexión con la base de datos establecida.")
+    st.success("✅ Conexión establecida.")
 
-# 3. Función de IA - Versión de compatibilidad total
+# 2. Función de IA (Ruta Universal)
 def generar_planeacion(tema):
     if "GEMINI_API_KEY" not in st.secrets:
-        return "Error: No se encontró la GEMINI_API_KEY en Secrets."
+        return "Error: Configura tu API Key en Secrets."
 
     api_key = st.secrets["GEMINI_API_KEY"]
     
-    # URL con v1beta y nombre de modelo explícito
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    # Probamos con la ruta de gemini-pro que es la más estable
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
     
     headers = {'Content-Type': 'application/json'}
     payload = {
         "contents": [{
-            "parts": [{"text": f"Actúa como experto en el Modelo ABCD de CONAFE. Genera una planeación pedagógica para el tema: {tema}. Incluye desafío, meta y ruta de aprendizaje."}]
+            "parts": [{"text": f"Actúa como experto en el Modelo ABCD de CONAFE. Crea una planeación para el tema: {tema}. Incluye desafío, meta y ruta."}]
         }]
     }
     
@@ -43,18 +41,15 @@ def generar_planeacion(tema):
         if response.status_code == 200:
             return response.json()['candidates'][0]['content']['parts'][0]['text']
         else:
-            return f"Error de Google ({response.status_code}): {response.text}"
+            return f"Google sigue reportando error {response.status_code}. Verifica que tu API Key sea válida en Google AI Studio."
     except Exception as e:
         return f"Error de conexión: {e}"
 
-# 4. Interfaz de usuario
-tema_input = st.text_input("Escribe el tema de tu tutoría:", placeholder="Ej. El ciclo del agua")
+# 3. Interfaz
+tema_input = st.text_input("Escribe el tema:")
 
-if st.button("Generar Desafío y Meta"):
+if st.button("Generar"):
     if tema_input:
-        with st.spinner("Generando contenido pedagógico..."):
+        with st.spinner("Generando..."):
             resultado = generar_planeacion(tema_input)
-            st.markdown("### Resultado:")
             st.write(resultado)
-    else:
-        st.warning("Por favor, introduce un tema.")
