@@ -1,0 +1,19 @@
+-- enable extension once (run separately if not enabled)
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+CREATE TABLE reflexiones (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  maestro_id TEXT,
+  alumno_nombre TEXT,
+  campo_formativo TEXT,
+  contenido_reflexivo TEXT,
+  trimestre INT
+);
+
+CREATE TABLE suscripciones (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  usuario_email TEXT UNIQUE,
+  plan_tipo TEXT, -- 'gratis', 'mensual', 'anual'
+  activo BOOLEAN DEFAULT FALSE
+);
