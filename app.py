@@ -2,47 +2,53 @@ import streamlit as st
 import google.generativeai as genai
 from supabase import create_client
 
-# 1. ESTO DEBE SER LA PRIMERA LÍNEA SIEMPRE
+# 1. Configuración de página (SIEMPRE PRIMERO)
 st.set_page_config(page_title="Profe.Educa IA", page_icon="🍎")
 
-# 2. CONEXIÓN DIRECTA (Sin funciones complejas para evitar errores)
+# 2. Inicialización de servicios
 try:
-    # Conectamos a Supabase
+    # Conexión Supabase
     supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
     
-    # Conectamos a la IA (Versión estable de producción)
+    # Conexión Gemini (Usando el modelo más estable)
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     model = genai.GenerativeModel('gemini-1.5-flash')
 except Exception as e:
-    st.error(f"Error de conexión: {e}")
+    st.error(f"Error al conectar servicios: {e}")
     st.stop()
 
-# 3. INTERFAZ SENCILLA Y EFECTIVA
-st.title("📋 Planeación Modelo ABCD")
+# 3. Interfaz de Usuario
+st.title("🍎 Profe.Educa IA: Planeador ABCD")
+st.write("Genera desafíos pedagógicos basados en el modelo de CONAFE.")
 
-tema = st.text_input("¿Qué tema quieres planear?", placeholder="Ej: Ciclo del agua")
+tema = st.text_input("¿Qué tema o unidad de aprendizaje quieres preparar?")
 
 if st.button("Generar Planeación"):
     if tema:
-        with st.spinner("Generando..."):
+        with st.spinner("La IA está creando tu desafío..."):
             try:
-                # Prompt directo para el modelo ABCD de CONAFE
-                prompt = f"Crea una planeación breve para el tema '{tema}' usando el modelo ABCD (Aprendizaje Basado en la Colaboración y el Diálogo). Incluye: Desafío, Meta y Ruta de aprendizaje."
-                respuesta = model.generate_content(prompt)
-                st.session_state['resultado'] = respuesta.text
+                prompt = (
+                    f"Actúa como un tutor experto en el Modelo ABCD de CONAFE. "
+                    f"Para el tema '{tema}', genera: 1. Un Desafío interesante, "
+                    f"2. Una Meta de aprendizaje clara y 3. Una breve Ruta de Diálogo."
+                )
+                response = model.generate_content(prompt)
+                st.session_state['resultado_ia'] = response.text
+                st.success("¡Planeación generada!")
             except Exception as e:
-                st.error(f"Error de la IA: {e}")
+                st.error(f"Error con la IA: {e}")
     else:
-        st.warning("Escribe un tema primero.")
+        st.warning("Por favor, escribe un tema primero.")
 
-# 4. MOSTRAR Y GUARDAR
-if 'resultado' in st.session_state:
-    texto_final = st.text_area("Resultado:", value=st.session_state['resultado'], height=300)
+# 4. Mostrar resultado y opción de guardado
+if 'resultado_ia' in st.session_state:
+    texto_final = st.text_area("Resultado:", value=st.session_state['resultado_ia'], height=300)
     
-    if st.button("Guardar en la Base de Datos"):
+    if st.button("Guardar en mi Bitácora"):
         try:
+            # Insertar en la tabla 'planeaciones'
             supabase.table("planeaciones").insert({"meta_semana": texto_final}).execute()
-            st.success("✅ Guardado correctamente.")
+            st.success("✅ Guardado en la base de datos de Supabase.")
             st.balloons()
         except Exception as e:
             st.error(f"Error al guardar: {e}")
