@@ -2,20 +2,18 @@ import streamlit as st
 from fpdf import FPDF
 import datetime
 
-# 1. CONFIGURACIÓN Y ESTILO
+# 1. ESTILO VISUAL MEJORADO
 st.set_page_config(page_title="Planeación Maestro ABCD", page_icon="🍎", layout="wide")
-
 st.markdown("""
     <style>
-    .stApp { background: linear-gradient(-45deg, #050505, #1a1c24, #00d4ff, #050505); background-size: 400% 400%; animation: gradient 12s ease infinite; color: white; }
+    .stApp { background: linear-gradient(-45deg, #050505, #1a1c24, #00d4ff, #050505); background-size: 400% 400%; animation: gradient 10s ease infinite; color: white; }
     @keyframes gradient { 0% {background-position: 0% 50%;} 50% {background-position: 100% 50%;} 100% {background-position: 0% 50%;} }
-    .comment-sidebar { background-color: #003366; padding: 20px; border-radius: 15px; border-left: 5px solid #00d4ff; min-height: 600px; }
-    .comment-card { background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #00d4ff; font-size: 0.85em; }
-    h1 { color: #00d4ff !important; text-align: center; font-family: 'Arial Black'; text-shadow: 0 0 15px #00d4ff; }
+    .comment-sidebar { background-color: #003366; padding: 20px; border-radius: 15px; border-left: 5px solid #00d4ff; }
+    h1 { color: #00d4ff !important; text-align: center; font-family: 'Arial Black'; text-shadow: 0 0 10px #00d4ff; }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. FUNCIONES TÉCNICAS Y LÓGICA DE IA
+# 2. FUNCIONES DE APOYO (PDF Y LIMPIEZA)
 def limpiar(t):
     r = {"á":"a","é":"e","í":"i","ó":"o","ú":"u","ñ":"n","Á":"A","É":"E","Í":"I","Ó":"O","Ú":"U","Ñ":"N"}
     for k, v in r.items(): t = str(t).replace(k, v)
@@ -23,106 +21,94 @@ def limpiar(t):
 
 class PDF_ABCD(FPDF):
     def header(self):
-        self.set_font('Arial', 'B', 15)
-        self.cell(0, 10, 'PLANEACION PARA EL MAESTRO A B C D', 0, 1, 'C')
+        self.set_font('Arial', 'B', 16)
+        self.cell(0, 10, 'PLANEACION SEMANAL MAESTRO ABCD', 0, 1, 'C')
         self.ln(5)
 
-# 3. BASE DE DATOS DE SESIÓN
+# 3. BASE DE DATOS LOCAL
 if 'db' not in st.session_state:
-    st.session_state.db = {
-        "auth": False, "user": "", "plan": "", 
-        "alumnos": {}, 
-        "comentarios": [{"user": "Maestro_Gomez", "text": "¡Las actividades de las estaciones son muy creativas!"}, {"user": "ECA_Lucía", "text": "La IA realmente entiende el modelo CONAFE."}]
-    }
+    st.session_state.db = {"auth": False, "user": "", "plan": "", "alumnos": {}, "comentarios": []}
 
-# 4. PÁGINA DE INICIO
+# 4. LÓGICA DE ACCESO
 if not st.session_state.db["auth"]:
-    st.markdown("<h1>Planeación para el Maestro A B C D</h1>", unsafe_allow_html=True)
+    st.markdown("<h1>Planeación para el Maestro A B C D</h1>")
     col_reg, col_com = st.columns([2, 1])
-    
     with col_reg:
-        st.subheader("📝 Registro de Usuario")
-        with st.form("registro_maestro"):
-            u_mail = st.text_input("Correo electrónico")
-            u_user = st.text_input("Nombre de usuario")
+        with st.form("registro"):
+            u_name = st.text_input("Nombre de Usuario")
             u_pass = st.text_input("Contraseña", type="password")
-            plan_sel = st.radio("Suscripción Mensual", ["Plata ($200)", "Oro ($400)", "Platino ($600)"])
-            if st.form_submit_button("REGISTRAR Y ENTRAR"):
-                st.session_state.db.update({"auth": True, "user": u_user, "plan": plan_sel})
+            plan = st.radio("Plan", ["Plata ($200)", "Oro ($400)", "Platino ($600)"])
+            if st.form_submit_button("INGRESAR"):
+                st.session_state.db.update({"auth": True, "user": u_name, "plan": plan})
                 st.rerun()
-
-    with col_com:
-        st.markdown("<div class='comment-sidebar'>", unsafe_allow_html=True)
-        st.subheader("💬 Comunidad ABCD")
-        for c in st.session_state.db["comentarios"]:
-            st.markdown(f"<div class='comment-card'><b>{c['user']}:</b><br>{c['text']}</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-# 5. PANEL DEL MAESTRO
 else:
-    st.sidebar.title("MAESTRO ABCD")
-    seccion = st.sidebar.radio("MENÚ", ["📅 Planeación Semanal", "✍️ Diario Reflexivo", "📊 Evaluación Trimestral", "🆘 SOS"])
+    # 5. PANEL DE CONTROL
+    st.sidebar.title(f"EC: {st.session_state.db['user']}")
+    menu = st.sidebar.radio("MENÚ", ["📅 Planeación Semanal IA", "📊 Evaluación", "🆘 SOS"])
 
-    if seccion == "📅 Planeación Semanal":
-        st.header("Generar Planeación con IA")
-        c1, c2, c3 = st.columns(3)
+    if menu == "📅 Planeación Semanal IA":
+        st.header("Generador de Investigación Extensa")
+        c1, c2 = st.columns(2)
         comu = c1.text_input("Comunidad")
-        eca_a = c2.text_input("ECA (Acompañamiento)")
-        ec_nom = c3.text_input("EC (Educador Comunitario)")
-        
-        tema = st.text_input("Tema de Interés (Ej. Las Plantas)")
-        estacion_nom = st.text_input("Nombre de tu Estación Permanente")
-        mat1 = st.text_input("Materia Post-Receso 1")
-        mat2 = st.text_input("Materia Post-Receso 2")
+        eca = c2.text_input("ECA")
+        tema = st.text_input("Tema de Investigación (Semanal)", placeholder="Ej: El Sistema Solar o Ciclo del Agua")
+        estacion = st.text_input("Estación Permanente")
+        mat1 = c1.text_input("Materia 1")
+        mat2 = c2.text_input("Materia 2")
 
-        if st.button("Generar Planeación Completa con IA"):
-            # SIMULACIÓN DE GENERACIÓN DE IA PARA ESTACIONES
-            act_estacion = f"Investigación guiada sobre {tema} usando material concreto en la estación {estacion_nom}."
-            act_rincon = f"Creación de un mural colectivo sobre {tema} integrando saberes previos."
-            
+        if st.button("Generar Planeación y Fuentes de Investigación"):
+            # LÓGICA DE GENERACIÓN EXTENSA (Simulada para el ejemplo)
+            investigacion_extensa = f"Secuencia Didáctica: {tema}. \nLunes: Introducción. Martes: Desarrollo. Miércoles: Experimentación..."
+            fuentes = [
+                f"https://es.wikipedia.org/wiki/{tema.replace(' ', '_')}",
+                f"https://escolares.net/buscar?q={tema.replace(' ', '+')}",
+                "https://www.biografiasyvidas.com/"
+            ]
+
             pdf = PDF_ABCD()
             pdf.add_page()
             pdf.set_font("Arial", 'B', 10)
-            pdf.cell(0, 8, limpiar(f"Comunidad: {comu} | EC: {ec_nom} | ECA: {eca_a}"), 0, 1)
+            pdf.cell(0, 8, limpiar(f"Comunidad: {comu} | EC: {st.session_state.db['user']} | ECA: {eca}"), 0, 1)
             pdf.ln(5)
+
+            # Tabla de Momentos (Mejorada para que no se encime)
+            pdf.set_fill_color(0, 212, 255)
+            pdf.cell(40, 10, "Momento", 1, 0, 'C', True)
+            pdf.cell(110, 10, "Actividad de la Semana (IA)", 1, 0, 'C', True)
+            pdf.cell(35, 10, "Tiempo", 1, 1, 'C', True)
             
-            tiempos = [
-                ["Momento", "Actividad Sugerida por IA", "Tiempo"],
-                ["Bienvenida", "Dinámica de confianza relacionada al tema", "15 min"],
-                ["Regalo Lectura", f"Lectura de un cuento sobre {tema}", "20 min"],
-                ["Pase de Lista", "Pregunta detonadora del dia", "10 min"],
-                [f"Estación: {estacion_nom}", act_estacion, "90 min"],
-                ["Rincón", act_rincon, "45 min"],
-                [mat1, f"Ejercicios prácticos de {mat1}", "60 min"],
-                [mat2, f"Resolución de problemas de {mat2}", "60 min"]
+            pdf.set_font("Arial", '', 9)
+            rows = [
+                ["Bienvenida", "Dinámica: El barco se hunde adaptado al tema.", "15 min/dia"],
+                ["Regalo Lectura", f"Lecturas diarias sobre {tema} (Libros del rincon).", "20 min/dia"],
+                [f"Estación: {estacion}", f"Investigacion profunda: {investigacion_extensa[:80]}...", "90 min/dia"],
+                [mat1, f"Aplicacion matematica de {tema}.", "60 min/dia"],
+                [mat2, f"Analisis de textos sobre {tema}.", "60 min/dia"]
             ]
             
-            for f in tiempos:
-                pdf.cell(45, 10, limpiar(f[0]), 1)
-                pdf.cell(100, 10, limpiar(f[1]), 1)
-                pdf.cell(40, 10, limpiar(f[2]), 1, 1)
+            for r in rows:
+                pdf.cell(40, 15, limpiar(r[0]), 1)
+                # Multi_cell para que el texto largo no choque con la columna de tiempo
+                x = pdf.get_x()
+                y = pdf.get_y()
+                pdf.multi_cell(110, 5, limpiar(r[1]), border=1)
+                pdf.set_xy(x + 110, y)
+                pdf.cell(35, 15, limpiar(r[2]), 1, 1)
+
+            # SECCIÓN DE ENLACES
+            pdf.ln(10)
+            pdf.set_font("Arial", 'B', 11)
+            pdf.cell(0, 10, "FUENTES DE INVESTIGACION (ENLACES):", 0, 1)
+            pdf.set_font("Arial", '', 9)
+            pdf.set_text_color(0, 0, 255) # Azul para links
+            for link in fuentes:
+                pdf.cell(0, 7, link, 0, 1)
             
             pdf_bytes = pdf.output(dest='S').encode('latin-1', 'ignore')
-            st.download_button("📥 Descargar Planeación PDF", pdf_bytes, f"Planeacion_{tema}.pdf")
+            st.download_button("📥 Descargar Planeación Extensa", pdf_bytes, f"Semana_{tema}.pdf")
 
-    # Resto de secciones (Diario, Evaluación, SOS) se mantienen igual...
-    elif seccion == "✍️ Diario Reflexivo":
-        st.header("Diario Reflexivo")
-        nom_al = st.text_input("Nombre del Alumno").upper()
-        txt_diario = st.text_area("¿Qué aprendió hoy?")
-        if st.button("Guardar"):
-            if nom_al not in st.session_state.db["alumnos"]: st.session_state.db["alumnos"][nom_al] = []
-            st.session_state.db["alumnos"][nom_al].append(txt_diario)
-            st.success("Guardado.")
-
-    elif seccion == "📊 Evaluación Trimestral":
-        st.header("Evaluación Trimestral")
-        busqueda = st.text_input("Buscar Alumno").upper()
-        if busqueda in st.session_state.db["alumnos"]:
-            st.info(f"Escritos registrados: {len(st.session_state.db['alumnos'][busqueda])}")
-            st.button("Redactar Evaluación Trimestral con IA")
-        else:
-            st.warning("Alumno no encontrado.")
+    elif menu == "📊 Evaluación":
+        st.write("Sección de Evaluación Trimestral")
 
     if st.sidebar.button("Cerrar Sesión"):
         st.session_state.db["auth"] = False
