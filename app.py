@@ -3,97 +3,97 @@ from fpdf import FPDF
 import unicodedata
 import datetime
 
+# --- SEGURIDAD DE CARACTERES ---
 def clean(txt):
     if not txt: return ""
     return "".join(c for c in unicodedata.normalize('NFD', str(txt)) 
                   if unicodedata.category(c) != 'Mn').replace('ñ', 'n').replace('Ñ', 'N')
 
-class PlaneacionPDF(FPDF):
+class PlaneacionSaaS(FPDF):
     def header(self):
-        self.set_font('Helvetica', 'B', 16)
-        self.cell(0, 10, 'MOTOR PEDAGOGICO PROFEEDUCA - FASE 4', 0, 1, 'C')
+        self.set_font('Helvetica', 'B', 15)
+        self.set_text_color(20, 40, 80)
+        self.cell(0, 10, 'SISTEMA DE GESTION PEDAGOGICA - PROFEEDUCA', 0, 1, 'C')
         self.ln(5)
 
-    def seccion_barra(self, titulo):
+    def seccion_premium(self, titulo):
         self.set_font('Helvetica', 'B', 12)
         self.set_fill_color(31, 52, 94); self.set_text_color(255, 255, 255)
         self.cell(0, 10, f"  {clean(titulo)}", 0, 1, 'L', True)
         self.set_text_color(0, 0, 0); self.ln(3)
 
-st.set_page_config(page_title="ProfeEduca v0.4 - Consolidado", layout="wide")
-st.title("🛡️ Finalización de Fase 4: Autonomía y Profundidad")
+# --- INTERFAZ PROFESIONAL ---
+st.set_page_config(page_title="ProfeEduca SaaS v0.4", layout="wide")
+st.title("🚀 Consolidación de Fase 4: Motor de Información")
 
-with st.form("SaaS_Final_F4"):
+with st.form("SaaS_Pro_Form"):
     c1, c2 = st.columns(2)
     with c1:
         nivel = st.selectbox("Nivel Educativo", ["Preescolar", "Primaria", "Secundaria"])
-        educador = st.text_input("Educador", "AXEL REYES")
-        tema = st.text_input("Tema de Interés", "LAS TORTUGAS MARINAS")
+        educador = st.text_input("Educador Responsable", "AXEL REYES")
+        tema = st.text_input("Proyecto de Interés", "LAS TORTUGAS MARINAS")
     with c2:
-        comunidad = st.text_input("Comunidad", "CRUZ")
-        rincon = st.text_input("Rincón Asignado", "LECTURA")
-        materia_post = st.text_input("Materia Post-Receso", "FRACCIONES")
-    
-    boton = st.form_submit_button("🔨 GENERAR PLANEACION EXTENSA")
+        comunidad = st.text_input("Comunidad / Localidad", "CRUZ")
+        rincon = st.text_input("Rincón de Trabajo", "CIENCIAS")
+        materia_post = st.text_input("Bloque Post-Receso", "MATEMATICAS")
+
+    boton = st.form_submit_button("🔨 GENERAR DOCUMENTACION TECNICA")
 
 if boton:
-    # --- MOTOR DE GENERACIÓN DE ACTIVIDADES AUTÓNOMAS ---
-    # Aquí definimos el contenido largo que pediste
-    estaciones_detalladas = [
-        {
-            "campo": "Lenguajes",
-            "titulo": "El Diario del Explorador",
-            "materiales": "Hojas de colores, pegamento, revistas, tijeras y plumones.",
-            "pasos": "1. Busca imagenes relacionadas al tema en las revistas.\n2. Crea un collage que cuente una historia sin usar palabras.\n3. Escribe un titulo creativo para tu historia y pegalo en el muro."
-        },
-        {
-            "campo": "Saberes y P. Científico",
-            "titulo": "Laboratorio de Medidas",
-            "materiales": "Regla, cinta metrica, balanza escolar y objetos del rincon.",
-            "pasos": "1. Elige 5 objetos y estima cuanto pesan.\n2. Usa la balanza para comprobar tu estimacion y anota los resultados.\n3. Dibuja el objeto mas pesado y el mas ligero explicando por que crees que es asi."
-        },
-        {
-            "campo": "Ética, Naturaleza y Soc.",
-            "titulo": "Guardianes del Entorno",
-            "materiales": "Cartulina, gises y fotografias de la comunidad.",
-            "pasos": "1. Observa las fotografias y detecta un problema ambiental.\n2. Diseña un cartel con una solucion que tu puedas hacer hoy mismo.\n3. Explica tu cartel a un compañero y busquen una firma de compromiso."
-        }
-    ]
+    # --- MOTOR DE TEXTO EXTENSO (BIBLIOTECA) ---
+    # Esto simula la búsqueda profunda que pediste
+    info_pro = (f"Las {tema} representan un pilar en la biodiversidad de {comunidad}. "
+                f"Para el nivel {nivel}, el abordaje pedagogico debe ser vivencial. "
+                "Cientificamente, se estudian como reptiles marinos que han sobrevivido millones de años. "
+                "Su ciclo de vida incluye la migracion, el desove en playas y el regreso al oceano. "
+                "En esta planeacion, el alumno no solo lee; se convierte en un observador de fenomenos naturales.")
 
-    pdf = PlaneacionPDF()
+    pdf = PlaneacionSaaS()
     pdf.add_page()
     
-    # I. IDENTIFICACIÓN
-    pdf.seccion_barra("I. DATOS DE IDENTIFICACION")
-    pdf.set_font('Helvetica', '', 11)
-    pdf.multi_cell(0, 7, f"Educador: {clean(educador)} | Nivel: {clean(nivel)}\nComunidad: {clean(comunidad)} | Tema: {clean(tema)}")
+    # I. IDENTIFICACIÓN PROFESIONAL
+    pdf.seccion_premium("I. IDENTIFICACION DEL PROYECTO")
+    pdf.set_font('Helvetica', 'B', 10)
+    # Evitamos IndexError usando un diccionario estable
+    datos = {"Maestro": educador, "Nivel": nivel, "Comunidad": comunidad, "Proyecto": tema}
+    for k, v in datos.items():
+        pdf.cell(40, 8, f" {clean(k)}:", 1, 0, 'L', True)
+        pdf.cell(150, 8, f" {clean(v)}", 1, 1, 'L')
     pdf.ln(5)
 
-    # II. ESTACIONES (TRABAJO AUTÓNOMO DETALLADO)
-    pdf.seccion_barra("II. ESTACIONES DE TRABAJO AUTONOMO (MOMENTO CENTRAL)")
-    for est in estaciones_detalladas:
-        pdf.set_font('Helvetica', 'B', 11)
-        pdf.cell(0, 8, f"Estacion: {clean(est['titulo'])} ({clean(est['campo'])})", 0, 1)
-        pdf.set_font('Helvetica', 'I', 10)
-        pdf.multi_cell(0, 6, f"Materiales necesarios: {clean(est['materiales'])}")
+    # II. ESTACIONES DE AUTONOMÍA (INSTRUCCIONES LARGAS)
+    pdf.seccion_premium("II. GUIAS DE APRENDIZAJE AUTONOMO")
+    estaciones = [
+        {
+            "n": "Estacion de Lenguajes: El Relato del Mar",
+            "m": "Hojas de dibujo, acuarelas, pinceles, libros de consulta.",
+            "i": "1. Investiga en los libros del rincon 3 datos asombrosos sobre el tema.\n2. Crea una secuencia de 4 dibujos que expliquen el ciclo de vida sin usar palabras.\n3. Al finalizar, escribe una carta a la comunidad explicando por que debemos cuidar este recurso."
+        },
+        {
+            "n": "Estacion de Saberes: El Laboratorio del Cientifico",
+            "m": "Cinta metrica, balanza, arena, figuras a escala.",
+            "i": "1. Mide el largo y ancho de las figuras y anota los datos en tu tabla de registro.\n2. Compara los pesos y ordena los objetos de menor a mayor masa.\n3. Plantea una hipotesis: ¿Que pasaria si el clima de la playa cambia? Registra tu respuesta."
+        }
+    ]
+    for e in estaciones:
+        pdf.set_font('Helvetica', 'B', 11); pdf.cell(0, 8, clean(e['n']), 0, 1)
+        pdf.set_font('Helvetica', 'I', 10); pdf.multi_cell(0, 6, f"Materiales: {clean(e['m'])}")
         pdf.set_font('Helvetica', '', 10)
-        pdf.multi_cell(0, 6, f"PASOS PARA EL ALUMNO:\n{clean(est['pasos'])}")
-        pdf.ln(4)
+        pdf.multi_cell(0, 6, f"CONSIGNA PARA EL ALUMNO:\n{clean(e['i'])}\n")
+        pdf.ln(2)
 
-    # III. MARCO TEÓRICO AMPLIADO (MOTOR DE INFORMACIÓN)
+    # III. MARCO TEÓRICO (FASE 4: MOTOR PEDAGÓGICO)
     pdf.add_page()
-    pdf.seccion_barra(f"III. PROFUNDIZACION DEL TEMA: {clean(tema)}")
+    pdf.seccion_premium("III. SUSTENTO TEORICO Y PEDAGOGICO (MARCO MAESTRO)")
     pdf.set_font('Helvetica', '', 11)
-    informacion_ia = (f"El tema de {clean(tema)} es fundamental para el desarrollo del pensamiento critico en {clean(nivel)}. "
-                      "Desde una perspectiva cientifica, esto implica comprender los ciclos de vida y la interdependencia "
-                      "dentro del ecosistema local. El docente debe actuar como facilitador, permitiendo que el alumno "
-                      "descubra mediante la observacion y el registro en su RPA (Relacion Tutora).\n\n"
-                      "DATOS TECNICOS PARA EL MAESTRO:\n"
-                      "- Conectar el tema con la realidad de la comunidad.\n"
-                      "- Fomentar la demostracion publica como cierre del aprendizaje.\n"
-                      "- Utilizar el error como una oportunidad de aprendizaje guiado.")
-    pdf.multi_cell(0, 7, clean(informacion_ia))
+    pdf.multi_cell(0, 8, clean(info_pro))
+    
+    # IV. POST-RECESO DETALLADO
+    pdf.ln(5); pdf.seccion_premium("IV. BLOQUE POST-RECESO: TRABAJO TECNICO")
+    pdf.set_font('Helvetica', 'B', 11); pdf.cell(0, 8, f"Tema: {clean(materia_post)}", 0, 1)
+    pdf.set_font('Helvetica', '', 10)
+    pdf.multi_cell(0, 7, "1. Explicacion en pizarron mediante el metodo de descubrimiento guiado.\n2. Practica individual: El alumno resuelve una serie de 10 ejercicios contextualizados.\n3. Cierre: El alumno explica a un compañero el procedimiento que utilizo.")
 
-    # --- CIERRE ---
+    # --- DESCARGA SEGURA ---
     pdf_out = pdf.output(dest='S').encode('latin-1', 'replace')
-    st.download_button("📥 DESCARGAR PLANEACION EXTENSA", data=pdf_out, file_name=f"Fase4_Final.pdf", use_container_width=True)
+    st.download_button("📥 DESCARGAR PLANEACION COMPLETA F4", data=pdf_out, file_name="SaaS_ProfeEduca_F4.pdf", use_container_width=True)
