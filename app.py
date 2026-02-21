@@ -3,97 +3,102 @@ from fpdf import FPDF
 import unicodedata
 import datetime
 
-# --- SEGURIDAD DE CARACTERES ---
+# --- MOTOR DE SEGURIDAD PARA CARACTERES (Evita UnicodeEncodeError) ---
 def clean(txt):
     if not txt: return ""
     return "".join(c for c in unicodedata.normalize('NFD', str(txt)) 
                   if unicodedata.category(c) != 'Mn').replace('ñ', 'n').replace('Ñ', 'N')
 
-class PlaneacionSaaS(FPDF):
+class PlaneacionCompleta(FPDF):
     def header(self):
-        self.set_font('Helvetica', 'B', 15)
-        self.set_text_color(20, 40, 80)
-        self.cell(0, 10, 'SISTEMA DE GESTION PEDAGOGICA - PROFEEDUCA', 0, 1, 'C')
+        self.set_font('Helvetica', 'B', 16)
+        self.set_text_color(31, 52, 94)
+        self.cell(0, 10, 'SISTEMA INTEGRAL DE PLANEACION - PROFEEDUCA', 0, 1, 'C')
         self.ln(5)
 
-    def seccion_premium(self, titulo):
+    def barra_titulo(self, titulo):
         self.set_font('Helvetica', 'B', 12)
-        self.set_fill_color(31, 52, 94); self.set_text_color(255, 255, 255)
+        self.set_fill_color(31, 52, 94)
+        self.set_text_color(255, 255, 255)
         self.cell(0, 10, f"  {clean(titulo)}", 0, 1, 'L', True)
-        self.set_text_color(0, 0, 0); self.ln(3)
+        self.set_text_color(0, 0, 0)
+        self.ln(3)
 
-# --- INTERFAZ PROFESIONAL ---
-st.set_page_config(page_title="ProfeEduca SaaS v0.4", layout="wide")
-st.title("🚀 Consolidación de Fase 4: Motor de Información")
+# --- INTERFAZ DE USUARIO ---
+st.set_page_config(page_title="ProfeEduca v0.4 Final", layout="wide")
+st.title("🍎 ProfeEduca: Consolidacion Total (Fase 4)")
 
-with st.form("SaaS_Pro_Form"):
+with st.form("Form_Final_F4"):
     c1, c2 = st.columns(2)
     with c1:
         nivel = st.selectbox("Nivel Educativo", ["Preescolar", "Primaria", "Secundaria"])
-        educador = st.text_input("Educador Responsable", "AXEL REYES")
-        tema = st.text_input("Proyecto de Interés", "LAS TORTUGAS MARINAS")
+        educador = st.text_input("Nombre del Educador", "AXEL REYES")
+        tema = st.text_input("Proyecto de Interes", "LAS TORTUGAS MARINAS")
+        nombre_eca = st.text_input("Nombre del ECA", "reyes")
     with c2:
-        comunidad = st.text_input("Comunidad / Localidad", "CRUZ")
-        rincon = st.text_input("Rincón de Trabajo", "CIENCIAS")
-        materia_post = st.text_input("Bloque Post-Receso", "MATEMATICAS")
+        grado = st.text_input("Grado y Grupo", "1")
+        comunidad = st.text_input("Comunidad", "CRUZ")
+        rincon = st.text_input("Rincon Asignado", "RICON DE LECTURA")
+        materia_post = st.text_input("Materia Post-Receso", "MATEMATICAS")
 
-    boton = st.form_submit_button("🔨 GENERAR DOCUMENTACION TECNICA")
+    boton = st.form_submit_button("🔨 GENERAR PLANEACION PROFESIONAL")
 
 if boton:
-    # --- MOTOR DE TEXTO EXTENSO (BIBLIOTECA) ---
-    # Esto simula la búsqueda profunda que pediste
-    info_pro = (f"Las {tema} representan un pilar en la biodiversidad de {comunidad}. "
-                f"Para el nivel {nivel}, el abordaje pedagogico debe ser vivencial. "
-                "Cientificamente, se estudian como reptiles marinos que han sobrevivido millones de años. "
-                "Su ciclo de vida incluye la migracion, el desove en playas y el regreso al oceano. "
-                "En esta planeacion, el alumno no solo lee; se convierte en un observador de fenomenos naturales.")
+    # --- RECUPERACIÓN DE LÓGICA DE VERSIONES ANTERIORES ---
+    logica_niveles = {
+        "Preescolar": {"pase": "Imitar un sonido de la naturaleza.", "regalo": "Cuento narrado con titeres."},
+        "Primaria": {"pase": "Mencionar una palabra clave del tema.", "regalo": "Leyenda o mito regional."},
+        "Secundaria": {"pase": "Cita de un autor relevante.", "regalo": "Articulo de divulgacion cientifica."}
+    }
+    info_v = logica_niveles[nivel]
 
-    pdf = PlaneacionSaaS()
+    pdf = PlaneacionCompleta()
     pdf.add_page()
-    
-    # I. IDENTIFICACIÓN PROFESIONAL
-    pdf.seccion_premium("I. IDENTIFICACION DEL PROYECTO")
-    pdf.set_font('Helvetica', 'B', 10)
-    # Evitamos IndexError usando un diccionario estable
-    datos = {"Maestro": educador, "Nivel": nivel, "Comunidad": comunidad, "Proyecto": tema}
-    for k, v in datos.items():
-        pdf.cell(40, 8, f" {clean(k)}:", 1, 0, 'L', True)
-        pdf.cell(150, 8, f" {clean(v)}", 1, 1, 'L')
+
+    # I. IDENTIFICACIÓN (Corregido para evitar IndexError)
+    pdf.barra_titulo("I. DATOS DE IDENTIFICACION")
+    datos_id = [
+        ["Educador", educador], ["ECA", nombre_eca],
+        ["Nivel/Grado", f"{nivel} / {grado}"], ["Comunidad", comunidad],
+        ["Rincon", rincon], ["Fecha", str(datetime.date.today())]
+    ]
+    for d in datos_id:
+        pdf.set_font('Helvetica', 'B', 10); pdf.cell(50, 8, f" {clean(d[0])}:", 1, 0, 'L', True)
+        pdf.set_font('Helvetica', '', 10); pdf.cell(140, 8, f" {clean(d[1])}", 1, 1, 'L')
     pdf.ln(5)
 
-    # II. ESTACIONES DE AUTONOMÍA (INSTRUCCIONES LARGAS)
-    pdf.seccion_premium("II. GUIAS DE APRENDIZAJE AUTONOMO")
+    # II. MOMENTO DE INICIO (Recuperado de V10/V11)
+    pdf.barra_titulo("II. INICIO Y BIENVENIDA")
+    pdf.set_font('Helvetica', '', 11)
+    pdf.multi_cell(0, 7, f"- Pase de Lista Dinamico: {clean(info_v['pase'])}\n"
+                         f"- Regalo de Lectura: {clean(info_v['regalo'])}\n"
+                         f"- Reflexion: Dialogo guiado sobre el tema central: {clean(tema)}.")
+    pdf.ln(5)
+
+    # III. ESTACIONES DE TRABAJO AUTONOMO (4 CAMPOS FORMATIVOS)
+    pdf.barra_titulo("III. ESTACIONES AUTONOMAS POR CAMPOS")
     estaciones = [
-        {
-            "n": "Estacion de Lenguajes: El Relato del Mar",
-            "m": "Hojas de dibujo, acuarelas, pinceles, libros de consulta.",
-            "i": "1. Investiga en los libros del rincon 3 datos asombrosos sobre el tema.\n2. Crea una secuencia de 4 dibujos que expliquen el ciclo de vida sin usar palabras.\n3. Al finalizar, escribe una carta a la comunidad explicando por que debemos cuidar este recurso."
-        },
-        {
-            "n": "Estacion de Saberes: El Laboratorio del Cientifico",
-            "m": "Cinta metrica, balanza, arena, figuras a escala.",
-            "i": "1. Mide el largo y ancho de las figuras y anota los datos en tu tabla de registro.\n2. Compara los pesos y ordena los objetos de menor a mayor masa.\n3. Plantea una hipotesis: ¿Que pasaria si el clima de la playa cambia? Registra tu respuesta."
-        }
+        {"c": "Lenguajes", "n": "El Mural de las Palabras", "i": "1. Elige 3 palabras clave del tema.\n2. Diseña un cartel creativo.\n3. Comparte tu definicion con un compañero."},
+        {"c": "Saberes y P.C.", "n": "Laboratorio de Formas", "i": "1. Mide los objetos del rincon.\n2. Registra los datos en tu bitacora.\n3. Compara resultados y encuentra patrones."},
+        {"c": "Etica / Humano", "n": "Acuerdos Comunitarios", "i": "1. Identifica un problema ambiental.\n2. Escribe una accion para resolverlo.\n3. Firma tu compromiso en el mural."}
     ]
     for e in estaciones:
-        pdf.set_font('Helvetica', 'B', 11); pdf.cell(0, 8, clean(e['n']), 0, 1)
-        pdf.set_font('Helvetica', 'I', 10); pdf.multi_cell(0, 6, f"Materiales: {clean(e['m'])}")
-        pdf.set_font('Helvetica', '', 10)
-        pdf.multi_cell(0, 6, f"CONSIGNA PARA EL ALUMNO:\n{clean(e['i'])}\n")
-        pdf.ln(2)
-
-    # III. MARCO TEÓRICO (FASE 4: MOTOR PEDAGÓGICO)
-    pdf.add_page()
-    pdf.seccion_premium("III. SUSTENTO TEORICO Y PEDAGOGICO (MARCO MAESTRO)")
-    pdf.set_font('Helvetica', '', 11)
-    pdf.multi_cell(0, 8, clean(info_pro))
+        pdf.set_font('Helvetica', 'B', 11); pdf.cell(0, 8, f"Campo: {clean(e['c'])} - {clean(e['n'])}", 0, 1)
+        pdf.set_font('Helvetica', '', 10); pdf.multi_cell(0, 6, f"CONSIGNA:\n{clean(e['i'])}\n")
     
-    # IV. POST-RECESO DETALLADO
-    pdf.ln(5); pdf.seccion_premium("IV. BLOQUE POST-RECESO: TRABAJO TECNICO")
-    pdf.set_font('Helvetica', 'B', 11); pdf.cell(0, 8, f"Tema: {clean(materia_post)}", 0, 1)
-    pdf.set_font('Helvetica', '', 10)
-    pdf.multi_cell(0, 7, "1. Explicacion en pizarron mediante el metodo de descubrimiento guiado.\n2. Practica individual: El alumno resuelve una serie de 10 ejercicios contextualizados.\n3. Cierre: El alumno explica a un compañero el procedimiento que utilizo.")
+    # IV. SUSTENTO PEDAGÓGICO (Motor de Información)
+    pdf.add_page()
+    pdf.barra_titulo("IV. SUSTENTO PEDAGOGICO Y PROFUNDIZACION")
+    teoria_extensa = (f"El estudio de {tema} en el nivel {nivel} permite desarrollar el pensamiento critico. "
+                      "Cientificamente, se aborda como un fenomeno de interdependencia natural. "
+                      "El alumno lidera su aprendizaje mediante la investigacion en el rincon asignado.")
+    pdf.set_font('Helvetica', '', 11); pdf.multi_cell(0, 8, clean(teoria_extensa))
 
-    # --- DESCARGA SEGURA ---
-    pdf_out = pdf.output(dest='S').encode('latin-1', 'replace')
-    st.download_button("📥 DESCARGAR PLANEACION COMPLETA F4", data=pdf_out, file_name="SaaS_ProfeEduca_F4.pdf", use_container_width=True)
+    # V. POST-RECESO
+    pdf.ln(5); pdf.barra_titulo("V. BLOQUE POST-RECESO")
+    pdf.set_font('Helvetica', 'B', 11); pdf.cell(0, 8, f"Materia: {clean(materia_post)}", 0, 1)
+    pdf.set_font('Helvetica', '', 10); pdf.multi_cell(0, 7, "1. Explicacion teorica.\n2. Practica individual de 10 ejercicios.\n3. Plenaria de cierre.")
+
+    # --- GENERACIÓN FINAL ---
+    pdf_bytes = pdf.output(dest='S').encode('latin-1', 'replace')
+    st.download_button("📥 DESCARGAR PLANEACION COMPLETA", data=pdf_bytes, file_name="ProfeEduca_Fase4_Final.pdf", use_container_width=True)
