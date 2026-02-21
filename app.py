@@ -1,113 +1,57 @@
 import streamlit as st
-from fpdf import FPDF
-import io
+import pandas as pd
+from docx import Document
+from io import BytesIO
+import datetime
+from supabase import create_client, Client
 
-# 1. CONFIGURACIÓN Y ESTILOS
-st.set_page_config(page_title="Profe Educa ABCD", layout="wide")
+# --- 1. CONEXIÓN AL MOTOR SUPABASE ---
+# Streamlit buscará estas llaves en la sección de "Secrets"
+try:
+    url = st.secrets["SUPABASE_URL"]
+    key = st.secrets["SUPABASE_KEY"]
+    supabase: Client = create_client(url, key)
+except:
+    st.error("⚠️ Falta configurar las llaves de Supabase en los secretos de la página.")
 
-st.markdown("""
-    <style>
-    .stApp { background-color: #0e1117; color: white; }
-    .stTextInput, .stTextArea { background-color: #262730 !important; }
-    </style>
-    """, unsafe_allow_html=True)
+# --- 2. CONFIGURACIÓN VISUAL ---
+st.set_page_config(page_title="Profe.Educa", layout="wide", page_icon="🍎")
+st.sidebar.title("🍎 Profe.Educa")
+menu = st.sidebar.radio("Menú Principal", ["Inicio", "Planeación Semanal", "Texto Reflexivo Diario", "Evaluación Trimestral", "Admin"])
 
-# Función para evitar errores de caracteres especiales en PDF
-def limpiar_texto(t):
-    replacements = {"á":"a","é":"e","í":"i","ó":"o","ú":"u","ñ":"n","Á":"A","É":"E","Í":"I","Ó":"O","Ú":"U","Ñ":"N"}
-    for k, v in replacements.items():
-        t = str(t).replace(k, v)
-    return t
+# --- 3. MÓDULO: PLANEACIÓN ---
+if menu == "Planeación Semanal":
+    st.title("📋 Planeación de Trayectos")
+    with st.form("form_p"):
+        ec = st.text_input("Educador Comunitario")
+        eca = st.text_input("E.C. de Acompañamiento")
+        meta = st.text_area("Meta de la semana")
+        if st.form_submit_button("Generar Word"):
+            doc = Document()
+            doc.add_heading('PLANEACIÓN CONAFE', 0)
+            doc.add_paragraph(f"EC: {ec}\nMeta: {meta}")
+            buffer = BytesIO()
+            doc.save(buffer)
+            buffer.seek(0)
+            st.download_button("📥 Descargar", buffer, "Planeacion.docx")
 
-# 2. CLASE PARA EL REPORTE PDF
-class ReporteTrimestral(FPDF):
-    def header(self):
-        # Espacio para logos (puedes cargar imágenes locales si las tienes)
-        self.set_font('Arial', 'B', 14)
-        self.cell(0, 10, 'TEXTO REFLEXIVO TRIMESTRAL', 0, 1, 'C')
-        self.ln(5)
+# --- 4. MÓDULO: REFLEXIÓN DIARIA (GUARDA EN SUPABASE) ---
+elif menu == "Texto Reflexivo Diario":
+    st.title("✍️ Registro de Relación Tutora")
+    with st.form("registro"):
+        alumno = st.text_input("Nombre del Alumno")
+        notas = st.text_area("Anotaciones del día")
+        if st.form_submit_button("Guardar en la Nube"):
+            data = {"alumno_nombre": alumno, "contenido_reflexivo": notas}
+            supabase.table("reflexiones").insert(data).execute()
+            st.success("✅ Guardado permanentemente en Supabase")
 
-# 3. LÓGICA DE BASE DE DATOS TEMPORAL
-if 'alumnos_db' not in st.session_state:
-    st.session_state.alumnos_db = {}
-
-# 4. INTERFAZ DE NAVEGACIÓN
-menu = st.sidebar.selectbox("Selecciona una sección", ["Registro Diario", "Evaluación Trimestral"])
-
-# --- SECCIÓN REGISTRO ---
-if menu == "Registro Diario":
-    st.title("✍️ Registro de Avances Diarios")
-    nombre = st.text_input("Nombre del Alumno").upper()
-    reflexion = st.text_area("Descripción de lo aprendido hoy")
-    
-    if st.button("Guardar Avance"):
-        if nombre and reflexion:
-            if nombre not in st.session_state.alumnos_db:
-                st.session_state.alumnos_db[nombre] = []
-            st.session_state.alumnos_db[nombre].append(reflexion)
-            st.success(f"Registro guardado para {nombre}")
-        else:
-            st.warning("Completa los campos.")
-
-# --- SECCIÓN EVALUACIÓN ---
+# --- 5. MÓDULO: EVALUACIÓN TRIMESTRAL ---
 elif menu == "Evaluación Trimestral":
-    st.title("📊 Evaluación Trimestral Estructurada")
-    
-    busqueda = st.text_input("Buscar Alumno").upper()
-    
-    if busqueda in st.session_state.alumnos_db:
-        # Recuperar historial
-        historial = " ".join(st.session_state.alumnos_db[busqueda])
-        
-        # Formulario de Evaluación
-        c1, c2 = st.columns(2) # CORREGIDO: Se agregaron paréntesis
-        escuela = c1.text_input("Escuela", "San Nicolas")
-        nivel = c2.text_input("Nivel", "4to Primaria")
-        
-        st.subheader("Campos Formativos")
-        f1 = st.text_area("LENGUAJES", historial) # Se pre-carga el historial
-        f2 = st.text_area("SABERES Y PENSAMIENTO CIENTÍFICO")
-        f3 = st.text_area("ÉTICA, NATURALEZA Y SOCIEDADES")
-        f4 = st.text_area("DE LO HUMANO Y LO COMUNITARIO")
-        
-        recom = st.text_area("RECOMENDACIONES Y COMPROMISOS")
-
-        if st.button("Generar PDF"):
-            pdf = ReporteTrimestral()
-            pdf.add_page()
-            
-            # Datos Generales
-            pdf.set_font("Arial", 'B', 10)
-            pdf.cell(0, 5, f"Nombre de la Escuela: {limpiar_texto(escuela)}", 0, 1)
-            pdf.cell(0, 5, f"Nivel: {limpiar_texto(nivel)}", 0, 1)
-            pdf.cell(0, 5, f"Alumno: {limpiar_texto(busqueda)}", 0, 1)
-            pdf.ln(10)
-
-            # Secciones (Campos Formativos)
-            secciones = [
-                ("LENGUAJES", f1),
-                ("SABERES Y PENSAMIENTOS CIENTIFICOS", f2),
-                ("ETICA, NATURALEZA Y SOCIEDADES", f3),
-                ("DE LO HUMANO Y LO COMUNITARIO", f4)
-            ]
-
-            for titulo, contenido in secciones:
-                pdf.set_font("Arial", 'B', 11)
-                pdf.cell(0, 8, titulo, 0, 1, 'C')
-                pdf.set_font("Arial", '', 10)
-                pdf.multi_cell(0, 5, limpiar_texto(contenido))
-                pdf.ln(4)
-
-            # Firmas al final
-            pdf.ln(20)
-            pdf.line(20, pdf.get_y(), 80, pdf.get_y())
-            pdf.line(120, pdf.get_y(), 180, pdf.get_y())
-            pdf.set_font("Arial", '', 8)
-            pdf.text(25, pdf.get_y() + 5, "Firma del EC.")
-            pdf.text(125, pdf.get_y() + 5, "Firma del Padre de Familia.")
-
-            # Descarga
-            output = pdf.output(dest='S').encode('latin-1', 'ignore')
-            st.download_button("📥 Descargar Reporte", output, f"Evaluacion_{busqueda}.pdf")
-    else:
-        st.info("Alumno no encontrado. Asegúrate de haberlo registrado en la sección 'Registro Diario'.")
+    st.title("📊 Resumen del Periodo")
+    busqueda = st.text_input("Nombre del alumno a evaluar")
+    if st.button("Jalar datos de la base"):
+        res = supabase.table("reflexiones").select("*").eq("alumno_nombre", busqueda).execute()
+        if res.data:
+            st.write(f"Encontrados {len(res.data)} registros diarios.")
+            st.dataframe(pd.DataFrame(res.data))
