@@ -5,196 +5,119 @@ import io
 import random
 import time
 
-# --- 1. CONFIGURACIÓN Y ESTILO EMPRESARIAL ---
+# --- 1. CONFIGURACIÓN Y ESTILOS ---
 st.set_page_config(page_title="ProfeEduca | Planeaciones ABCD", page_icon="🍎", layout="wide")
 
 st.markdown("""
     <style>
-    /* Estética Dark-Corporate */
-    .stApp { 
-        background: radial-gradient(circle at top, #0f172a 0%, #020617 100%);
-        color: #f8fafc;
-    }
+    .stApp { background: radial-gradient(circle at top, #0f172a 0%, #020617 100%); color: #f8fafc; }
     
-    /* Foto de perfil circular empresarial con efecto neón */
-    .profile-pic-container {
-        display: flex;
-        justify-content: center;
+    /* Estilo Barra Lateral Versión 0.2 */
+    .identity-card {
+        background: linear-gradient(145deg, #1e293b, #0f172a);
+        border: 2px solid #38bdf8;
+        border-radius: 15px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 10px 25px rgba(56, 189, 248, 0.2);
         margin-bottom: 20px;
     }
-    .profile-pic {
-        border-radius: 50%;
-        width: 150px;
-        height: 150px;
-        object-fit: cover;
-        border: 4px solid #38bdf8;
-        box-shadow: 0 0 25px rgba(56, 189, 248, 0.4);
-    }
+    .brand-name { color: #38bdf8; font-size: 1.5rem; font-weight: 900; }
+    .slogan-text { font-style: italic; font-size: 0.85rem; color: #94a3b8; margin-top: 15px; line-height: 1.4; border-top: 1px solid rgba(56, 189, 248, 0.2); padding-top: 10px; }
     
-    /* Tarjetas de Plan con Arte Empresarial */
-    .plan-card {
-        background: rgba(30, 41, 59, 0.6);
-        border: 1px solid rgba(56, 189, 248, 0.15);
-        border-radius: 20px;
-        padding: 30px;
-        text-align: center;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        backdrop-filter: blur(12px);
-    }
-    .plan-card:hover {
-        transform: translateY(-15px);
-        border-color: #38bdf8;
-        background: rgba(30, 41, 59, 0.9);
-        box-shadow: 0 15px 35px rgba(56, 189, 248, 0.2);
-    }
-
-    /* Iconos llamativos */
-    .plan-icon {
-        font-size: 3.5rem;
-        margin-bottom: 15px;
-        display: block;
-    }
-
-    .stButton>button {
-        border-radius: 10px;
-        background: linear-gradient(90deg, #0ea5e9 0%, #2563eb 100%);
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        transition: 0.3s;
-    }
-    .stButton>button:hover {
-        box-shadow: 0 0 15px rgba(14, 165, 233, 0.6);
-        transform: scale(1.02);
-    }
+    /* Foto de perfil circular 0.1 */
+    .profile-pic { border-radius: 50%; width: 120px; height: 120px; object-fit: cover; border: 3px solid #38bdf8; display: block; margin: 0 auto; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. GESTIÓN DE ESTADOS ---
+# --- 2. BASE DE DATOS Y ESTADO (V0.1) ---
 if 'db' not in st.session_state:
     st.session_state.db = {
-        "usuarios": {"admin": {"pass": "profe2024", "name": "Admin", "plan": "Magna"}},
+        "usuarios": {"admin": {"pass": "profe2024", "name": "Admin", "plan": "Magna", "pic": None}},
         "step": "registro_email", 
+        "auth": False,
+        "menu": "inicio",
         "temp": {}
     }
 
 def image_to_base64(image_file):
     if image_file:
         img = Image.open(image_file)
-        img.thumbnail((400, 400))
+        img.thumbnail((300, 300))
         buf = io.BytesIO()
         img.save(buf, format="PNG")
         return base64.b64encode(buf.getvalue()).decode()
     return None
 
-# --- 3. FLUJO DE PANTALLAS ---
+# --- 3. LÓGICA DE FLUJO (UNIFICADA) ---
 
-# PASO 1: CORREO ELECTRÓNICO (SEGURIDAD INICIAL)
-if st.session_state.db["step"] == "registro_email":
-    col1, col2, col3 = st.columns([1, 1.5, 1])
-    with col2:
-        st.markdown("<div style='text-align:center; font-size:4rem;'>💼</div>", unsafe_allow_html=True)
-        st.title("🍎 ProfeEduca")
-        st.subheader("Planeaciones para el Maestro ABCD")
-        st.write("Inicia tu registro empresarial ingresando tu correo.")
-        email = st.text_input("Correo Electrónico")
-        if st.button("Enviar Código de Seguridad"):
-            if "@" in email:
+# SI EL USUARIO NO ESTÁ AUTENTICADO -> MOSTRAR REGISTRO/LOGIN (V0.1)
+if not st.session_state.db["auth"]:
+    
+    if st.session_state.db["step"] == "registro_email":
+        col1, col2, col3 = st.columns([1, 1.5, 1])
+        with col2:
+            st.title("🍎 ProfeEduca")
+            email = st.text_input("Correo Electrónico")
+            if st.button("Enviar Código"):
                 st.session_state.db["temp"]["email"] = email
                 st.session_state.db["temp"]["code"] = str(random.randint(100000, 999999))
-                st.session_state.db["step"] = "verificacion"
-                st.rerun()
-            else:
-                st.error("Por favor, ingresa un correo corporativo válido.")
+                st.session_state.db["step"] = "verificacion"; st.rerun()
 
-# PASO 2: VERIFICACIÓN
-elif st.session_state.db["step"] == "verificacion":
-    col1, col2, col3 = st.columns([1, 1.2, 1])
-    with col2:
-        st.title("🔒 Verificación")
-        st.info(f"Código enviado a: {st.session_state.db['temp']['email']}")
-        st.caption(f"(DEBUG: El código es {st.session_state.db['temp']['code']})")
-        code_in = st.text_input("Ingresa el código de 6 dígitos")
-        if st.button("Confirmar Identidad"):
+    elif st.session_state.db["step"] == "verificacion":
+        st.write(f"Código para {st.session_state.db['temp']['email']}: {st.session_state.db['temp']['code']}")
+        code_in = st.text_input("Ingresa el código")
+        if st.button("Validar"):
             if code_in == st.session_state.db["temp"]["code"]:
-                st.session_state.db["step"] = "perfil"
-                st.rerun()
-            else:
-                st.error("Código inválido.")
+                st.session_state.db["step"] = "perfil"; st.rerun()
 
-# PASO 3: PERFIL (FOTO CIRCULAR Y DATOS)
-elif st.session_state.db["step"] == "perfil":
-    st.title("👤 Expediente del Educador")
-    st.write("Configura tu identidad profesional para los maestros de CONAFE.")
-    
-    col_img, col_data = st.columns([1, 2])
-    with col_img:
-        foto = st.file_uploader("Fotografía Profesional", type=['jpg', 'png'])
-        if foto:
-            b64_img = image_to_base64(foto)
-            st.session_state.db["temp"]["pic"] = b64_img
-            st.markdown(f'<div class="profile-pic-container"><img src="data:image/png;base64,{b64_img}" class="profile-pic"></div>', unsafe_allow_html=True)
+    elif st.session_state.db["step"] == "perfil":
+        st.title("👤 Perfil del Educador")
+        foto = st.file_uploader("Sube tu foto", type=['jpg', 'png'])
+        n = st.text_input("Nombre"); a = st.text_input("Apellidos")
+        u = st.text_input("Usuario"); p = st.text_input("Contraseña", type="password")
+        if st.button("Finalizar Registro"):
+            st.session_state.db["temp"].update({"name": f"{n} {a}", "user": u, "pass": p, "pic": image_to_base64(foto)})
+            st.session_state.db["step"] = "planes"; st.rerun()
 
-    with col_data:
-        n = st.text_input("Nombre(s)")
-        a = st.text_input("Apellidos")
-        u = st.text_input("Usuario Único")
-        p = st.text_input("Contraseña", type="password")
-        if st.button("Finalizar Perfil"):
-            if n and a and u and p:
-                st.session_state.db["temp"].update({"name": f"{n} {a}", "user": u, "pass": p})
-                st.session_state.db["step"] = "planes"
-                st.rerun()
-            else:
-                st.warning("Completa todos los campos para continuar.")
+    elif st.session_state.db["step"] == "planes":
+        st.title("💎 Elige tu Plan")
+        if st.button("Activar Plan Magna (Prueba)"):
+            t = st.session_state.db["temp"]
+            st.session_state.db["usuarios"][t["user"]] = {"pass": t["pass"], "name": t["name"], "plan": "Magna", "pic": t["pic"]}
+            st.session_state.db["auth"] = True; st.rerun()
 
-# PASO 4: PLANES CON DIBUJOS LLAMATIVOS
-elif st.session_state.db["step"] == "planes":
-    st.markdown("<h1 style='text-align: center;'>💎 Membresías Empresariales</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; opacity: 0.8;'>Selecciona tu nivel de impacto en el modelo ABCD</p>", unsafe_allow_html=True)
+# SI EL USUARIO YA ESTÁ AUTENTICADO -> MOSTRAR DASHBOARD (V0.2)
+else:
+    user_data = st.session_state.db["usuarios"][st.session_state.db["temp"].get("user", "admin")]
     
-    planes_info = {
-        "Gratuito": {"p": "$0", "l": "2", "t": "7 Días", "icon": "🌱", "desc": "Inicio Educativo"},
-        "Plata":    {"p": "$200", "l": "12", "t": "Mensual", "icon": "🥈", "desc": "Docente Activo"},
-        "Oro":      {"p": "$300", "l": "24", "t": "Mensual", "icon": "🏆", "desc": "Alto Rendimiento"},
-        "Platino":  {"p": "$450", "l": "50", "t": "Mensual", "icon": "⚡", "color": "#38bdf8", "desc": "Potencia Total"},
-        "Magna":    {"p": "$3999", "l": "∞", "t": "Anual", "icon": "🏛️", "desc": "Elite ProfeEduca"}
-    }
-    
-    cols = st.columns(5)
-    for i, (nombre, info) in enumerate(planes_info.items()):
-        with cols[i]:
-            st.markdown(f"""
-                <div class="plan-card">
-                    <span class="plan-icon">{info['icon']}</span>
-                    <h3 style='color:#38bdf8; margin-bottom:5px;'>{nombre}</h3>
-                    <p style='font-size:0.8rem; margin-bottom:15px; opacity:0.7;'>{info['desc']}</p>
-                    <h2 style='margin:0;'>{info['p']}</h2>
-                    <p><small>{info['t']}</small></p>
-                    <hr style='opacity:0.2'>
-                    <div style='text-align: left; font-size: 0.85rem;'>
-                        <p>✅ {info['l']} Planeaciones</p>
-                        <p>✅ {info['l']} Escritos</p>
-                        <p>✅ {info['l']} Evaluaciones</p>
-                    </div>
+    # BARRA LATERAL CON IDENTIDAD 0.2
+    with st.sidebar:
+        if user_data["pic"]:
+            st.markdown(f'<img src="data:image/png;base64,{user_data["pic"]}" class="profile-pic">', unsafe_allow_html=True)
+        
+        st.markdown(f"""
+            <div class="identity-card">
+                <span style="font-size: 2.5rem;">🍎🐛📏✏️</span>
+                <div style="color:white; font-weight:800; margin:10px 0;">🍎 PLANEACIONES PARA EL<br>MAESTRO ABCD</div>
+                <div class="brand-name">ProfeEduca 🍎</div>
+                <div class="slogan-text">
+                    "Sembrando saberes en el corazón de la comunidad,<br>
+                    donde la distancia no limita el aprendizaje,<br>
+                    cosechando el futuro de México con cada lección."
                 </div>
-            """, unsafe_allow_html=True)
-            if st.button(f"Seleccionar {nombre}", key=f"sel_{nombre}"):
-                st.balloons()
-                st.snow()
-                tmp = st.session_state.db["temp"]
-                st.session_state.db["usuarios"][tmp["user"]] = {
-                    "pass": tmp["pass"], "name": tmp["name"], "plan": nombre, "pic": tmp.get("pic")
-                }
-                st.success(f"¡Bienvenido al sistema, Maestro {tmp['name']}!")
-                time.sleep(2)
-                st.session_state.db["step"] = "app"
-                st.rerun()
+            </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button("🏠 INICIO", use_container_width=True): st.session_state.db["menu"] = "inicio"
+        if st.button("📝 PLANEACIÓN ABCD", use_container_width=True): st.session_state.db["menu"] = "planeacion"
+        if st.button("🚪 CERRAR SESIÓN"): st.session_state.db["auth"] = False; st.rerun()
 
-# DASHBOARD FINAL (ESTRUCTURA DE TRABAJO)
-elif st.session_state.db["step"] == "app":
-    st.title("🚀 Panel Principal ProfeEduca")
-    st.write("Bienvenido al centro de mando para tus planeaciones ABCD.")
-    if st.sidebar.button("Cerrar Sesión"):
-        st.session_state.db["step"] = "registro_email"
-        st.rerun()
+    # CONTENIDO SEGÚN EL MENÚ
+    if st.session_state.db["menu"] == "inicio":
+        st.title(f"Bienvenido, Maestro {user_data['name']}")
+        st.write("Tu ecosistema de trabajo está listo.")
+    
+    elif st.session_state.db["menu"] == "planeacion":
+        st.title("📝 Área de Planeación ABCD")
+        st.info("Aquí conectaremos el formulario con la IA Gemini en la siguiente fase.")
