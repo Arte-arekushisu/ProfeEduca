@@ -3,133 +3,139 @@ import streamlit as st
 # --- 1. CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="ProfeEduca | Versión 0.2", page_icon="🍎", layout="wide")
 
-# --- 2. ESTILOS CSS AVANZADOS ---
+# --- 2. ESTILOS CSS PERSONALIZADOS ---
 st.markdown("""
     <style>
-    /* Fondo General */
+    /* Fondo General Unificado */
     .stApp { 
         background: radial-gradient(circle at top, #0f172a 0%, #020617 100%);
         color: #f8fafc;
     }
 
-    /* Animación de "Levitación" para los iconos */
-    @keyframes floating {
-        0% { transform: translateY(0px) rotate(0deg); }
-        50% { transform: translateY(-15px) rotate(5deg); }
-        100% { transform: translateY(0px) rotate(0deg); }
+    /* Ocultar elementos innecesarios de Streamlit */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+
+    /* Contenedor Izquierdo (Lista de Navegación) */
+    .nav-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        padding: 20px;
+    }
+
+    /* Animación del Gusanito entrando y saliendo de la manzana */
+    @keyframes worm-move {
+        0%, 100% { transform: translate(45px, -30px) scale(1); opacity: 0; }
+        25% { transform: translate(30px, -45px) scale(1.1); opacity: 1; }
+        50% { transform: translate(0px, -50px) scale(1.2); opacity: 1; }
+        75% { transform: translate(-30px, -45px) scale(1.1); opacity: 1; }
+        90% { transform: translate(-45px, -30px) scale(1); opacity: 0; }
     }
     
-    .animated-icons {
-        font-size: 5rem;
+    .apple-container {
+        position: relative;
         display: inline-block;
-        animation: floating 4s ease-in-out infinite;
-        filter: drop-shadow(0 0 15px rgba(56, 189, 248, 0.5));
+        font-size: 8rem;
+        margin-top: 50px;
+    }
+    
+    .worm-icon {
+        position: absolute;
+        font-size: 3rem;
+        animation: worm-move 5s ease-in-out infinite;
     }
 
-    /* Contenedor de Identidad (Ahora a la derecha) */
-    .brand-card-right {
-        background: linear-gradient(145deg, #1e293b, #0f172a);
-        border: 2px solid #38bdf8;
-        border-radius: 25px;
-        padding: 30px;
-        text-align: center;
-        box-shadow: -10px 10px 30px rgba(0, 0, 0, 0.5);
-    }
-
-    .brand-profe {
-        color: #38bdf8;
-        font-size: 2rem;
-        font-weight: 900;
-        text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
-        margin: 10px 0;
-    }
-
-    /* Menú Superior Estilizado */
-    .top-menu {
+    /* Estilo del Nombre con Regla y Lápiz unidos */
+    .brand-header {
         display: flex;
+        align-items: center;
         justify-content: center;
-        gap: 20px;
-        padding: 15px;
-        background: rgba(30, 41, 59, 0.8);
-        border-radius: 15px;
-        border: 1px solid rgba(56, 189, 248, 0.3);
-        margin-bottom: 30px;
+        gap: 10px;
+        font-size: 2.5rem;
+        font-weight: 900;
+        color: #38bdf8;
+        text-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
     }
 
-    /* Eslogan */
-    .slogan-box {
+    .slogan-final {
         font-style: italic;
-        font-size: 0.95rem;
+        font-size: 1.1rem;
         color: #94a3b8;
+        max-width: 400px;
+        margin: 20px auto;
         line-height: 1.6;
-        border-top: 1px solid rgba(56, 189, 248, 0.2);
-        padding-top: 15px;
+    }
+
+    /* Botones de la lista izquierda */
+    .stButton>button {
+        text-align: left;
+        padding: 15px;
+        font-size: 1.1rem;
+        background: transparent;
+        color: #f8fafc;
+        border: none;
+        border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+        transition: 0.3s;
+    }
+    .stButton>button:hover {
+        background: rgba(56, 189, 248, 0.1);
+        padding-left: 25px;
+        color: #38bdf8;
+        border-bottom: 1px solid #38bdf8;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. MENÚ DE NAVEGACIÓN SUPERIOR ---
-# Usamos columnas para simular una barra de herramientas superior
-st.markdown('<div class="top-menu">', unsafe_allow_html=True)
-col_nav1, col_nav2, col_nav3, col_nav4 = st.columns(4)
+# --- 3. DISEÑO DE PANTALLA DIVIDIDA ---
+col_menu, col_visual = st.columns([1, 1.5])
 
-with col_nav1:
-    btn_inicio = st.button("🏠 INICIO", use_container_width=True)
-with col_nav2:
-    btn_plan = st.button("📝 PLANEACIÓN ABCD", use_container_width=True)
-with col_nav3:
-    btn_stats = st.button("📊 ESTADÍSTICAS", use_container_width=True)
-with col_nav4:
-    btn_user = st.button("👤 MI PERFIL", use_container_width=True)
-st.markdown('</div>', unsafe_allow_html=True)
+# LADO IZQUIERDO: LISTA DE OPCIONES
+with col_menu:
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.title("🚀 Menú Maestro")
+    
+    # Lista de botones como solicitaste
+    if st.button("🏠 Inicio"): st.session_state.p = "inicio"
+    if st.button("📝 Planeación ABCD"): st.session_state.p = "plan"
+    if st.button("📓 Escrito Reflexivo"): st.session_state.p = "reflexivo"
+    if st.button("📅 Diario del Maestro"): st.session_state.p = "diario"
+    if st.button("📊 Estadísticas"): st.session_state.p = "stats"
+    
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.caption("Ecosistema Digital ProfeEduca © 2026")
 
-# Lógica simple de navegación
-if 'page' not in st.session_state:
-    st.session_state.page = "inicio"
-
-if btn_inicio: st.session_state.page = "inicio"
-if btn_plan: st.session_state.page = "plan"
-
-# --- 4. CUERPO PRINCIPAL (Layout Invertido) ---
-col_main, col_brand = st.columns([2, 1])
-
-with col_main:
-    if st.session_state.page == "inicio":
-        st.title("🚀 Centro de Innovación Pedagógica")
-        st.subheader("Bienvenido al entorno profesional ProfeEduca")
-        
-        st.markdown("""
-        Desde este panel principal, tendrás acceso a todas las herramientas de planeación 
-        optimizadas para el modelo educativo comunitario. 
-        """)
-        
-        # Tarjetas informativas
-        c1, c2 = st.columns(2)
-        with c1:
-            st.info("💡 **Dato del día:** El aprendizaje basado en desafíos fomenta la autonomía.")
-        with c2:
-            st.success("✅ **Sistema IA:** Gemini está listo para generar tu próxima planeación.")
-
-    elif st.session_state.page == "plan":
-        st.title("📋 Generador de Planeación ABCD")
-        st.write("Configura los parámetros de tu lección aquí.")
-        # Aquí irá el contenido de la Fase 0.3
-
-with col_brand:
-    # Panel de Identidad a la derecha con animación
-    st.markdown(f"""
-        <div class="brand-card-right">
-            <div class="animated-icons">🍎🐛</div>
-            <div class="animated-icons" style="animation-delay: 1s;">📏✏️</div>
-            <div style="color:white; font-weight:800; font-size: 1.1rem; margin-top:15px;">
-                PLANEACIONES PARA EL<br>MAESTRO ABCD
-            </div>
-            <div class="brand-profe">ProfeEduca 🍎</div>
-            <div class="slogan-box">
-                "Guía de luz en las comunidades más remotas,<br>
-                transformando cada desafío en una oportunidad,<br>
-                porque el saber no conoce fronteras ni distancias,<br>
-                educando con el corazón para el México del mañana."
-            </div>
+# LADO DERECHO: IDENTIDAD Y ANIMACIÓN
+with col_visual:
+    st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
+    
+    # Animación de la Manzana y el Gusanito
+    st.markdown("""
+        <div class="apple-container">
+            <span class="worm-icon">🐛</span>
+            🍎
         </div>
     """, unsafe_allow_html=True)
+    
+    # Nombre de marca con Regla y Lápiz unidos
+    st.markdown("""
+        <div class="brand-header">
+            📏 ProfeEduca ✏️
+        </div>
+        <div style="font-weight: 700; color: white; margin-top: 10px;">
+            PLANEACIONES PARA EL MAESTRO ABCD
+        </div>
+        <div class="slogan-final">
+            "Guía de luz en las comunidades más remotas, transformando cada desafío en una oportunidad para el México del mañana."
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# --- 4. CONTENIDO DINÁMICO (Debajo del menú) ---
+st.divider()
+if 'p' not in st.session_state: st.session_state.p = "inicio"
+
+if st.session_state.p == "inicio":
+    st.subheader("Bienvenido al Centro de Innovación Pedagógica")
+    st.write("Tu centro de mando está listo para operar bajo el modelo de aprendizaje autónomo.")
