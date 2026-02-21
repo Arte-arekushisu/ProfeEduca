@@ -1,71 +1,32 @@
-import streamlit as st
-from fpdf import FPDF
-import unicodedata
-import datetime
-from google import genai
-
-# --- CONFIGURACIÓN DE IA (CONEXIÓN DIRECTA) ---
-API_KEY = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
-# Dejamos la configuración básica para que Google elija la mejor ruta
-client = genai.Client(api_key=API_KEY)
-
-def clean(txt):
-    if not txt: return ""
-    txt = "".join(c for c in unicodedata.normalize('NFD', str(txt)) if unicodedata.category(c) != 'Mn')
-    txt = txt.replace('ñ', 'n').replace('Ñ', 'N').replace('“', '"').replace('”', '"').replace('•', '-')
-    return txt.encode('latin-1', 'ignore').decode('latin-1')
-
-class PlaneacionPDF(FPDF):
-    def header(self):
-        self.set_font('Helvetica', 'B', 16)
-        self.cell(0, 10, 'PROFEEDUCA - PLANEACION CONAFE', 0, 1, 'C')
-        self.ln(5)
-
-    def barra(self, titulo, color=(230, 230, 230)):
-        self.set_font('Helvetica', 'B', 11)
-        self.set_fill_color(*color)
-        self.cell(0, 8, f"  {clean(titulo)}", 1, 1, 'L', True)
-        self.ln(2)
-
-st.set_page_config(page_title="PROFEEDUCA IA", layout="wide")
-st.title("🛡️ PROFEEDUCA: Sistema de Planeación")
-
-with st.form("MainForm"):
-    c1, c2 = st.columns(2)
-    with c1:
-        nivel = st.selectbox("Nivel Educativo", ["Preescolar", "Primaria", "Secundaria"])
-        educador = st.text_input("Nombre del Educador", "AXEL REYES")
-        tema = st.text_input("Tema de Interés", "LAS TORTUGAS MARINAS")
-    with c2:
-        comunidad = st.text_input("Comunidad", "CRUZ")
-        fecha = st.date_input("Fecha", datetime.date.today())
-        materias = st.text_area("Materias/Temas", "Matematicas, Español")
-    
-    submit = st.form_submit_button("🔨 GENERAR PLANEACIÓN AHORA")
-
 if submit:
-    with st.spinner("🤖 Generando contenido pedagógico..."):
+    with st.spinner("🤖 Conectando con el cerebro de Google..."):
         try:
-            # Usamos el nombre del modelo tal cual lo pide la documentación oficial
+            # CAMBIO CLAVE: Usamos el nombre técnico completo del modelo
+            # Esto ayuda a que el servidor lo encuentre sin importar la versión de la API
+            model_id = "models/gemini-1.5-flash"
+            
             response = client.models.generate_content(
-                model="gemini-1.5-flash", 
-                contents=f"Genera una planeación pedagógica CONAFE para {nivel} sobre {tema}. Comunidad: {comunidad}. Materias: {materias}."
+                model=model_id, 
+                contents=f"Genera una planeación pedagógica para {nivel} sobre {tema}. Comunidad: {comunidad}."
             )
             
-            pdf = PlaneacionPDF()
-            pdf.add_page()
-            pdf.barra("I. DATOS GENERALES")
-            pdf.set_font('Helvetica', '', 11)
-            pdf.cell(0, 8, clean(f"Educador: {educador} | Nivel: {nivel}"), 0, 1)
-            pdf.cell(0, 8, clean(f"Tema: {tema} | Comunidad: {comunidad}"), 0, 1)
-            
-            pdf.ln(5); pdf.barra("II. DESARROLLO DE LA IA")
-            pdf.multi_cell(0, 6, clean(response.text))
+            if response.text:
+                pdf = PlaneacionPDF()
+                pdf.add_page()
+                pdf.barra("I. DATOS GENERALES")
+                pdf.set_font('Helvetica', '', 11)
+                pdf.cell(0, 8, clean(f"Educador: {educador} | Tema: {tema}"), 0, 1)
+                
+                pdf.ln(5); pdf.barra("II. DESARROLLO")
+                pdf.multi_cell(0, 6, clean(response.text))
 
-            pdf_output = pdf.output(dest='S').encode('latin-1', 'replace')
-            st.success("✅ ¡Éxito! Tu planeación ha sido creada.")
-            st.download_button("📥 DESCARGAR PDF", pdf_output, f"Planeacion_{tema}.pdf", "application/pdf")
-            
+                pdf_output = pdf.output(dest='S').encode('latin-1', 'replace')
+                st.success("✅ ¡CONSEGUIDO! Ya puedes descargar tu documento.")
+                st.download_button("📥 DESCARGAR PDF", pdf_output, f"Planeacion.pdf", "application/pdf")
+            else:
+                st.warning("La IA no devolvió texto. Revisa tu conexión.")
+
         except Exception as e:
-            # Si vuelve a fallar, nos dará el mensaje exacto para corregir
-            st.error(f"Aviso del sistema: {e}")
+            # Si sale error, este mensaje nos dirá exactamente qué puerta está cerrada
+            st.error(f"Aviso técnico: {e}")
+            st.info("Axel, si ves un error de 'API_KEY_INVALID', revisa que no haya espacios extras en tu clave.")
