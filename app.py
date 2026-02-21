@@ -4,11 +4,10 @@ import unicodedata
 import datetime
 from google import genai
 
-# --- CONFIGURACIÓN DE IA (VERSIÓN ULTRA-ESTABLE) ---
+# --- CONFIGURACIÓN DE IA (CONEXIÓN DIRECTA) ---
 API_KEY = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
-
-# Forzamos al cliente a usar la ruta de producción, no la beta
-client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1'})
+# Dejamos la configuración básica para que Google elija la mejor ruta
+client = genai.Client(api_key=API_KEY)
 
 def clean(txt):
     if not txt: return ""
@@ -47,7 +46,7 @@ with st.form("MainForm"):
 if submit:
     with st.spinner("🤖 Generando contenido pedagógico..."):
         try:
-            # Forzamos el ID del modelo exacto
+            # Usamos el nombre del modelo tal cual lo pide la documentación oficial
             response = client.models.generate_content(
                 model="gemini-1.5-flash", 
                 contents=f"Genera una planeación pedagógica CONAFE para {nivel} sobre {tema}. Comunidad: {comunidad}. Materias: {materias}."
@@ -64,8 +63,9 @@ if submit:
             pdf.multi_cell(0, 6, clean(response.text))
 
             pdf_output = pdf.output(dest='S').encode('latin-1', 'replace')
-            st.success("✅ ¡Lo logramos! La planeación está lista.")
+            st.success("✅ ¡Éxito! Tu planeación ha sido creada.")
             st.download_button("📥 DESCARGAR PDF", pdf_output, f"Planeacion_{tema}.pdf", "application/pdf")
             
         except Exception as e:
-            st.error(f"Error de conexión. Detalles: {e}")
+            # Si vuelve a fallar, nos dará el mensaje exacto para corregir
+            st.error(f"Aviso del sistema: {e}")
