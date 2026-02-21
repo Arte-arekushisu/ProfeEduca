@@ -10,95 +10,102 @@ def clean(txt):
 
 class PlaneacionFinal(FPDF):
     def header(self):
-        self.set_font('Helvetica', 'B', 18)
-        self.set_text_color(31, 52, 94)
-        self.cell(0, 15, 'PLANEACION PEDAGOGICA INTEGRAL', 0, 1, 'C')
+        # TÍTULO EXACTO SOLICITADO
+        self.set_font('Helvetica', 'B', 25)
+        self.set_text_color(30, 30, 30)
+        self.cell(0, 20, 'PLANEACION', 0, 1, 'C')
         self.ln(5)
 
-    def seccion(self, titulo, color=(31, 52, 94)):
+    def barra(self, titulo, color=(40, 40, 40)):
         self.set_font('Helvetica', 'B', 12)
         self.set_fill_color(*color); self.set_text_color(255, 255, 255)
         self.cell(0, 10, f"  {clean(titulo)}", 0, 1, 'L', True)
         self.set_text_color(0, 0, 0); self.ln(2)
 
-st.set_page_config(page_title="ProfeEduca v12 Master", layout="wide")
-st.title("🛡️ Consolidación Total: Motor Pedagógico v12")
+st.set_page_config(page_title="PLANEACION", layout="wide")
+st.title("📑 Generador de Planeación Semanal Consolidada")
 
-with st.form("Form_Maestro"):
+with st.form("Form_V17"):
     c1, c2, c3 = st.columns(3)
     with c1:
         nivel = st.selectbox("Nivel", ["Preescolar", "Primaria", "Secundaria"])
-        grado = st.text_input("Grado", "Multigrado")
-        educador = st.text_input("Educador", "AXEL REYES")
+        grado = st.text_input("Grado/Grupo", "1")
+        educador = st.text_input("Nombre del Educador", "AXEL REYES")
     with c2:
-        eca = st.text_input("Nombre del ECA", "Proyecto Raices")
+        eca = st.text_input("Nombre del ECA", "reyes")
         comunidad = st.text_input("Comunidad", "CRUZ")
-        fecha = st.date_input("Fecha", datetime.date.today())
+        tema = st.text_input("Tema de Interes", "LAS TORTUGAS MARINAS")
     with c3:
-        tema = st.text_input("Tema de Interés", "LAS TORTUGAS MARINAS")
-        rincon = st.text_input("Rincón (Opcional)", "CIENCIAS")
-    
-    st.divider()
-    col_m1, col_m2 = st.columns(2)
-    with col_m1:
-        materia1 = st.text_input("Materia Post-Receso 1", "MATEMATICAS")
-    with col_m2:
-        materia2 = st.text_input("Materia Post-Receso 2 (ej. Ed. Fisica)", "EDUCACION FISICA")
+        fecha = st.date_input("Fecha de Inicio", datetime.date.today())
+        rincon = st.text_input("Rincon", "LECTURA/CIENCIAS")
 
-    submit = st.form_submit_button("🔨 GENERAR PLANEACION COMPLETA")
+    st.subheader("🗓️ Configuracion de Materias Post-Receso (Lunes a Viernes)")
+    dias = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes"]
+    mats_inputs = {}
+    cols = st.columns(5)
+    for i, col in enumerate(cols):
+        mats_inputs[dias[i]] = col.text_area(f"Materias {dias[i]}", "Matematicas\nEd. Fisica")
+
+    submit = st.form_submit_button("🔨 GENERAR DOCUMENTO COMPLETO")
 
 if submit:
     pdf = PlaneacionFinal()
+    pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
 
     # I. IDENTIFICACIÓN
-    pdf.seccion("I. DATOS DE IDENTIFICACION")
+    pdf.barra("I. DATOS GENERALES")
     pdf.set_font('Helvetica', '', 10)
-    tabla = [["Nivel/Grado", f"{nivel} - {grado}"], ["Educador", educador], ["ECA", eca], ["Comunidad", comunidad], ["Tema", tema], ["Rincon", rincon]]
-    for item in tabla:
-        pdf.set_font('Helvetica', 'B', 10); pdf.cell(40, 7, f" {clean(item[0])}:", 1, 0, 'L')
-        pdf.set_font('Helvetica', '', 10); pdf.cell(150, 7, f" {clean(item[1])}", 1, 1, 'L')
+    info = [["Educador", educador], ["Nivel/Grado", f"{nivel}/{grado}"], ["ECA", eca], ["Comunidad", comunidad], ["Tema", tema], ["Fecha", str(fecha)]]
+    for row in info:
+        pdf.set_font('Helvetica', 'B', 10); pdf.cell(45, 8, f" {clean(row[0])}:", 1, 0, 'L', True)
+        pdf.set_font('Helvetica', '', 10); pdf.cell(145, 8, f" {clean(row[1])}", 1, 1, 'L')
     pdf.ln(5)
 
-    # II. BLOQUE DE INICIO (TIEMPOS PEDAGÓGICOS)
-    pdf.seccion("II. MOMENTOS INICIALES (25 MIN)")
-    pdf.set_font('Helvetica', 'B', 11); pdf.cell(0, 7, "1. Pase de Lista (5 min):", 0, 1)
-    pdf.set_font('Helvetica', '', 10); pdf.multi_cell(0, 6, f"Actividad: Cada alumno menciona un animal que viva en el agua (Relacionado a {tema}).")
-    
-    pdf.set_font('Helvetica', 'B', 11); pdf.cell(0, 7, "2. Regalo de Lectura (10 min):", 0, 1)
-    pdf.set_font('Helvetica', '', 10); pdf.multi_cell(0, 6, "Lectura: 'El viaje de la Tortuga'. Actividad: Dibujar en el aire el camino de la tortuga.")
-    
-    pdf.set_font('Helvetica', 'B', 11); pdf.cell(0, 7, "3. Bienvenida (10 min):", 0, 1)
-    pdf.set_font('Helvetica', '', 10); pdf.multi_cell(0, 6, "Dinamica de integracion: 'La red marina'. Los alumnos se lanzan una estambre creando una red de conocimientos previos.")
+    # II. INICIO DIARIO (TIEMPOS PEDAGÓGICOS)
+    pdf.barra("II. MOMENTOS DE INICIO (25 MINUTOS)")
+    pdf.set_font('Helvetica', '', 10)
+    pdf.multi_cell(0, 6, f"• PASE DE LISTA (5 min): Actividad vinculada a {tema}. Mat: Tarjetas recicladas.\n"
+                         f"• REGALO DE LECTURA (10 min): Lectura en voz alta sobre biodiversidad. Mat: Libros del rincon.\n"
+                         f"• BIENVENIDA (10 min): Dinamica de integracion y preguntas de saberes previos.")
     pdf.ln(5)
 
-    # III. ESTACIONES SEMANALES (AUTONOMÍA)
-    pdf.seccion("III. ESTACIONES DE TRABAJO AUTONOMO (45 MIN C/U)")
-    estaciones = ["Lenguajes", "Saberes y P. Cientifico", "Etica, Nat. y Soc."]
-    for est in estaciones:
-        pdf.set_font('Helvetica', 'B', 11); pdf.cell(0, 7, f"Campo: {clean(est)}", 0, 1)
-        pdf.set_font('Helvetica', '', 10); pdf.multi_cell(0, 5, "Lunes-Martes: Identificacion de elementos (Material reciclado).\nMiercoles-Jueves: Registro en bitacora y experimentacion.\nViernes: Presentacion de hallazgos al grupo.\n")
-
-    # IV. TUTOREO IA (DESARROLLO)
+    # III. ESTACIONES DIDÁCTICAS (5 DÍAS / 4 CAMPOS / 3 ACT POR DÍA)
+    pdf.barra("III. ESTACIONES DE TRABAJO (4 CAMPOS FORMATIVOS)")
+    campos = [
+        {"n": "Estacion de los Relatos (Lenguajes)", "m": "Revistas, pegamento, hojas, gises.", 
+         "d": "L: Collage de palabras. M: Diario de observacion. Mi: Cartel de cuidado. J: Escritura de hipotesis. V: Exposición grupal."},
+        {"n": "Laboratorio del Cientifico (Saberes)", "m": "Semillas, balanza, botes, arena.", 
+         "d": "L: Conteo de nidos. M: Clasificacion por peso. Mi: Medidas de rastro. J: Registro de datos. V: Grafica de resultados."},
+        {"n": "Guardianes de la Tierra (Etica/Nat)", "m": "Carton, gises, basura limpia.", 
+         "d": "L: Mapa comunitario. M: Rastro de contaminacion. Mi: Maqueta de refugio. J: Firma de acuerdos. V: Mural de compromisos."},
+        {"n": "Circulo de Saberes (De lo Humano)", "m": "Telas, material sobrante, espejos.", 
+         "d": "L: Juego de roles. M: Tutoria entre pares. Mi: Dialogo emocional. J: Intercambio de saberes. V: Reflexion final."}
+    ]
+    
+    for c in campos:
+        pdf.set_font('Helvetica', 'B', 11); pdf.cell(0, 8, clean(c['n']), 0, 1)
+        pdf.set_font('Helvetica', 'I', 9); pdf.cell(0, 6, f"Materiales sugeridos: {clean(c['m'])}", 0, 1)
+        pdf.set_font('Helvetica', '', 10); pdf.multi_cell(0, 5, f"Secuencia Semanal (3 act. diarias): {clean(c['d'])}\n")
+    
+    # IV. POST-RECESO Y TAREAS
     pdf.add_page()
-    pdf.seccion("IV. TUTOREO UNO A UNO (MOTOR IA)")
-    pdf.set_font('Helvetica', 'B', 11); pdf.cell(0, 7, "Preguntas Detonantes:", 0, 1)
-    pdf.set_font('Helvetica', '', 10); pdf.multi_cell(0, 6, f"1. ¿Como sabe una tortuga a que playa regresar?\n2. ¿Que pasaria si el plastico reemplaza la arena?\n3. ¿Cual es la funcion del caparazon en su vida diaria?")
+    pdf.barra("IV. BLOQUE POST-RECESO Y EXTENSION AL HOGAR")
+    for dia, mat in mats_inputs.items():
+        pdf.set_font('Helvetica', 'B', 10); pdf.cell(0, 7, f"{dia}:", 1, 1, 'L', True)
+        pdf.set_font('Helvetica', '', 10)
+        pdf.multi_cell(0, 6, f"MATERIAS: {clean(mat)} (90 min total). Uso de materiales sobrantes.\n"
+                             f"TAREA DIARIA: Investigar con familia un dato de {tema} y recolectar un material reciclable.")
+        pdf.ln(2)
+
+    # V. FIN DE SEMANA Y REFERENCIAS
+    pdf.ln(5); pdf.barra("V. PROYECTO DE FIN DE SEMANA")
+    pdf.set_font('Helvetica', '', 10)
+    pdf.multi_cell(0, 6, f"Mision: Realizar una entrevista a un adulto mayor de la comunidad sobre la historia de {tema} en la region. Entregar reporte creativo el lunes.")
     
-    pdf.set_font('Helvetica', 'B', 11); pdf.cell(0, 7, "Actividades de Desarrollo:", 0, 1)
-    pdf.multi_cell(0, 6, "1. Investigacion en ficheros academicos sobre reptiles marinos.\n2. Modelado de ecosistema con materiales de bajo costo.\n3. PRODUCTO FINAL: Infografia comunitaria sobre proteccion de nidos.")
-    pdf.ln(5)
-
-    # V. POST-RECESO
-    pdf.seccion("V. MATERIAS POST-RECESO (90 MIN TOTAL)")
-    for mat in [materia1, materia2]:
-        pdf.set_font('Helvetica', 'B', 11); pdf.cell(0, 7, f"Materia: {clean(mat)} (45 min)", 0, 1)
-        pdf.set_font('Helvetica', '', 10); pdf.multi_cell(0, 6, "Inicio: Recuperacion de saberes.\nDesarrollo: Actividad practica con materiales sobrantes.\nCierre: Reflexion escrita o juego motor (si es Ed. Fisica).\n")
-
-    # VI. REFERENCIAS
-    pdf.ln(5); pdf.seccion("VI. REFERENCIAS Y FUENTES CONFIABLES", (100, 100, 100))
+    pdf.ln(5); pdf.barra("VI. REFERENCIAS (.EDU / .GOV)", (100, 100, 100))
     pdf.set_font('Helvetica', 'I', 8)
-    pdf.multi_cell(0, 5, "SEP (2022). Plan de Estudios para la educacion preescolar, primaria y secundaria. Recuperado de www.gob.mx/sep\nUNESCO (2021). Educacion para el Desarrollo Sostenible. www.unesco.org")
+    pdf.multi_cell(0, 5, "SEP (2022). Plan de Estudios para la Educacion Basica. www.gob.mx/sep\nUNESCO (2024). Recursos Educativos para la Sostenibilidad. www.unesco.org")
 
-    pdf_out = pdf.output(dest='S').encode('latin-1', 'replace')
-    st.download_button("📥 DESCARGAR PLANEACION INTEGRAL V12", data=pdf_out, file_name="Planeacion_Pedagogica_Integral.pdf", use_container_width=True)
+    pdf_bytes = pdf.output(dest='S').encode('latin-1', 'replace')
+    st.download_button("📥 DESCARGAR PLANEACION FINAL CONSOLIDADA", data=pdf_bytes, file_name="Planeacion.pdf", use_container_width=True)
