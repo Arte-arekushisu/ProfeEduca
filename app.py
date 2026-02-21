@@ -4,7 +4,7 @@ import unicodedata
 import datetime
 from google import genai
 
-# --- CONFIGURACIÓN DE IA (CONEXIÓN ESTABLE) ---
+# --- CONFIGURACIÓN DE IA ---
 API_KEY = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
 client = genai.Client(api_key=API_KEY)
 
@@ -20,16 +20,10 @@ class PlaneacionPDF(FPDF):
         self.cell(0, 10, 'PROFEEDUCA - PLANEACION CONAFE', 0, 1, 'C')
         self.ln(5)
 
-    def barra(self, titulo, color=(230, 230, 230)):
-        self.set_font('Helvetica', 'B', 11)
-        self.set_fill_color(*color)
-        self.cell(0, 8, f"  {clean(titulo)}", 1, 1, 'L', True)
-        self.ln(2)
-
 st.set_page_config(page_title="PROFEEDUCA IA", layout="wide")
 st.title("🛡️ PROFEEDUCA: Sistema de Planeación")
 
-# --- AQUÍ DEFINIMOS EL FORMULARIO (Evita el NameError) ---
+# El formulario que ya lograste ver:
 with st.form("MainForm"):
     c1, c2 = st.columns(2)
     with c1:
@@ -41,37 +35,29 @@ with st.form("MainForm"):
         fecha = st.date_input("Fecha", datetime.date.today())
         materias = st.text_area("Materias/Temas", "Matematicas, Español")
     
-    # Aquí se crea la variable 'submit'
     submit = st.form_submit_button("🔨 GENERAR PLANEACIÓN AHORA")
 
-# --- LÓGICA DE GENERACIÓN ---
 if submit:
-    with st.spinner("🤖 Conectando con el cerebro de Google..."):
+    with st.spinner("🤖 Google está redactando tu planeación..."):
         try:
-            # Usamos el ID técnico completo para evitar el Error 404
-            model_id = "models/gemini-1.5-flash"
-            
+            # LLAMADA DIRECTA: Sin versiones beta, solo el modelo puro
             response = client.models.generate_content(
-                model=model_id, 
-                contents=f"Genera una planeación pedagógica CONAFE para {nivel} sobre {tema}. Comunidad: {comunidad}. Materias: {materias}."
+                model="gemini-1.5-flash", 
+                contents=f"Como pedagogo CONAFE, genera una planeación para {nivel} sobre {tema} en {comunidad}."
             )
             
             if response.text:
                 pdf = PlaneacionPDF()
                 pdf.add_page()
-                pdf.barra("I. DATOS GENERALES")
+                pdf.set_font('Helvetica', 'B', 12)
+                pdf.cell(0, 10, clean(f"Tema: {tema}"), 1, 1, 'C')
+                pdf.ln(5)
                 pdf.set_font('Helvetica', '', 11)
-                pdf.cell(0, 8, clean(f"Educador: {educador} | Nivel: {nivel}"), 0, 1)
-                pdf.cell(0, 8, clean(f"Tema: {tema} | Comunidad: {comunidad}"), 0, 1)
-                
-                pdf.ln(5); pdf.barra("II. DESARROLLO DE LA IA")
                 pdf.multi_cell(0, 6, clean(response.text))
 
-                pdf_output = pdf.output(dest='S').encode('latin-1', 'replace')
-                st.success("✅ ¡CONSEGUIDO! Tu planeación está lista.")
-                st.download_button("📥 DESCARGAR MI PDF", pdf_output, f"Planeacion_{tema}.pdf", "application/pdf")
-            else:
-                st.warning("La IA no devolvió texto. Intenta de nuevo.")
+                pdf_out = pdf.output(dest='S').encode('latin-1', 'replace')
+                st.success("✅ ¡Planeación lista!")
+                st.download_button("📥 DESCARGAR PDF", pdf_out, f"Planeacion_{tema}.pdf", "application/pdf")
 
         except Exception as e:
-            st.error(f"Aviso del sistema: {e}")
+            st.error(f"Detalle técnico: {e}")
