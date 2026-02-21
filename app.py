@@ -2,38 +2,81 @@ import streamlit as st
 from fpdf import FPDF
 from datetime import datetime
 
-# --- 1. CONFIGURACIÓN ---
-st.set_page_config(page_title="ProfeEduca V0.8", page_icon="🍎", layout="wide")
+# --- 1. CONFIGURACIÓN DE PÁGINA ---
+st.set_page_config(page_title="ProfeEduca V0.9", page_icon="🍎", layout="wide")
 
-# --- 2. MOTOR DE GENERACIÓN PEDAGÓGICA EXTENSA ---
-def generar_contenido_experto(d):
-    nivel = d['nivel']
-    tema = d['tema']
-    
-    # Adaptación de dificultad según el nivel manual
-    if nivel == "Preescolar":
-        enfoque = "Basado en el juego simbólico y exploración sensorial."
-        ejemplo_mats = "Masilla casera, colores naturales, cartones grandes."
-    elif nivel == "Primaria":
-        enfoque = "Enfoque en la investigación guiada y registro gráfico."
-        ejemplo_mats = "Libros de texto, lupas, material de desecho para maquetas."
-    else: # Secundaria
-        enfoque = "Análisis crítico, debate y sistematización de información."
-        ejemplo_mats = "Fuentes bibliográficas, materiales para prototipos funcionales."
+# --- 2. MOTOR DE REDACCIÓN EXTENSA ---
+def redactar_guia_completa(d):
+    # Adaptación de complejidad según nivel
+    if d['nivel'] == "Preescolar":
+        pautas = "Uso de cantos, manipulación de texturas y dibujos grandes."
+    elif d['nivel'] == "Primaria":
+        pautas = "Uso de esquemas simples, investigación en libros y experimentos."
+    else:
+        pautas = "Debates, análisis de textos científicos y prototipos complejos."
 
     return {
-        "inicio": {
-            "pase": f"Actividad 'El Eco de la Comunidad': Al mencionar su nombre, el alumno debe compartir un saber o habilidad que alguien de su familia le haya enseñado. Duración: 5 min.",
-            "lectura": f"Regalo de lectura: 'Voces de nuestra tierra'. Se leerá un fragmento de un autor académico o relato comunitario. Al finalizar, cada alumno dibujará en una hoja reciclada la idea principal. Duración: 10 min.",
-            "bienvenida": f"Actividad: 'El círculo de diálogo'. Los niños se sientan en círculo y comparten una meta para el día. Se utiliza una 'piedra del habla' para respetar turnos. Duración: 10 min."
+        "inicio_grupo": {
+            "pase": "Actividad 'El eco de mi voz': Al mencionar su nombre, el alumno imita un sonido de la naturaleza o dice una palabra positiva. Ayuda a romper el hielo y centrar la atención.",
+            "lectura": f"Momento literario: El educador lee con pausas dramáticas para fomentar la imaginación. Al terminar, los alumnos explican en voz alta qué harían ellos en el lugar del protagonista.",
+            "bienvenida": "Dinámica 'El nudo de amistad': El grupo forma un círculo tomándose de las manos y debe desenredarse sin soltarse, fomentando la resolución de problemas en equipo."
         },
         "estaciones": [
-            {"t": "Estación de Lenguajes", "d": f"Desarrollo: Los alumnos crearán un mural de palabras nuevas. {enfoque} Materiales: Periódicos viejos, pegamento de almidón."},
-            {"t": "Estación de Saberes", "d": f"Desarrollo: Clasificación de elementos naturales del entorno. {enfoque} Materiales: Hojas secas, piedras, envases reciclados."},
-            {"t": "Estación Ética y Naturaleza", "d": f"Desarrollo: Representación de un problema socio-ambiental de la comunidad y propuesta de solución."}
+            {"t": "Estación de Lenguaje", "d": f"Instrucciones: Los alumnos crearán un mural de palabras clave. {pautas} Materiales sugeridos: Cartón reciclado, gises, recortes de revistas."},
+            {"t": "Estación de Pensamiento", "d": f"Instrucciones: Resolución de retos lógicos usando semillas o piedras de la región para contar o medir. {pautas}"},
+            {"t": "Estación de Saberes", "d": f"Instrucciones: Observación directa del entorno para identificar cambios en la naturaleza o el clima local. {pautas}"}
         ],
-        "tutoreo": {
-            "desarrollo": f"PROFUNDIZACIÓN: El educador guiará al alumno en el estudio de '{tema}'. Se explica que este tema es una ventana al conocimiento científico y social. Se analizarán las causas y efectos relacionados con el entorno local.",
-            "actividades": [
-                f"1. Investigación autónoma: Buscar en el rincón de lectura 3 fuentes que hablen sobre '{tema}'.",
-                f"2. Entrevista dirigida: Preparar preguntas para un compañero que ya conozca sobre el tema.",
+        "tutoreo_especifico": {
+            "tema_desarrollo": f"Estudio profundo sobre: {d['tema']}. El tutor guiará al alumno para investigar los orígenes, funciones e importancia de este tema en la vida real.",
+            "pasos": [
+                f"1. Diagnóstico Inicial: ¿Qué sabemos sobre {d['tema']}? Anotamos ideas previas.",
+                "2. Investigación Dirigida: Consultar el rincón de lectura y seleccionar dos fuentes confiables.",
+                "3. Registro RPA (Relación de Aprendizaje): El alumno narra su proceso de descubrimiento paso a paso.",
+                "4. Producto Final: Elaboración de un objeto tangible (maqueta, cartel o prototipo) que demuestre lo aprendido."
+            ]
+        },
+        "post_receso": [
+            {"m": d['m1'], "d": "Actividad: Desarrollo de habilidades motrices y coordinación grupal a través de juegos tradicionales adaptados al espacio del aula."},
+            {"m": d['m2'], "d": "Actividad: Integración de saberes mediante el arte o la expresión corporal, utilizando materiales sobrantes de las estaciones anteriores."}
+        ]
+    }
+
+# --- 3. CLASE PARA PDF DE ALTA CALIDAD ---
+class PDF(FPDF):
+    def header(self):
+        self.set_font('Arial', 'B', 15)
+        self.cell(0, 10, 'PLANEACIÓN INTEGRAL - MODELO DE DIÁLOGO', 0, 1, 'C')
+        self.ln(5)
+
+    def chapter_title(self, title):
+        self.set_font('Arial', 'B', 12)
+        self.set_fill_color(30, 41, 59)
+        self.set_text_color(255, 255, 255)
+        self.cell(0, 10, title, 0, 1, 'L', True)
+        self.set_text_color(0, 0, 0)
+        self.ln(3)
+
+# --- 4. INTERFAZ DE USUARIO ---
+if 'seccion' not in st.session_state: st.session_state.seccion = "inicio"
+
+col_menu, col_main = st.columns([1, 3])
+
+with col_menu:
+    st.title("🍎 Menú")
+    if st.button("🏠 Inicio", use_container_width=True): st.session_state.seccion = "inicio"
+    if st.button("📝 Planeación ABCD", use_container_width=True): st.session_state.seccion = "plan"
+
+with col_main:
+    if st.session_state.seccion == "plan":
+        st.header("📋 Taller de Planeación")
+        
+        with st.form("mi_formulario"):
+            c1, c2 = st.columns(2)
+            with c1:
+                nivel = st.selectbox("Nivel Educativo", ["Preescolar", "Primaria", "Secundaria"])
+                grado = st.text_input("Grado", placeholder="Ej. 1º Multigrado")
+                nombre_ed = st.text_input("Educador")
+                nombre_eca = st.text_input("Nombre del ECA")
+            with c2:
+                comunidad = st.text_input("Comunidad")
+                fecha = st.date_input("Fecha de planeación")
