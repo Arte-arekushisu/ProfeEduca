@@ -1,94 +1,63 @@
-import streamlit as st
-import random
+from fpdf import FPDF
+import datetime
 
-# --- 1. CONFIGURACIÓN ---
-st.set_page_config(page_title="ProfeEduca V0.4", page_icon="🍎", layout="wide")
-
-# --- 2. ESTILOS CSS (BOTONES TRANSPARENTES Y SUAVES) ---
-st.markdown("""
-    <style>
-    .stApp { background: radial-gradient(circle at top, #0f172a 0%, #020617 100%); color: #f8fafc; }
+def generar_pdf(datos):
+    pdf = FPDF()
+    pdf.add_page()
     
-    /* BOTONES TIPO CRISTAL (Glassmorphism) */
-    .stButton>button {
-        background: rgba(255, 255, 255, 0.03); /* Casi invisible */
-        color: rgba(248, 250, 252, 0.7); /* Blanco opaco muy suave */
-        border: 1px solid rgba(56, 189, 248, 0.2);
-        border-radius: 12px;
-        backdrop-filter: blur(5px);
-        transition: all 0.3s ease;
-        text-align: left;
-        padding: 12px;
-    }
-
-    /* EFECTO HOVER: Solo brilla al acercar el mouse */
-    .stButton>button:hover {
-        background: rgba(56, 189, 248, 0.1);
-        border-color: #38bdf8;
-        color: #38bdf8;
-        transform: translateX(5px);
-    }
-
-    /* Animación Gusanito (Más lenta para no distraer) */
-    @keyframes worm-peek {
-        0%, 100% { transform: translate(40px, 0px) scale(0); opacity: 0; }
-        50% { transform: translate(0px, -45px) rotate(15deg) scale(1.1); opacity: 1; }
-    }
-    .apple-stage { position: relative; font-size: 7rem; text-align: center; margin: 15px 0; }
-    .worm-move { position: absolute; font-size: 2.5rem; animation: worm-peek 6s infinite; left: 47%; top: 15%; }
-    </style>
-    """, unsafe_allow_html=True)
-
-# --- 3. INICIALIZACIÓN ---
-if 'seccion' not in st.session_state:
-    st.session_state.seccion = "inicio"
-if 'messages' not in st.session_state:
-    st.session_state.messages = [{"user": "Profe_Michi", "text": "¡Hola colegas! ¿Listos para el desafío?"}]
-
-# --- 4. ESTRUCTURA DE COLUMNAS (CORRIGE NameError) ---
-col_menu, col_main = st.columns([1, 2])
-
-# LADO IZQUIERDO: MENÚ
-with col_menu:
-    st.markdown("### 🚀 Panel de Control")
-    if st.button("🏠 Inicio / Comunidad", use_container_width=True):
-        st.session_state.seccion = "inicio"
-    if st.button("📝 Planeación ABCD", use_container_width=True):
-        st.session_state.seccion = "plan"
+    # Configuración de Títulos
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(0, 10, "Planeación Pedagógica - Modelo de Aprendizaje Diálogo", ln=True, align='C')
+    pdf.ln(5)
     
-    st.markdown("<br><br>### 📏 ProfeEduca ✏️", unsafe_allow_html=True)
+    # Objetivo General (Máximo 6 párrafos)
+    pdf.set_font("Arial", 'B', 12)
+    pdf.cell(0, 10, "Objetivo General", ln=True)
+    pdf.set_font("Arial", '', 10)
+    objetivo = (
+        f"Esta planeación busca que los alumnos de {datos['nivel']} aprendan sobre {datos['tema']} "
+        "a través de la investigación activa y el diálogo tutorado. El enfoque principal es la "
+        "autonomía, donde el estudiante construye su conocimiento utilizando recursos de su entorno. "
+        "Se desarrollarán habilidades de pensamiento crítico, resolución de problemas y vinculación "
+        "comunitaria, permitiendo que el saber local se transforme en un aprendizaje significativo."
+    )
+    pdf.multi_cell(0, 5, objetivo)
+    pdf.ln(5)
 
-# LADO DERECHO: CONTENIDO
-with col_main:
-    if st.session_state.seccion == "inicio":
-        st.markdown("### 🍎 El Café del Maestro")
-        st.markdown('<div class="apple-stage"><span class="worm-move">🐛</span>🍎</div>', unsafe_allow_html=True)
-        
-        # Chat de Amistad
-        st.subheader("💬 Chat Global")
-        for m in st.session_state.messages[-3:]: # Solo últimos 3 para no saturar
-            st.markdown(f"**@{m['user']}**: {m['text']}")
-        
-        with st.form("chat", clear_on_submit=True):
-            msg = st.text_input("Saluda:")
-            if st.form_submit_button("Enviar"):
-                if msg:
-                    st.session_state.messages.append({"user": "Tú", "text": msg})
-                    st.rerun()
+    # Tabla de Identificación
+    pdf.set_fill_color(240, 240, 240)
+    pdf.set_font("Arial", 'B', 10)
+    for clave, valor in datos.items():
+        if clave not in ['tema', 'nivel']:
+            pdf.cell(50, 8, f"{clave.capitalize()}:", border=1, fill=True)
+            pdf.cell(0, 8, str(valor), border=1, ln=True)
+    
+    pdf.ln(10)
+    # Aquí se agregarían las secciones de Estaciones, Tutoreo e IA...
+    # (El código completo generaría todas las tablas de lunes a viernes)
+    
+    # Referencias
+    pdf.ln(10)
+    pdf.set_font("Arial", 'I', 8)
+    pdf.multi_cell(0, 5, "Referencias: SEP (2022) Plan de Estudios; UNESCO (2021) Reimaginar el futuro.")
+    
+    return pdf.output(dest='S').encode('latin-1')
 
-    elif st.session_state.seccion == "plan":
-        st.header("📋 Taller de Planeación ABCD")
-        t1, t2 = st.tabs(["🎯 Identificación", "🧠 Desafío"])
-        
-        with t1:
-            st.selectbox("Fase", ["Fase 3", "Fase 4", "Fase 5"])
-            st.text_input("Tema de la Unidad")
-        
-        with t2:
-            st.text_area("Plantea el Desafío:", 
-                         placeholder="Escribe aquí tu pregunta detonadora...",
-                         help="Evita responder con sí o no.")
-            
-            if st.button("🚀 GENERAR CON IA"):
-                st.balloons()
-                st.success("¡Analizando datos para tu planeación!")
+# --- DENTRO DEL BOTÓN DE PLANEACIÓN EN STREAMLIT ---
+if st.button("🚀 GENERAR PLANEACIÓN EN PDF"):
+    # Recolectamos los datos de los inputs de la Fase 0.4
+    datos_maestro = {
+        "nivel": nivel_seleccionado,
+        "grado": grado_input,
+        "maestro": nombre_maestro,
+        "comunidad": comunidad_input,
+        "tema": tema_interes
+    }
+    
+    pdf_bytes = generar_pdf(datos_maestro)
+    st.download_button(
+        label="📥 Descargar Planeación Completa",
+        data=pdf_bytes,
+        file_name=f"Planeacion_{tema_interes}.pdf",
+        mime="application/pdf"
+    )
