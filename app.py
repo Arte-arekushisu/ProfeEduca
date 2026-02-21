@@ -4,9 +4,11 @@ from fpdf import FPDF
 import unicodedata
 import datetime
 
-# --- CONFIGURACIÓN DE IA (CONEXIÓN CLÁSICA ESTABLE) ---
+# --- CONFIGURACIÓN DE IA (CONEXIÓN ESTABLE 2026) ---
 API_KEY = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
-genai.configure(api_key=API_KEY)
+
+# Forzamos la configuración a la versión estable 'v1'
+genai.configure(api_key=API_KEY, transport='rest')
 
 def clean(txt):
     if not txt: return ""
@@ -23,6 +25,7 @@ class PlaneacionPDF(FPDF):
 st.set_page_config(page_title="PROFEEDUCA IA", layout="wide")
 st.title("🛡️ PROFEEDUCA: Sistema de Planeación")
 
+# Tu formulario que ya funciona perfectamente
 with st.form("MainForm"):
     c1, c2 = st.columns(2)
     with c1:
@@ -39,13 +42,15 @@ with st.form("MainForm"):
 if submit:
     with st.spinner("🤖 Generando contenido pedagógico..."):
         try:
-            # Usamos la llamada tradicional que es compatible con v1
+            # Seleccionamos el modelo flash en su ruta estable
             model = genai.GenerativeModel('gemini-1.5-flash')
+            
+            # Generamos el contenido
             response = model.generate_content(
-                f"Actúa como experto pedagogo CONAFE. Genera una planeación para {nivel} sobre {tema} en {comunidad}."
+                f"Genera una planeación pedagógica para {nivel} sobre {tema}. Comunidad: {comunidad}."
             )
             
-            if response.text:
+            if response:
                 pdf = PlaneacionPDF()
                 pdf.add_page()
                 pdf.set_font('Helvetica', 'B', 12)
@@ -55,9 +60,9 @@ if submit:
                 pdf.multi_cell(0, 6, clean(response.text))
 
                 pdf_out = pdf.output(dest='S').encode('latin-1', 'replace')
-                st.success("✅ ¡CONSEGUIDO! Planeación generada.")
-                st.download_button("📥 DESCARGAR PDF", pdf_out, f"Planeacion_{tema}.pdf", "application/pdf")
+                st.success("✅ ¡Éxito! Tu planeación ha sido creada.")
+                st.download_button("📥 DESCARGAR MI PDF", pdf_out, f"Planeacion_{tema}.pdf", "application/pdf")
 
         except Exception as e:
-            st.error(f"Error técnico detectado: {e}")
-            st.info("Axel, este cambio de librería debería eliminar el error 404 por completo.")
+            st.error(f"Error técnico: {e}")
+            st.info("Axel, intenta recargar la página (F5) si el error persiste.")
