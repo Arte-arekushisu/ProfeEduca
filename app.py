@@ -1,17 +1,14 @@
 import streamlit as st
 from fpdf import FPDF
-import datetime
 
 # 1. CONFIGURACIÓN Y ESTILO
 st.set_page_config(page_title="Profe Educa ABCD", page_icon="🍎", layout="wide")
-
 st.markdown("""
     <style>
-    .stApp { background: linear-gradient(-45deg, #050505, #1a1c24, #00d4ff, #050505); background-size: 400% 400%; animation: gradient 12s ease infinite; color: white; }
+    .stApp { background: linear-gradient(-45deg, #050505, #1a1c24, #00d4ff, #050505); background-size: 400% 400%; animation: gradient 10s ease infinite; color: white; }
     @keyframes gradient { 0% {background-position: 0% 50%;} 50% {background-position: 100% 50%;} 100% {background-position: 0% 50%;} }
-    .comment-sidebar { background-color: #003366; padding: 20px; border-radius: 15px; border-left: 5px solid #00d4ff; min-height: 600px; }
-    .comment-card { background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #00d4ff; font-size: 0.85em; }
     h1 { color: #00d4ff !important; text-align: center; font-family: 'Arial Black'; text-shadow: 0 0 15px #00d4ff; }
+    .stTextInput, .stTextArea, .stSelectbox { background-color: rgba(255,255,255,0.05) !important; color: white !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -23,124 +20,108 @@ def limpiar(t):
 
 class PDF_ABCD(FPDF):
     def header(self):
-        self.set_font('Arial', 'B', 15)
-        self.cell(0, 10, 'PLANEACION INTEGRAL MAESTRO ABCD', 0, 1, 'C')
+        self.set_font('Arial', 'B', 14)
+        self.cell(0, 10, 'SISTEMA INTEGRAL DE EVALUACION Y PLANEACION ABCD', 0, 1, 'C')
         self.ln(5)
 
-# 3. BASE DE DATOS DE SESIÓN (PERSISTENTE)
+# 3. BASE DE DATOS PERSISTENTE
 if 'db' not in st.session_state:
-    st.session_state.db = {
-        "auth": False, "user": "", "plan": "", 
-        "alumnos": {}, 
-        "comentarios": [{"user": "Maestro_Gomez", "text": "¡Las estaciones de IA son geniales!"}]
-    }
+    st.session_state.db = {"auth": False, "user": "", "alumnos": {}}
 
-# 4. PÁGINA DE INICIO (REGISTRO)
+# 4. LÓGICA DE ACCESO
 if not st.session_state.db["auth"]:
-    st.markdown("<h1>Profe Educa: Sistema ABCD</h1>", unsafe_allow_html=True)
-    col_reg, col_com = st.columns([2, 1])
-    with col_reg:
-        with st.form("registro"):
-            u_user = st.text_input("Nombre de Usuario")
-            u_pass = st.text_input("Contraseña", type="password")
-            plan_sel = st.radio("Suscripción", ["Plata ($200)", "Oro ($400)", "Platino ($600)"])
-            if st.form_submit_button("REGISTRAR Y ENTRAR"):
-                st.session_state.db.update({"auth": True, "user": u_user, "plan": plan_sel})
-                st.rerun()
-    with col_com:
-        st.markdown("<div class='comment-sidebar'><h3>Comunidad</h3>", unsafe_allow_html=True)
-        for c in st.session_state.db["comentarios"]:
-            st.markdown(f"<div class='comment-card'><b>{c['user']}:</b> {c['text']}</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-# 5. PANEL DEL MAESTRO
+    st.markdown("<h1>Profe Educa: Modelo ABCD</h1>", unsafe_allow_html=True)
+    with st.form("login"):
+        u = st.text_input("Usuario (EC)")
+        p = st.text_input("Contraseña", type="password")
+        if st.form_submit_button("ENTRAR"):
+            st.session_state.db.update({"auth": True, "user": u})
+            st.rerun()
 else:
-    st.sidebar.title(f"Maestro: {st.session_state.db['user']}")
-    seccion = st.sidebar.radio("MENÚ", ["📅 Planeación Semanal IA", "✍️ Diario Reflexivo", "📊 Evaluación Trimestral", "🆘 SOS"])
+    st.sidebar.title(f"EC: {st.session_state.db['user']}")
+    menu = st.sidebar.radio("MENÚ", ["📅 Planeación ABCD (IA)", "✍️ Diario Reflexivo", "📊 Evaluación y Calificaciones"])
 
-    if seccion == "📅 Planeación Semanal IA":
-        st.header("Generar Planeación y Consulta")
+    # --- SECCIÓN 1: PLANEACIÓN CON CONTENIDO PEDAGÓGICO ---
+    if menu == "📅 Planeación ABCD (IA)":
+        st.header("Generador de Secuencia Didáctica ABCD")
+        niveles = ["Preescolar", "Primaria 1°-3°", "Primaria 4°-6°", "Secundaria"]
+        col1, col2 = st.columns(2)
+        nivel = col1.selectbox("Nivel", niveles)
+        tema = col2.text_input("Tema de Interés")
         
-        niveles = [
-            "Preescolar (1°)", "Preescolar (2°)", "Preescolar (3°)",
-            "Primaria (1°)", "Primaria (2°)", "Primaria (3°)", "Primaria (4°)", "Primaria (5°)", "Primaria (6°)", "Primaria Multigrado",
-            "Secundaria (1°)", "Secundaria (2°)", "Secundaria (3°)", "Secundaria Multigrado"
-        ]
-        
-        c1, c2, c3 = st.columns(3)
-        nivel_sel = c1.selectbox("Nivel Educativo", niveles)
-        comu = c2.text_input("Comunidad")
-        eca_a = c3.text_input("ECA")
-        ec_nom = c1.text_input("Nombre del EC (Educador)")
-        
-        tema = st.text_input("Tema de Interés (Ej. Ciclo del Agua)")
-        estacion_nom = st.text_input("Nombre de Estación Permanente")
-        mat1 = c2.text_input("Materia 1")
-        mat2 = c3.text_input("Materia 2")
-
-        if st.button("Generar Planeación Completa"):
-            # IA genera investigación y fuentes
-            invest_ia = f"Investigación semanal profunda sobre {tema}: Se analizarán propiedades, importancia y aplicaciones mediante el modelo ABCD."
-            fuentes = [f"https://es.wikipedia.org/wiki/{tema.replace(' ','_')}", "https://escolares.net/", "https://libros.conaliteg.gob.mx/"]
-
+        if st.button("Generar Planeación con Contenido Educativo"):
+            # Simulación de IA con estructura CONAFE
+            secuencia = {
+                "Inicio": f"Activación de conocimientos previos sobre {tema}. Planteamiento de reto inicial.",
+                "Desarrollo": f"Indagación guiada en la estación. Uso de materiales concretos para resolver: ¿Cómo influye {tema} en la comunidad?",
+                "Cierre": "Demostración de lo aprendido (RPA) y reflexión sobre el proceso personal.",
+                "Fuentes": ["https://www.redalyc.org", "https://books.google.com", "https://www.scielo.org"]
+            }
+            
             pdf = PDF_ABCD()
             pdf.add_page()
-            pdf.set_font("Arial", 'B', 10)
-            pdf.cell(0, 8, limpiar(f"Nivel: {nivel_sel} | Comunidad: {comu} | EC: {ec_nom} | ECA: {eca_a}"), 0, 1)
-            pdf.ln(5)
+            pdf.set_font("Arial", 'B', 12)
+            pdf.cell(0, 10, limpiar(f"Planeación: {tema} - {nivel}"), 0, 1)
             
-            # Tabla con ajuste automático
-            pdf.set_fill_color(0, 212, 255)
-            pdf.cell(40, 10, "Momento", 1, 0, 'C', 1)
-            pdf.cell(110, 10, "Desarrollo Semanal (IA)", 1, 0, 'C', 1)
-            pdf.cell(35, 10, "Tiempo", 1, 1, 'C', 1)
-            
-            pdf.set_font("Arial", '', 9)
-            items = [
-                ["Bienvenida", "Actividades grupales diarias de integración.", "15 min/dia"],
-                ["Regalo Lectura", f"Lectura semanal enfocada en {tema}.", "20 min/dia"],
-                [f"Estación: {estacion_nom}", invest_ia, "90 min/dia"],
-                [mat1, f"Aplicación práctica de {mat1}.", "60 min/dia"],
-                [mat2, f"Ejercicios de {mat2}.", "60 min/dia"]
-            ]
-            
-            for i in items:
-                h = 15 # Altura base
-                pdf.cell(40, h, limpiar(i[0]), 1)
-                x, y = pdf.get_x(), pdf.get_y()
-                pdf.multi_cell(110, 5, limpiar(i[1]), 1)
-                pdf.set_xy(x + 110, y)
-                pdf.cell(35, h, limpiar(i[2]), 1, 1)
-
-            pdf.ln(10)
-            pdf.set_font("Arial", 'B', 11)
-            pdf.cell(0, 10, "FUENTES DE CONSULTA:", 0, 1)
-            pdf.set_font("Arial", '', 9)
-            for f in fuentes: pdf.cell(0, 7, f, 0, 1)
+            for fase, cont in secuencia.items():
+                pdf.set_font("Arial", 'B', 10)
+                pdf.cell(0, 8, f"{fase}:", 0, 1)
+                pdf.set_font("Arial", '', 10)
+                pdf.multi_cell(0, 5, limpiar(cont))
+                pdf.ln(2)
             
             pdf_bytes = pdf.output(dest='S').encode('latin-1', 'ignore')
-            st.download_button("📥 Descargar Planeación Semanal", pdf_bytes, f"Planeacion_{tema}.pdf")
+            st.download_button("📥 Descargar Planeación PDF", pdf_bytes, f"Planeacion_{tema}.pdf")
 
-    elif seccion == "✍️ Diario Reflexivo":
-        st.header("Diario Reflexivo")
-        nom_al = st.text_input("Nombre del Alumno").upper()
-        txt_diario = st.text_area("Escrito diario (Aprendizajes)")
-        if st.button("Guardar Escrito"):
-            if nom_al not in st.session_state.db["alumnos"]: st.session_state.db["alumnos"][nom_al] = []
-            st.session_state.db["alumnos"][nom_al].append(txt_diario)
-            st.success(f"Guardado. Ahora puedes buscar a {nom_al} en Evaluaciones.")
+    # --- SECCIÓN 2: DIARIO REFLEXIVO ---
+    elif menu == "✍️ Diario Reflexivo":
+        st.header("Registro de Escrito Diario")
+        nom = st.text_input("Nombre del Alumno").upper()
+        escrito = st.text_area("¿Qué descubrió hoy?")
+        if st.button("Guardar Registro"):
+            if nom not in st.session_state.db["alumnos"]: st.session_state.db["alumnos"][nom] = {"diario": [], "notas": {}}
+            st.session_state.db["alumnos"][nom]["diario"].append(escrito)
+            st.success("Guardado exitosamente.")
 
-    elif seccion == "📊 Evaluación Trimestral":
-        st.header("Buscador de Alumnos")
-        busqueda = st.text_input("Buscar Alumno por Nombre").upper()
+    # --- SECCIÓN 3: EVALUACIÓN Y CALIFICACIONES ---
+    elif menu == "📊 Evaluación y Calificaciones":
+        st.header("Evaluación Trimestral e Informe")
+        busqueda = st.text_input("Nombre del Alumno para Evaluar").upper()
+        
         if busqueda in st.session_state.db["alumnos"]:
-            st.info(f"Historial encontrado: {len(st.session_state.db['alumnos'][busqueda])} escritos.")
-            for e in st.session_state.db["alumnos"][busqueda]:
-                st.write(f"- {e}")
-            st.button("Generar Informe con IA")
-        else:
-            st.warning("Alumno no encontrado. Registra un escrito en el Diario primero.")
+            st.info(f"Historial: {len(st.session_state.db['alumnos'][busqueda]['diario'])} escritos.")
+            
+            nivel_edu = st.selectbox("Grado del Alumno", ["Preescolar", "Primaria", "Secundaria 1°", "Secundaria 2°", "Secundaria 3°"])
+            
+            c1, c2, c3, c4 = st.columns(4)
+            if nivel_edu == "Preescolar":
+                traye = c1.text_input("Trayectoria (ej. T205)")
+                desc_traye = st.text_area("Descripción de Trayectoria")
+            elif "Primaria" in nivel_edu:
+                len_g = c1.number_input("Lenguajes", 5, 10)
+                sab_p = c2.number_input("Saberes y P.C.", 5, 10)
+                etica = c3.number_input("Etica, Nat. y Soc.", 5, 10)
+                del_c = c4.number_input("De lo Hum. y Com.", 5, 10)
+            else:
+                esp = c1.number_input("Español", 5, 10)
+                mat = c2.number_input("Matemáticas", 5, 10)
+                cien = c3.number_input("Ciencias (Biol/Fis/Quim)", 5, 10)
+                soc = c4.number_input("Sociedad", 5, 10)
 
-    if st.sidebar.button("Cerrar Sesión"):
-        st.session_state.db["auth"] = False
-        st.rerun()
+            # Lectura y Escritura Manual
+            st.divider()
+            le_col1, le_col2 = st.columns(2)
+            esc_val = le_col1.text_input("Escritura (ej. A7)")
+            lec_val = le_col2.text_input("Lectura (ej. B7 o 7)")
+
+            if st.button("Generar Informe Trimestral IA + PDF"):
+                # La IA genera el resumen basado en el diario
+                resumen_ia = " ".join(st.session_state.db["alumnos"][busqueda]["diario"][-3:])
+                analisis_ia = f"El alumno demuestra avance en: {resumen_ia}. Se observa autorregulación y compromiso en las estaciones."
+                
+                pdf = PDF_ABCD()
+                pdf.add_page()
+                pdf.cell(0, 10, limpiar(f"INFORME TRIMESTRAL: {busqueda}"), 0, 1, 'C')
+                
+                # Datos de Calificación
+                pdf.set_font("
