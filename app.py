@@ -3,156 +3,137 @@ from fpdf import FPDF
 from datetime import datetime
 
 # --- 1. CONFIGURACIÓN ---
-st.set_page_config(page_title="ProfeEduca V1.1", page_icon="🍎", layout="wide")
+st.set_page_config(page_title="ProfeEduca V1.2", page_icon="🍎", layout="wide")
 
-# --- 2. MOTOR DE REDACCIÓN EXTENSA (4 CAMPOS FORMATIVOS) ---
-def generar_texto_educativo(d):
-    n = d['nivel']
+# --- 2. LÓGICA DE CONTENIDO EXTENSO ---
+def generar_planeacion_detallada(d):
     t = d['tema']
     
     return {
-        "inicio": {
-            "pase": "Actividad 'El eco de mi voz': Al mencionar su nombre, cada alumno comparte una palabra clave o saber previo sobre el entorno. (10 min).",
-            "lectura": f"Regalo de lectura: Texto literario acorde a {n}. Reflexión grupal sobre el mensaje central y cómo se conecta con la realidad local. (15 min).",
-            "bienvenida": "Dinámica 'El pulso del grupo': Sincronización rítmica con aplausos para enfocar la atención y crear cohesión grupal. (5 min)."
-        },
         "estaciones": [
             {
                 "campo": "Lenguajes",
-                "act": f"Creación de un 'Códice Comunitario'. Instrucciones: Los alumnos redactarán o dibujarán un mensaje sobre cómo {t} impacta en su lenguaje cotidiano. Materiales: Hojas, colores, recortes de periódicos."
+                "nombre": "Estación 1: El Arte de Comunicar",
+                "materiales": "Revistas viejas, periódicos, pegamento, tijeras, hojas blancas y plumones.",
+                "instrucciones": "Explorar diversas fuentes escritas para identificar palabras que nos ayuden a describir nuestro entorno.",
+                "actividades": [
+                    "1. Collage de palabras: Recorta letras o palabras de periódicos que te llamen la atención.",
+                    "2. Mi mensaje al mundo: Con los recortes, arma una frase que exprese algo positivo para tus compañeros.",
+                    "3. Diccionario visual: Dibuja el significado de una palabra nueva que hayas encontrado hoy."
+                ]
             },
             {
                 "campo": "Saberes y Pensamiento Científico",
-                "act": f"Laboratorio de observación. Instrucciones: Analizar las formas, medidas y ciclos relacionados con {t}. Uso de conteo o gráficas simples según el grado. Materiales: Semillas, reglas, lupas."
+                "nombre": "Estación 2: Exploradores de la Materia",
+                "materiales": "Semillas de la región, vasos de plástico, agua, tierra, reglas y lupas.",
+                "instrucciones": "Observar y medir elementos de la naturaleza para entender cómo cambian y crecen.",
+                "actividades": [
+                    "1. Clasificación científica: Separa las semillas por tamaño y color usando la lupa.",
+                    "2. Midiendo la vida: Usa la regla para medir tres objetos naturales diferentes y anota los resultados.",
+                    "3. Hipótesis: Dibuja qué crees que le pasará a una semilla si le ponemos mucha o poca agua."
+                ]
             },
             {
                 "campo": "Ética, Naturaleza y Sociedades",
-                "act": f"Círculo de justicia ambiental. Instrucciones: Diálogo reflexivo sobre el impacto humano en {t}. Propuesta de un 'Acuerdo de Convivencia' para proteger el entorno natural."
+                "nombre": "Estación 3: Guardianes del Planeta",
+                "materiales": "Cartulinas, gises de colores, material reciclado (envases, cartón).",
+                "instrucciones": "Reflexionar sobre nuestra responsabilidad en el cuidado de los seres vivos y el agua.",
+                "actividades": [
+                    "1. El plato del buen ambiente: Clasifica acciones que ayudan al planeta y las que lo dañan.",
+                    "2. Propuesta comunitaria: Elige un problema de basura en tu calle y dibuja cómo lo solucionarías.",
+                    "3. Mural colectivo: Usa los gises para crear un compromiso grupal de cuidado a la naturaleza."
+                ]
             },
             {
                 "campo": "De lo Humano y lo Comunitario",
-                "act": f"Feria de identidades. Instrucciones: Juego de roles donde se representa el papel de cada miembro de la comunidad en el cuidado de {t}. Fortalecimiento del tejido social."
+                "nombre": "Estación 4: Tejiendo Comunidad",
+                "materiales": "Estambre, telas, música rítmica, objetos de identidad local.",
+                "instrucciones": "Fomentar la empatía y el reconocimiento de nuestras habilidades personales dentro del grupo.",
+                "actividades": [
+                    "1. El hilo de la amistad: Pasa el estambre a un compañero mencionando una cualidad que admiras de él.",
+                    "2. Mi talento secreto: Representa con gestos algo que te gusta hacer por los demás.",
+                    "3. Juego de roles: Dramatiza una situación donde ayudes a alguien de tu comunidad."
+                ]
             }
         ],
-        "tutoreo": {
-            "intro": f"Estudio profundo de '{t}': El alumno lidera su propia investigación bajo la guía del tutor, analizando fuentes del rincón de lectura y conectándolas con su experiencia personal.",
-            "pasos": [
-                "1. Pregunta detonante: ¿Qué misterio o curiosidad de este tema te gustaría investigar hoy?",
-                "2. Registro RPA: Narrativa personal escrita o dibujada del proceso de aprendizaje y nuevos hallazgos.",
-                "3. Producto: Una maqueta, cartel informativo o demostración pública para compartir con la comunidad escolar."
-            ]
-        }
+        "tutoreo_dialogado": f"""
+**Diálogo Sugerido (Tutor - Alumno):**
+- **Tutor:** "¿Sabías que existen dos tipos de tortugas: la marina y la terrestre?"
+- **Alumno:** "No profe, ¿cuál es la diferencia?"
+- **Tutor:** "¡Mira! Hoy nos enfocaremos en la **Tortuga Marina**. ¿Sabías que en México tenemos 7 de las 8 especies que existen en el mundo?"
+- **Propósito:** Generar curiosidad por la marina hoy, dejando la terrestre como un misterio que el niño podrá investigar por su cuenta más tarde (Fomentar autonomía).
+
+**Preguntas Dinámicas:**
+1. "¿Si fueras una tortuga, qué parte del océano te gustaría explorar?"
+2. "¿Te gustaría ser un científico que protege sus nidos algún día?"
+        """
     }
 
 # --- 3. CLASE PDF ---
 class PDF(FPDF):
     def header(self):
-        self.set_font('Arial', 'B', 14)
-        self.cell(0, 10, 'PLANEACIÓN PEDAGÓGICA - 4 CAMPOS FORMATIVOS', 0, 1, 'C')
+        self.set_font('Arial', 'B', 16)
+        self.cell(0, 10, 'PLANEACIÓN', 0, 1, 'C') # Título solicitado
         self.ln(5)
     def chapter_title(self, title):
-        self.set_font('Arial', 'B', 11)
-        self.set_fill_color(30, 41, 59)
-        self.set_text_color(255, 255, 255)
-        self.cell(0, 8, title, 0, 1, 'L', True)
-        self.set_text_color(0, 0, 0)
-        self.ln(3)
+        self.set_font('Arial', 'B', 11); self.set_fill_color(230, 230, 230)
+        self.cell(0, 8, title, 0, 1, 'L', True); self.ln(2)
 
 # --- 4. INTERFAZ ---
-st.header("📋 Taller de Planeación Integral")
+st.header("📋 Generador de Planeación Pedagógica")
 
-with st.form("form_final"):
+with st.form("form_v12"):
     c1, c2 = st.columns(2)
     with c1:
-        nivel = st.selectbox("Nivel Educativo", ["Preescolar", "Primaria", "Secundaria"])
-        grado = st.text_input("Grado específico", value="1º y 2º Multigrado")
-        nombre_ed = st.text_input("Nombre del Educador")
-        nombre_eca = st.text_input("Nombre del ECA")
+        nivel = st.selectbox("Nivel", ["Preescolar", "Primaria", "Secundaria"])
+        grado = st.text_input("Grado", value="Multigrado")
+        nombre_ed = st.text_input("Educador")
     with c2:
         comunidad = st.text_input("Comunidad")
-        fecha = st.date_input("Fecha de planeación")
-        tema = st.text_input("Tema de Interés (Solo para Tutoreo)", placeholder="Ej. El ciclo del agua")
-        rincon = st.text_input("Rincón asignado")
+        fecha = st.date_input("Fecha")
+        tema = st.text_input("Tema de Interés", placeholder="Ej. Tortugas Marinas")
     
-    st.markdown("---")
-    m1 = st.text_input("Materia Post-Receso 1", value="Educación Física")
-    m2 = st.text_input("Materia Post-Receso 2", value="Artes")
-    
-    submit = st.form_submit_button("🚀 GENERAR PLANEACIÓN Y VISTA PREVIA")
+    submit = st.form_submit_button("🔨 GENERAR PLANEACIÓN COMPLETA")
 
 if submit:
     if not tema or not nombre_ed:
-        st.error("⚠️ Completa los campos obligatorios (Nombre y Tema).")
+        st.error("⚠️ Falta completar el Nombre o el Tema.")
     else:
-        # Se definen las variables dentro del flujo de ejecución para evitar el NameError
-        datos = {
-            "nivel": nivel, "grado": grado, "nombre_ed": nombre_ed, 
-            "nombre_eca": nombre_eca, "comunidad": comunidad, 
-            "fecha": str(fecha), "tema": tema, "rincon": rincon, 
-            "m1": m1, "m2": m2
-        }
+        info = {"nivel": nivel, "grado": grado, "nombre_ed": nombre_ed, "comunidad": comunidad, "fecha": str(fecha), "tema": tema}
+        content = generar_planeacion_detallada(info)
         
-        c = generar_texto_educativo(datos)
-        
-        # --- VISTA PREVIA ---
-        st.markdown("---")
-        st.subheader("👁️ Vista Previa")
-        
-        col_v1, col_v2 = st.columns(2)
-        with col_v1:
-            st.markdown("#### Estaciones por Campos Formativos")
-            for e in c['estaciones']:
-                st.write(f"**{e['campo']}:** {e['act']}")
-        with col_v2:
-            st.markdown("#### Tutoreo Personalizado")
-            st.write(c['tutoreo']['intro'])
-            st.write(f"**Pasos sugeridos:** {', '.join(c['tutoreo']['pasos'])}")
-
-        # --- GENERACIÓN DE PDF ---
+        # --- PDF GENERATION ---
         pdf = PDF()
         pdf.add_page()
         
+        # I. Identificación
         pdf.chapter_title("I. DATOS DE IDENTIFICACIÓN")
-        pdf.set_font('Arial', 'B', 10)
-        items = [
-            ["Educador", nombre_ed], ["ECA", nombre_eca], 
-            ["Nivel/Grado", f"{nivel}/{grado}"], ["Comunidad", comunidad], 
-            ["Fecha", str(fecha)], ["Rincón", rincon]
-        ]
-        for k, v in items:
-            pdf.set_fill_color(240, 240, 240)
-            pdf.cell(50, 8, k, 1, 0, 'L', True)
-            pdf.set_font('Arial', '', 10)
-            pdf.cell(0, 8, str(v), 1, 1, 'L')
-            pdf.set_font('Arial', 'B', 10)
-        
-        pdf.chapter_title("II. INICIO Y BIENVENIDA")
         pdf.set_font('Arial', '', 10)
-        pdf.multi_cell(0, 5, f"{c['inicio']['pase']}\n\n{c['inicio']['lectura']}\n\n{c['inicio']['bienvenida']}")
+        pdf.cell(0, 7, f"Educador: {nombre_ed} | Nivel/Grado: {nivel} {grado} | Comunidad: {comunidad}", 0, 1)
+        pdf.cell(0, 7, f"Fecha: {fecha} | Tema Central: {tema}", 0, 1)
 
-        pdf.chapter_title("III. ESTACIONES POR CAMPOS FORMATIVOS")
-        for e in c['estaciones']:
+        # II. Estaciones
+        pdf.chapter_title("II. ESTACIONES DE APRENDIZAJE (4 CAMPOS FORMATIVOS)")
+        for est in content['estaciones']:
             pdf.set_font('Arial', 'B', 10)
-            pdf.cell(0, 8, e['campo'], 0, 1)
+            pdf.cell(0, 6, f"{est['nombre']} ({est['campo']})", 0, 1)
+            pdf.set_font('Arial', 'I', 9)
+            pdf.multi_cell(0, 5, f"Materiales: {est['materiales']}")
             pdf.set_font('Arial', '', 10)
-            pdf.multi_cell(0, 5, e['act'])
-            pdf.ln(2)
+            pdf.multi_cell(0, 5, f"Instrucciones: {est['instrucciones']}")
+            for act in est['actividades']:
+                pdf.cell(5); pdf.multi_cell(0, 5, f"- {act}")
+            pdf.ln(3)
 
-        pdf.chapter_title(f"IV. TUTOREO: {tema.upper()}")
+        # III. Tutoreo
+        pdf.chapter_title(f"III. TUTOREO UNO A UNO: {tema.upper()}")
         pdf.set_font('Arial', '', 10)
-        pdf.multi_cell(0, 5, c['tutoreo']['intro'])
-        for p in c['tutoreo']['pasos']:
-            pdf.multi_cell(0, 5, f"- {p}")
+        pdf.multi_cell(0, 5, content['tutoreo_dialogado'])
 
-        pdf.chapter_title("V. POST-RECESO")
-        pdf.multi_cell(0, 5, f"1. {m1}: Actividad de reforzamiento físico o lógico.\n2. {m2}: Cierre artístico y reflexión colectiva sobre los hallazgos del día.")
+        # IV. Cierre
+        pdf.chapter_title("IV. ACTIVIDADES POST-RECESO")
+        pdf.multi_cell(0, 5, "1. Reflexión colectiva: ¿Qué estación fue la más difícil hoy?\n2. Limpieza del aula: Organización de materiales para la siguiente jornada.")
 
-        # Manejo de salida PDF
         pdf_bytes = pdf.output(dest='S').encode('latin-1')
-        st.download_button(
-            label="📥 DESCARGAR PLANEACIÓN COMPLETA (PDF)", 
-            data=pdf_bytes, 
-            file_name=f"Planeacion_{tema}.pdf", 
-            mime="application/pdf", 
-            use_container_width=True
-        )
+        st.download_button("📥 DESCARGAR PLANEACIÓN (PDF)", data=pdf_bytes, file_name=f"Planeacion_{tema}.pdf", use_container_width=True)
+        st.success("¡Planeación lista para imprimir!")
