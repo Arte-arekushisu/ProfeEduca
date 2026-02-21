@@ -1,15 +1,12 @@
 import streamlit as st
+import google.generativeai as genai
 from fpdf import FPDF
 import unicodedata
 import datetime
-from google import genai
 
-# --- CONFIGURACIÓN DE IA ---
-# Axel, asegúrate de que esta clave no tenga espacios al final
+# --- CONFIGURACIÓN DE IA (CONEXIÓN CLÁSICA ESTABLE) ---
 API_KEY = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
-
-# Usamos la configuración más simple posible
-client = genai.Client(api_key=API_KEY)
+genai.configure(api_key=API_KEY)
 
 def clean(txt):
     if not txt: return ""
@@ -42,28 +39,25 @@ with st.form("MainForm"):
 if submit:
     with st.spinner("🤖 Generando contenido pedagógico..."):
         try:
-            # CAMBIO CLAVE: Usamos gemini-1.5-flash-8b que es más ligero y estable
-            response = client.models.generate_content(
-                model="gemini-1.5-flash", 
-                contents=f"Como experto pedagogo de CONAFE México, genera una planeación para {nivel} sobre {tema}. Comunidad: {comunidad}."
+            # Usamos la llamada tradicional que es compatible con v1
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            response = model.generate_content(
+                f"Actúa como experto pedagogo CONAFE. Genera una planeación para {nivel} sobre {tema} en {comunidad}."
             )
             
             if response.text:
                 pdf = PlaneacionPDF()
                 pdf.add_page()
                 pdf.set_font('Helvetica', 'B', 12)
-                pdf.cell(0, 10, clean(f"Tema: {tema}"), 1, 1, 'C')
+                pdf.cell(0, 10, clean(f"TEMA: {tema}"), 1, 1, 'C')
                 pdf.ln(5)
                 pdf.set_font('Helvetica', '', 11)
                 pdf.multi_cell(0, 6, clean(response.text))
 
                 pdf_out = pdf.output(dest='S').encode('latin-1', 'replace')
-                st.success("✅ ¡Felicidades! Planeación generada.")
+                st.success("✅ ¡CONSEGUIDO! Planeación generada.")
                 st.download_button("📥 DESCARGAR PDF", pdf_out, f"Planeacion_{tema}.pdf", "application/pdf")
-            else:
-                st.error("La IA no respondió. Intenta de nuevo.")
 
         except Exception as e:
-            # Si vuelve a salir 404, limpiaremos el caché del navegador
-            st.error(f"Error técnico: {e}")
-            st.info("Axel, si el error 404 persiste, presiona Ctrl+F5 en tu teclado para limpiar la memoria del navegador.")
+            st.error(f"Error técnico detectado: {e}")
+            st.info("Axel, este cambio de librería debería eliminar el error 404 por completo.")
