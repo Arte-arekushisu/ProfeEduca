@@ -3,205 +3,160 @@ from fpdf import FPDF
 from PIL import Image
 import base64
 import io
+import datetime
 
-# 1. CONFIGURACIÓN DE PÁGINA Y ESTILO ESTELAR
+# 1. CONFIGURACIÓN Y ESTILO
 st.set_page_config(page_title="Profe Educa ABCD", page_icon="🍎", layout="wide")
 
 st.markdown("""
     <style>
     .stApp { 
-        background: linear-gradient(-45deg, #050505, #1a1c24, #00d4ff, #050505); 
+        background: linear-gradient(-45deg, #050505, #1a1c24, #004d66, #050505); 
         background-size: 400% 400%; 
         animation: gradient 15s ease infinite; 
         color: white; 
     }
     @keyframes gradient { 0% {background-position: 0% 50%;} 50% {background-position: 100% 50%;} 100% {background-position: 0% 50%;} }
-    
-    .comment-card { 
-        background: rgba(255, 255, 255, 0.1); 
-        border-radius: 15px; 
-        padding: 15px; 
-        margin: 10px; 
-        border-left: 5px solid #00d4ff; 
-        animation: fadeIn 1s;
-    }
-    .profile-pic { 
-        border-radius: 50%; 
-        width: 50px; 
-        height: 50px; 
-        object-fit: cover; 
-        border: 2px solid #00d4ff; 
-    }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .stTextInput width, .stTextArea width { color: black !important; }
     </style>
     """, unsafe_allow_html=True)
 
 # 2. FUNCIONES TÉCNICAS
-@st.cache_data(show_spinner=False)
-def process_image(image_file):
-    if image_file is not None:
-        try:
-            img = Image.open(image_file)
-            img.thumbnail((150, 150))
-            buffered = io.BytesIO()
-            img.save(buffered, format="PNG")
-            return base64.b64encode(buffered.getvalue()).decode()
-        except: return ""
-    return ""
-
 def limpiar(t):
     r = {"á":"a","é":"e","í":"i","ó":"o","ú":"u","ñ":"n","Á":"A","É":"E","Í":"I","Ó":"O","Ú":"U","Ñ":"N"}
     for k, v in r.items(): t = str(t).replace(k, v)
     return t
 
-class PDF_ABCD(FPDF):
+class PDF_Reporte(FPDF):
+    def __init__(self, logo_izq=None, logo_der=None):
+        super().__init__()
+        self.logo_izq = logo_izq
+        self.logo_der = logo_der
+
     def header(self):
-        self.set_font('Arial', 'B', 14)
-        self.cell(0, 10, 'SISTEMA INTEGRAL ABCD - CONAFE', 0, 1, 'C')
+        if self.logo_izq:
+            self.image(self.logo_izq, 10, 8, 33)
+        if self.logo_der:
+            self.image(self.logo_der, 165, 8, 33)
+        self.set_font('Arial', 'B', 15)
+        self.ln(10)
+        self.cell(0, 10, 'Texto Reflexivo Trimestral', 0, 1, 'C')
+        self.ln(5)
 
-# 3. BASE DE DATOS DE SESIÓN BLINDADA
+# 3. BASE DE DATOS DE SESIÓN
 if 'db' not in st.session_state:
-    st.session_state.db = {
-        "auth": False, 
-        "user_data": {}, 
-        "alumnos": {}, 
-        "comentarios": [{"user": "Admin", "text": "¡Bienvenidos a la era ABCD!", "pic": ""}]
-    }
+    st.session_state.db = {"auth": True, "user_data": {"admin": {"name": "Educador"}}, "alumnos": {}}
 
-# 4. ACCESO AL SISTEMA
-if not st.session_state.db["auth"]:
-    t1, t2 = st.tabs(["🔑 Ingresar", "📝 Registrarse"])
+# --- MENÚ ---
+st.sidebar.title("Panel de Control")
+menu = st.sidebar.radio("Ir a:", ["✍️ Diario Reflexivo", "📊 Generar Evaluación"])
+
+# --- MODULO 1: DIARIO REFLEXIVO (CON TEMAS DE INTERÉS) ---
+if menu == "✍️ Diario Reflexivo":
+    st.header("📝 Registro de Avances Diarios")
+    col_a, col_b = st.columns(2)
     
-    with t2:
-        st.subheader("Registro de Educador Comunitario")
-        with st.form("reg_form"):
-            new_u = st.text_input("Usuario")
-            new_p = st.text_input("Contraseña", type="password")
-            nom = st.text_input("Nombre(s)")
-            ape = st.text_input("Apellidos")
-            foto = st.file_uploader("Foto de Perfil", type=['jpg', 'png'])
-            if st.form_submit_button("REGISTRARSE"):
-                if new_u and new_p:
-                    pic_b64 = process_image(foto)
-                    st.session_state.db["user_data"][new_u] = {"pass": new_p, "name": f"{nom} {ape}", "pic": pic_b64}
-                    st.success("¡Cuenta creada! Ya puedes ingresar.")
-                
-    with t1:
-        st.subheader("Inicio de Sesión")
-        with st.form("login_form"):
-            u = st.text_input("Usuario")
-            p = st.text_input("Contraseña", type="password")
-            if st.form_submit_button("ENTRAR"):
-                if u in st.session_state.db["user_data"] and st.session_state.db["user_data"][u]["pass"] == p:
-                    st.session_state.db["auth"] = True
-                    st.session_state.db["user"] = u
-                    st.rerun()
-                else: st.error("Usuario o contraseña incorrectos")
-
-else:
-    # --- BARRA LATERAL ---
-    user_info = st.session_state.db["user_data"][st.session_state.db["user"]]
-    st.sidebar.markdown(f"### Hola, {user_info['name']}")
-    if user_info.get('pic'):
-        st.sidebar.markdown(f'<img src="data:image/png;base64,{user_info["pic"]}" class="profile-pic">', unsafe_allow_html=True)
+    with col_a:
+        nom_alumno = st.text_input("Nombre del Alumno").upper()
+        temas = st.text_input("Temas de interés hoy (ej: Ciclo del agua, Fracciones)")
     
-    st.sidebar.divider()
-    menu = st.sidebar.radio("MENÚ", ["🏠 Inicio", "📅 Planeación ABCD", "✍️ Diario Reflexivo", "📊 Evaluación"])
+    texto_hoy = st.text_area("Escrito reflexivo del día")
     
-    if st.sidebar.button("🆘 ASISTENCIA SOS 24/7"):
-        st.sidebar.warning("⚠️ SOS: ¿En qué error técnico puedo ayudarte hoy?")
-
-    # --- 1. INICIO Y COMENTARIOS (COLLAGE) ---
-    if menu == "🏠 Inicio":
-        st.title("Panel Profe Educa")
-        st.info("Suscripción Oro: Activa ✅ | Período: 2026")
-        
-        with st.expander("💬 Compartir en el Muro"):
-            msg = st.text_input("¿Qué quieres decir a la comunidad?")
-            if st.button("Publicar"):
-                st.session_state.db["comentarios"].append({"user": user_info['name'], "text": msg, "pic": user_info['pic']})
-                st.rerun()
-
-        cols = st.columns(2)
-        for i, c in enumerate(reversed(st.session_state.db["comentarios"])):
-            with cols[i % 2]:
-                pic_data = c.get('pic', '')
-                img_html = f'<img src="data:image/png;base64,{pic_data}" class="profile-pic">' if pic_data else "👤"
-                st.markdown(f"""
-                <div class="comment-card">
-                    <div style="display:flex; align-items:center; gap:15px;">
-                        {img_html}
-                        <div><strong>{c.get('user', 'Anónimo')}</strong><br>{c.get('text', '')}</div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-
-    # --- 2. DIARIO REFLEXIVO ---
-    elif menu == "✍️ Diario Reflexivo":
-        st.header("Registro de Avances Diarios")
-        alumno = st.text_input("Nombre del Alumno").upper()
-        texto = st.text_area("Escrito reflexivo de hoy")
-        if st.button("Guardar Registro"):
-            if alumno:
-                if alumno not in st.session_state.db["alumnos"]:
-                    st.session_state.db["alumnos"][alumno] = {"diario": []}
-                st.session_state.db["alumnos"][alumno]["diario"].append(texto)
-                st.success(f"Registro guardado para {alumno}")
-
-    # --- 3. EVALUACIÓN Y CALIFICACIONES (COMPLETO) ---
-    elif menu == "📊 Evaluación":
-        st.header("Evaluación Trimestral")
-        busqueda = st.text_input("Buscar Alumno").upper()
-        
-        if busqueda in st.session_state.db["alumnos"]:
-            nivel = st.selectbox("Grado Escolar", ["Preescolar", "Primaria", "Secundaria 1°", "Secundaria 2°", "Secundaria 3°", "Multigrado"])
+    if st.button("Guardar en Base de Datos"):
+        if nom_alumno and texto_hoy:
+            if nom_alumno not in st.session_state.db["alumnos"]:
+                st.session_state.db["alumnos"][nom_alumno] = {"diario": [], "temas": []}
             
-            c1, c2 = st.columns(2)
-            califs = {}
-            
-            if "Preescolar" in nivel:
-                califs["Trayectoria"] = c1.text_input("Trayectoria (ej. T205)")
-                califs["Observación"] = st.text_area("Ritmo de aprendizaje")
-            elif "Primaria" in nivel or "Multigrado" in nivel:
-                califs["Lenguajes"] = c1.number_input("Lenguajes", 5, 10)
-                califs["Saberes"] = c2.number_input("Saberes y P.C.", 5, 10)
-                califs["Etica"] = c1.number_input("Etica, Nat. y Soc.", 5, 10)
-                califs["Humano"] = c2.number_input("De lo Hum. y Com.", 5, 10)
-            elif "Secundaria" in nivel:
-                califs["Español"] = c1.number_input("Español", 5, 10)
-                califs["Matemáticas"] = c2.number_input("Matemáticas", 5, 10)
-                materia_c = "Biología" if "1°" in nivel else "Física" if "2°" in nivel else "Química"
-                califs[materia_c] = c1.number_input(materia_c, 5, 10)
+            st.session_state.db["alumnos"][nom_alumno]["diario"].append(texto_hoy)
+            st.session_state.db["alumnos"][nom_alumno]["temas"].append(temas)
+            st.success(f"Log registrado para {nom_alumno}")
 
-            st.divider()
-            l_esc = st.text_input("Nivel Escritura (ej. A7)")
-            l_lec = st.text_input("Nivel Lectura")
+# --- MODULO 2: EVALUACIÓN (ESTRUCTURA DE CUADROS) ---
+elif menu == "📊 Generar Evaluación":
+    st.header("Generador de Reporte Estructurado")
+    
+    with st.expander("🖼️ Configuración de Imagenes y Logos", expanded=True):
+        col1, col2 = st.columns(2)
+        logo1 = col1.file_uploader("Subir Logo Izquierdo (CONAFE)", type=["jpg", "png"])
+        logo2 = col2.file_uploader("Subir Logo Derecho (Proyecto)", type=["jpg", "png"])
 
-            if st.button("Generar PDF Final"):
-                pdf = PDF_ABCD()
-                pdf.add_page()
-                pdf.set_font("Arial", 'B', 14)
-                pdf.cell(0, 10, limpiar(f"REPORTE: {busqueda}"), 0, 1, 'C')
-                
-                pdf.set_font("Arial", '', 12)
-                for m, n in califs.items():
-                    pdf.cell(0, 10, limpiar(f"{m}: {n}"), 0, 1)
-                
-                pdf.cell(0, 10, limpiar(f"Lectoescritura: {l_esc} / {l_lec}"), 0, 1)
-                
-                # Resumen del diario
-                diario_full = " ".join(st.session_state.db["alumnos"][busqueda]["diario"])
-                pdf.ln(5)
-                pdf.set_font("Arial", 'B', 12)
-                pdf.cell(0, 10, "EVOLUCION ABCD:", 0, 1)
-                pdf.set_font("Arial", '', 10)
-                pdf.multi_cell(0, 5, limpiar(diario_full[:500]))
-                
-                pdf_bytes = pdf.output(dest='S').encode('latin-1', 'ignore')
-                st.download_button("📥 Descargar Reporte", pdf_bytes, f"Reporte_{busqueda}.pdf")
-        else:
-            st.warning("El alumno no tiene registros previos en el Diario.")
+    with st.form("form_eval"):
+        c1, c2, c3 = st.columns(3)
+        alumno_busc = c1.text_input("Nombre del Alumno a evaluar").upper()
+        nivel_esc = c2.text_input("Nivel / Grado", "4to Primaria")
+        escuela = c3.text_input("Nombre de la Escuela", "San Nicolas")
+        
+        c4, c5 = st.columns(2)
+        nombre_ec = c4.text_input("Nombre del Educador (Manual)")
+        nombre_eca = c5.text_input("Nombre del ECA (Manual)")
 
-    if st.sidebar.button("Cerrar Sesión"):
-        st.session_state.db["auth"] = False
-        st.rerun()
+        st.subheader("Campos Formativos (Sintetizar de la Base de Datos)")
+        f1 = st.text_area("LENGUAJES", height=100)
+        f2 = st.text_area("SABERES Y PENSAMIENTO CIENTÍFICO", height=100)
+        f3 = st.text_area("ETICA, NATURALEZA Y SOCIEDADES", height=100)
+        f4 = st.text_area("DE LO HUMANO Y LO COMUNITARIO", height=100)
+        f5 = st.text_area("PROYECTO COMUNITARIO (Nuevo)", height=80)
+        
+        st.subheader("Recomendaciones y Compromisos")
+        recom = st.text_area("Escriba las recomendaciones finales")
+
+        generar = st.form_submit_button("GENERAR DOCUMENTO FORMAL")
+
+    if generar:
+        # Recuperar temas de interés de la DB para incluirlos
+        temas_acumulados = ""
+        if alumno_busc in st.session_state.db["alumnos"]:
+            temas_acumulados = ", ".join(filter(None, st.session_state.db["alumnos"][alumno_busc]["temas"]))
+
+        pdf = PDF_Reporte(logo1, logo2)
+        pdf.add_page()
+        
+        # Datos Generales
+        pdf.set_font("Arial", 'B', 10)
+        pdf.cell(0, 5, f"Nombre de la Escuela: {limpiar(escuela)}", 0, 1, 'C')
+        pdf.cell(0, 5, f"Nivel: {limpiar(nivel_esc)}", 0, 1, 'C')
+        pdf.ln(2)
+        pdf.cell(0, 8, f"Nombre del alumno: {limpiar(alumno_busc)}", 0, 1, 'C')
+        
+        if temas_acumulados:
+            pdf.set_font("Arial", 'I', 8)
+            pdf.cell(0, 5, f"Temas de interes detectados: {limpiar(temas_acumulados)}", 0, 1, 'C')
+
+        # Secciones de Cuadros
+        secciones = [
+            ("LENGUAJES", f1),
+            ("SABERES Y PENSAMIENTOS CIENTIFICOS", f2),
+            ("ETICA, NATURALEZA Y SOCOCIEDADES", f3),
+            ("DE LO HUMANO Y LO COMUNITARIO", f4),
+            ("PROYECTO COMUNITARIO", f5)
+        ]
+
+        for titulo, contenido in secciones:
+            pdf.ln(3)
+            pdf.set_fill_color(240, 240, 240)
+            pdf.set_font("Arial", 'B', 10)
+            pdf.cell(0, 7, titulo, 1, 1, 'C', fill=True)
+            pdf.set_font("Arial", '', 9)
+            pdf.multi_cell(0, 5, limpiar(contenido) if contenido else "Sin informacion registrada.", 1, 'L')
+
+        # Recomendaciones
+        pdf.ln(5)
+        pdf.set_font("Arial", 'B', 10)
+        pdf.cell(0, 7, "RECOMENDACION Y COMPROMISOS", 0, 1, 'L')
+        pdf.set_font("Arial", '', 9)
+        pdf.multi_cell(0, 5, limpiar(recom))
+
+        # Firmas
+        pdf.ln(20)
+        y_firma = pdf.get_y()
+        pdf.line(20, y_firma, 90, y_firma)
+        pdf.line(110, y_firma, 180, y_firma)
+        pdf.set_y(y_firma + 2)
+        pdf.set_x(20)
+        pdf.cell(70, 5, f"Nombre y firma del EC: {limpiar(nombre_ec)}", 0, 0, 'C')
+        pdf.set_x(110)
+        pdf.cell(70, 5, "Nombre y firma del padre de familia", 0, 1, 'C')
+
+        # Descarga
+        pdf_output = pdf.output(dest='S').encode('latin-1', 'ignore')
+        st.download_button("📥 Descargar Texto Reflexivo PDF", pdf_output, f"Reporte_{alumno_busc}.pdf")
