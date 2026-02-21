@@ -1,19 +1,17 @@
 import streamlit as st
-import datetime
+import random
 
 # --- CONFIGURACIÓN DE VERSIÓN ---
-VERSION_SISTEMA = "1.3.0"
+VERSION_SISTEMA = "1.4.0"
+ADMIN_USER = "admin_profe"
 
-# 1. BASE DE DATOS ESTRUCTURADA CON PLANES
+# 1. BASE DE DATOS ESTRUCTURADA
 if 'db' not in st.session_state:
     st.session_state.db = {
         "usuarios": {
             "admin": {
-                "pass": "master123", 
-                "name": "Administrador", 
-                "role": "admin", 
-                "plan": "Magna",
-                "uso": {"plan": 0, "diario": 0, "eval": 0}
+                "pass": "master123", "name": "Admin", "role": "admin", 
+                "plan": "Magna", "uso": {"plan": 0, "diario": 0, "eval": 0}
             }
         },
         "auth": False,
@@ -21,95 +19,82 @@ if 'db' not in st.session_state:
         "step": "login"
     }
 
-# 2. DEFINICIÓN DE PLANES Y PRECIOS
-# He estructurado los límites para que el sistema los valide antes de cada descarga
-PLANES = {
-    "Gratuito": {"precio": "7 días prueba", "limite": 2, "desc": "Ideal para probar la herramienta."},
-    "Plata":    {"precio": "$200", "limite": 12, "desc": "Para maestros con grupos pequeños."},
-    "Oro":      {"precio": "$300", "limite": 24, "desc": "Eficiencia total para tu salón."},
-    "Platino":  {"precio": "$450", "limite": 9999, "desc": "Acceso total sin límites mensuales."},
-    "Magna":    {"precio": "$3900 (Anual)", "limite": 9999, "desc": "El prestigio máximo del educador."}
+# 2. DEFINICIÓN DETALLADA DE PLANES
+PLANES_INFO = {
+    "Gratuito": {
+        "precio": "$0", "limite": 2, 
+        "incluye": "2 Planeaciones ABCD, 2 Escritos Diarios, 2 Evaluaciones.",
+        "color": "gray"
+    },
+    "Plata": {
+        "precio": "$200", "limite": 12, 
+        "incluye": "12 Planeaciones ABCD, 12 Escritos Diarios, 12 Evaluaciones.",
+        "color": "white"
+    },
+    "Oro": {
+        "precio": "$300", "limite": 24, 
+        "incluye": "24 Planeaciones ABCD, 24 Escritos Diarios, 24 Evaluaciones.",
+        "color": "gold"
+    },
+    "Platino": {
+        "precio": "$450", "limite": 999, 
+        "incluye": "Ilimitado: Planeaciones, Escritos y Evaluaciones.",
+        "color": "cyan"
+    },
+    "Magna": {
+        "precio": "$3900", "limite": 999, 
+        "incluye": "Todo Ilimitado + Soporte Prioritario (Acceso Anual).",
+        "color": "red"
+    }
 }
 
-# 3. INTERFAZ DE USUARIO (DENTRO DEL PANEL)
+# 3. INTERFAZ DE REGISTRO CON SELECCIÓN DE PLAN
+def pantalla_registro():
+    st.title("📝 Registro de Nuevo Educador")
+    st.write("Selecciona tu plan inicial (puedes subir de nivel después)")
+    
+    # Mostrar beneficios antes de registrarse
+    cols_p = st.columns(3)
+    for i, (p_nom, p_data) in enumerate(list(PLANES_INFO.items())[:3]):
+        with cols_p[i]:
+            st.markdown(f"### Plan {p_nom}")
+            st.write(f"**{p_data['precio']}**")
+            st.caption(p_data['incluye'])
+
+    with st.form("registro_completo"):
+        col1, col2 = st.columns(2)
+        nuevo_u = col1.text_input("Usuario")
+        nueva_p = col2.text_input("Contraseña", type="password")
+        nombre = col1.text_input("Nombre(s)")
+        apellidos = col2.text_input("Apellidos")
+        email = st.text_input("Correo Electrónico")
+        plan_elegido = st.selectbox("Elige tu plan", list(PLANES_INFO.keys()))
+        
+        if st.form_submit_button("Crear mi cuenta"):
+            if nuevo_u and nueva_p and email:
+                st.session_state.db["usuarios"][nuevo_u] = {
+                    "pass": nueva_p,
+                    "name": f"{nombre} {apellidos}",
+                    "email": email,
+                    "plan": plan_elegido,
+                    "role": "educador",
+                    "uso": {"plan": 0, "diario": 0, "eval": 0} # IA gestiona desde cero
+                }
+                st.success("¡Registro exitoso! Ya puedes iniciar sesión.")
+                st.session_state.db["step"] = "login"
+                st.rerun()
+
+# 4. DASHBOARD DEL MAESTRO CON CONTADORES POR DOCUMENTO
 def mostrar_dashboard():
     user_id = st.session_state.db["current_user"]
     user_data = st.session_state.db["usuarios"][user_id]
     plan = user_data["plan"]
-    limite = PLANES[plan]["limite"]
+    limite = PLANES_INFO[plan]["limite"]
     
-    st.title(f"🍎 Panel de Control - {user_data['name']}")
+    st.sidebar.title(f"Maestro: {user_data['name']}")
+    st.sidebar.info(f"Plan Actual: {plan}")
     
-    # Barra de estado de suscripción
-    cols = st.columns(4)
-    with cols[0]:
-        st.metric("Tu Plan", plan)
-    with cols[1]:
-        # Si es Magna o Platino, el límite es infinito visualmente
-        uso_actual = user_data["uso"]["plan"] + user_data["uso"]["diario"] + user_data["uso"]["eval"]
-        restante = "∞" if limite > 1000 else (limite - uso_actual)
-        st.metric("Créditos restantes", restante)
+    st.title("🚀 Generador ABCD")
     
-    st.divider()
-
-    # --- SIMULACIÓN DE CONTENIDO ---
-    st.subheader("🛠️ Herramientas de Generación")
+    # Cuadros de información de límites
     c1, c2, c3 = st.columns(3)
-    
-    with c1:
-        st.write("📋 **Planeación ABCD**")
-        if st.button("Generar Planeación"):
-            validar_y_generar(user_id, "plan")
-
-    with c2:
-        st.write("✍️ **Escrito Reflexivo**")
-        if st.button("Generar Escrito"):
-            validar_y_generar(user_id, "diario")
-
-    with c3:
-        st.write("📊 **Evaluación Trimestral**")
-        if st.button("Generar Evaluación"):
-            validar_y_generar(user_id, "eval")
-
-# 4. MOTOR DE VALIDACIÓN DE LÍMITES
-def validar_y_generar(user_id, tipo_doc):
-    user_data = st.session_state.db["usuarios"][user_id]
-    plan = user_data["plan"]
-    limite = PLANES[plan]["limite"]
-    uso_actual = sum(user_data["uso"].values())
-
-    if uso_actual < limite:
-        # Aumentar el contador
-        user_data["uso"][tipo_doc] += 1
-        st.success(f"✅ Documento generado. Uso actual: {uso_actual + 1}/{limite if limite < 1000 else '∞'}")
-        # Aquí llamaríamos a la función del PDF que hicimos antes
-    else:
-        st.error(f"❌ Has agotado tus créditos del plan {plan}.")
-        st.info("Mejora tu suscripción para seguir creando materiales.")
-        mostrar_tabla_precios()
-
-# 5. TABLA DE PRECIOS PROFESIONAL
-def mostrar_tabla_precios():
-    st.markdown("### 🚀 Mejora tu Nivel Educativo")
-    cols = st.columns(len(PLANES))
-    for i, (nombre, info) in enumerate(PLANES.items()):
-        with cols[i]:
-            st.info(f"**{nombre}**")
-            st.write(f"**{info['precio']}**")
-            st.caption(info['desc'])
-            if st.button(f"Elegir {nombre}", key=f"btn_{nombre}"):
-                st.toast(f"Redirigiendo a pasarela de pago para plan {nombre}...")
-
-# --- LÓGICA PRINCIPAL ---
-if not st.session_state.db["auth"]:
-    # Aquí iría el código de Login/Registro que ya tenemos
-    st.warning("Inicia sesión para ver tus límites de suscripción.")
-    # (Para efectos de esta demo, vamos a simular que el admin entra)
-    if st.button("Simular Entrada Admin"):
-        st.session_state.db["auth"] = True
-        st.session_state.db["current_user"] = "admin"
-        st.rerun()
-else:
-    mostrar_dashboard()
-    if st.sidebar.button("Ver Planes"):
-        mostrar_tabla_precios()
