@@ -98,3 +98,60 @@ def mostrar_dashboard():
     
     # Cuadros de información de límites
     c1, c2, c3 = st.columns(3)
+    
+    def mostrar_metrica(col, titulo, actual, maximo):
+        restante = "∞" if maximo > 100 else (maximo - actual)
+        col.metric(titulo, f"{actual}/{maximo if maximo < 100 else '∞'}", f"Quedan: {restante}")
+
+    mostrar_metrica(c1, "Planeaciones", user_data["uso"]["plan"], limite)
+    mostrar_metrica(c2, "Escritos Diarios", user_data["uso"]["diario"], limite)
+    mostrar_metrica(c3, "Evaluaciones", user_data["uso"]["eval"], limite)
+
+    st.divider()
+
+    # Botones de Acción
+    st.subheader("¿Qué deseas crear hoy?")
+    b1, b2, b3 = st.columns(3)
+    
+    if b1.button("📄 Nueva Planeación ABCD"):
+        ejecutar_accion(user_id, "plan", "Planeación")
+    
+    if b2.button("✍️ Nuevo Escrito Reflexivo"):
+        ejecutar_accion(user_id, "diario", "Escrito")
+        
+    if b3.button("📊 Nueva Evaluación Trimestral"):
+        ejecutar_accion(user_id, "eval", "Evaluación")
+
+def ejecutar_accion(user_id, tipo, nombre_doc):
+    user_data = st.session_state.db["usuarios"][user_id]
+    limite = PLANES_INFO[user_data["plan"]]["limite"]
+    
+    if user_data["uso"][tipo] < limite:
+        user_data["uso"][tipo] += 1
+        st.balloons()
+        st.success(f"¡{nombre_doc} generada con éxito!")
+    else:
+        st.error(f"⚠️ Has alcanzado el límite de {nombre_doc}s para el plan {user_data['plan']}.")
+        st.info("Para seguir creando, actualiza tu suscripción en la barra lateral.")
+
+# 5. LÓGICA DE NAVEGACIÓN
+if not st.session_state.db["auth"]:
+    if st.session_state.db["step"] == "login":
+        st.title("🍎 Profe Educa ABCD")
+        u = st.text_input("Usuario")
+        p = st.text_input("Contraseña", type="password")
+        if st.button("Entrar"):
+            if u in st.session_state.db["usuarios"] and st.session_state.db["usuarios"][u]["pass"] == p:
+                st.session_state.db["auth"] = True
+                st.session_state.db["current_user"] = u
+                st.rerun()
+        if st.button("¿Eres nuevo? Regístrate"):
+            st.session_state.db["step"] = "registro"
+            st.rerun()
+    else:
+        pantalla_registro()
+else:
+    mostrar_dashboard()
+    if st.sidebar.button("Cerrar Sesión"):
+        st.session_state.db["auth"] = False
+        st.rerun()
