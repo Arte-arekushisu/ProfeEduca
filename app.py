@@ -1,96 +1,113 @@
 import streamlit as st
 from fpdf import FPDF
-from PIL import Image
-import base64
 import io
 
-# 1. CONFIGURACIÓN DE PÁGINA
-st.set_page_config(page_title="Profe Educa ABCD", page_icon="🍎", layout="wide")
+# 1. CONFIGURACIÓN Y ESTILOS
+st.set_page_config(page_title="Profe Educa ABCD", layout="wide")
 
-# Estilo CSS para el fondo y las tarjetas
 st.markdown("""
     <style>
-    .stApp { 
-        background: linear-gradient(-45deg, #050505, #1a1c24, #00d4ff, #050505); 
-        background-size: 400% 400%; 
-        animation: gradient 15s ease infinite; 
-        color: white; 
-    }
-    @keyframes gradient { 0% {background-position: 0% 50%;} 50% {background-position: 100% 50%;} 100% {background-position: 0% 50%;} }
-    .comment-card { 
-        background: rgba(255, 255, 255, 0.1); 
-        border-radius: 15px; padding: 15px; margin: 10px; border-left: 5px solid #00d4ff; 
-    }
+    .stApp { background-color: #0e1117; color: white; }
+    .stTextInput, .stTextArea { background-color: #262730 !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. FUNCIONES TÉCNICAS
-def limpiar(t):
-    r = {"á":"a","é":"e","í":"i","ó":"o","ú":"u","ñ":"n","Á":"A","É":"E","Í":"I","Ó":"O","Ú":"U","Ñ":"N"}
-    for k, v in r.items(): t = str(t).replace(k, v)
+# Función para evitar errores de caracteres especiales en PDF
+def limpiar_texto(t):
+    replacements = {"á":"a","é":"e","í":"i","ó":"o","ú":"u","ñ":"n","Á":"A","É":"E","Í":"I","Ó":"O","Ú":"U","Ñ":"N"}
+    for k, v in replacements.items():
+        t = str(t).replace(k, v)
     return t
 
-class PDF_Estructurado(FPDF):
-    def __init__(self, logo_izq=None, logo_der=None):
-        super().__init__()
-        self.logo_izq = logo_izq
-        self.logo_der = logo_der
-
+# 2. CLASE PARA EL REPORTE PDF
+class ReporteTrimestral(FPDF):
     def header(self):
-        if self.logo_izq:
-            self.image(self.logo_izq, 10, 8, 30)
-        if self.logo_der:
-            self.image(self.logo_der, 170, 8, 30)
-        self.set_font('Arial', 'B', 16)
-        self.cell(0, 10, 'Texto Reflexivo Trimestral', 0, 1, 'C')
-        self.ln(10)
+        # Espacio para logos (puedes cargar imágenes locales si las tienes)
+        self.set_font('Arial', 'B', 14)
+        self.cell(0, 10, 'TEXTO REFLEXIVO TRIMESTRAL', 0, 1, 'C')
+        self.ln(5)
 
-# 3. BASE DE DATOS DE SESIÓN
-if 'db' not in st.session_state:
-    st.session_state.db = {
-        "auth": True, # Cambiado a True para facilitar tu prueba técnica
-        "user": "Invitado",
-        "user_data": {"Invitado": {"name": "Educador", "pic": ""}},
-        "alumnos": {}
-    }
+# 3. LÓGICA DE BASE DE DATOS TEMPORAL
+if 'alumnos_db' not in st.session_state:
+    st.session_state.alumnos_db = {}
 
 # 4. INTERFAZ DE NAVEGACIÓN
-menu = st.sidebar.radio("MENÚ", ["✍️ Diario Reflexivo", "📊 Evaluación Trimestral"])
+menu = st.sidebar.selectbox("Selecciona una sección", ["Registro Diario", "Evaluación Trimestral"])
 
-# --- SECCIÓN: DIARIO REFLEXIVO ---
-if menu == "✍️ Diario Reflexivo":
-    st.header("Registro de Avances Diarios")
-    nom = st.text_input("Nombre del Alumno").upper()
-    texto = st.text_area("Descripción de lo aprendido hoy (Escrito Reflexivo)")
+# --- SECCIÓN REGISTRO ---
+if menu == "Registro Diario":
+    st.title("✍️ Registro de Avances Diarios")
+    nombre = st.text_input("Nombre del Alumno").upper()
+    reflexion = st.text_area("Descripción de lo aprendido hoy")
     
-    if st.button("Guardar en Base de Datos"):
-        if nom and texto:
-            if nom not in st.session_state.db["alumnos"]:
-                st.session_state.db["alumnos"][nom] = {"diario": []}
-            st.session_state.db["alumnos"][nom]["diario"].append(texto)
-            st.success(f"Registro guardado para {nom}")
+    if st.button("Guardar Avance"):
+        if nombre and reflexion:
+            if nombre not in st.session_state.alumnos_db:
+                st.session_state.alumnos_db[nombre] = []
+            st.session_state.alumnos_db[nombre].append(reflexion)
+            st.success(f"Registro guardado para {nombre}")
         else:
-            st.error("Por favor llena todos los campos.")
+            st.warning("Completa los campos.")
 
-# --- SECCIÓN: EVALUACIÓN ESTRUCTURADA ---
-elif menu == "📊 Evaluación Trimestral":
-    st.header("Evaluación Trimestral Estructurada")
+# --- SECCIÓN EVALUACIÓN ---
+elif menu == "Evaluación Trimestral":
+    st.title("📊 Evaluación Trimestral Estructurada")
     
-    with st.expander("🖼️ Configuración de Logos para PDF"):
-        c1, c2 = st.columns(2)
-        l_izq = c1.file_uploader("Logo Izquierdo (CONAFE)", type=["png", "jpg"])
-        l_der = c2.file_uploader("Logo Derecho (Project Mercy)", type=["png", "jpg"])
-
-    busqueda = st.text_input("Buscar Alumno por Nombre").upper()
+    busqueda = st.text_input("Buscar Alumno").upper()
     
-    if busqueda in st.session_state.db["alumnos"]:
-        # Recopilar historial para sintetizar
-        historial = " ".join(st.session_state.db["alumnos"][busqueda]["diario"])
+    if busqueda in st.session_state.alumnos_db:
+        # Recuperar historial
+        historial = " ".join(st.session_state.alumnos_db[busqueda])
         
-        col1, col2, col3 = st.columns(3)
-        escuela = col1.text_input("Nombre de la Escuela", "San Nicolas")
-        nivel = col2.text_input("Nivel / Grado", "4to Primaria")
-        educador = col3.text_input("Nombre del Educador")
+        # Formulario de Evaluación
+        c1, c2 = st.columns(2) # CORREGIDO: Se agregaron paréntesis
+        escuela = c1.text_input("Escuela", "San Nicolas")
+        nivel = c2.text_input("Nivel", "4to Primaria")
+        
+        st.subheader("Campos Formativos")
+        f1 = st.text_area("LENGUAJES", historial) # Se pre-carga el historial
+        f2 = st.text_area("SABERES Y PENSAMIENTO CIENTÍFICO")
+        f3 = st.text_area("ÉTICA, NATURALEZA Y SOCIEDADES")
+        f4 = st.text_area("DE LO HUMANO Y LO COMUNITARIO")
+        
+        recom = st.text_area("RECOMENDACIONES Y COMPROMISOS")
 
-        st.subheader("Campos Formativos (Sintetizar de la Base de Datos)")
-        f1 = st.text_area("L
+        if st.button("Generar PDF"):
+            pdf = ReporteTrimestral()
+            pdf.add_page()
+            
+            # Datos Generales
+            pdf.set_font("Arial", 'B', 10)
+            pdf.cell(0, 5, f"Nombre de la Escuela: {limpiar_texto(escuela)}", 0, 1)
+            pdf.cell(0, 5, f"Nivel: {limpiar_texto(nivel)}", 0, 1)
+            pdf.cell(0, 5, f"Alumno: {limpiar_texto(busqueda)}", 0, 1)
+            pdf.ln(10)
+
+            # Secciones (Campos Formativos)
+            secciones = [
+                ("LENGUAJES", f1),
+                ("SABERES Y PENSAMIENTOS CIENTIFICOS", f2),
+                ("ETICA, NATURALEZA Y SOCIEDADES", f3),
+                ("DE LO HUMANO Y LO COMUNITARIO", f4)
+            ]
+
+            for titulo, contenido in secciones:
+                pdf.set_font("Arial", 'B', 11)
+                pdf.cell(0, 8, titulo, 0, 1, 'C')
+                pdf.set_font("Arial", '', 10)
+                pdf.multi_cell(0, 5, limpiar_texto(contenido))
+                pdf.ln(4)
+
+            # Firmas al final
+            pdf.ln(20)
+            pdf.line(20, pdf.get_y(), 80, pdf.get_y())
+            pdf.line(120, pdf.get_y(), 180, pdf.get_y())
+            pdf.set_font("Arial", '', 8)
+            pdf.text(25, pdf.get_y() + 5, "Firma del EC.")
+            pdf.text(125, pdf.get_y() + 5, "Firma del Padre de Familia.")
+
+            # Descarga
+            output = pdf.output(dest='S').encode('latin-1', 'ignore')
+            st.download_button("📥 Descargar Reporte", output, f"Evaluacion_{busqueda}.pdf")
+    else:
+        st.info("Alumno no encontrado. Asegúrate de haberlo registrado en la sección 'Registro Diario'.")
