@@ -1,113 +1,115 @@
 import streamlit as st
-from fpdf import FPDF
-import io
+import datetime
 
-# 1. CONFIGURACIÓN Y ESTILOS
-st.set_page_config(page_title="Profe Educa ABCD", layout="wide")
+# --- CONFIGURACIÓN DE VERSIÓN ---
+VERSION_SISTEMA = "1.3.0"
 
-st.markdown("""
-    <style>
-    .stApp { background-color: #0e1117; color: white; }
-    .stTextInput, .stTextArea { background-color: #262730 !important; }
-    </style>
-    """, unsafe_allow_html=True)
+# 1. BASE DE DATOS ESTRUCTURADA CON PLANES
+if 'db' not in st.session_state:
+    st.session_state.db = {
+        "usuarios": {
+            "admin": {
+                "pass": "master123", 
+                "name": "Administrador", 
+                "role": "admin", 
+                "plan": "Magna",
+                "uso": {"plan": 0, "diario": 0, "eval": 0}
+            }
+        },
+        "auth": False,
+        "current_user": None,
+        "step": "login"
+    }
 
-# Función para evitar errores de caracteres especiales en PDF
-def limpiar_texto(t):
-    replacements = {"á":"a","é":"e","í":"i","ó":"o","ú":"u","ñ":"n","Á":"A","É":"E","Í":"I","Ó":"O","Ú":"U","Ñ":"N"}
-    for k, v in replacements.items():
-        t = str(t).replace(k, v)
-    return t
+# 2. DEFINICIÓN DE PLANES Y PRECIOS
+# He estructurado los límites para que el sistema los valide antes de cada descarga
+PLANES = {
+    "Gratuito": {"precio": "7 días prueba", "limite": 2, "desc": "Ideal para probar la herramienta."},
+    "Plata":    {"precio": "$200", "limite": 12, "desc": "Para maestros con grupos pequeños."},
+    "Oro":      {"precio": "$300", "limite": 24, "desc": "Eficiencia total para tu salón."},
+    "Platino":  {"precio": "$450", "limite": 9999, "desc": "Acceso total sin límites mensuales."},
+    "Magna":    {"precio": "$3900 (Anual)", "limite": 9999, "desc": "El prestigio máximo del educador."}
+}
 
-# 2. CLASE PARA EL REPORTE PDF
-class ReporteTrimestral(FPDF):
-    def header(self):
-        # Espacio para logos (puedes cargar imágenes locales si las tienes)
-        self.set_font('Arial', 'B', 14)
-        self.cell(0, 10, 'TEXTO REFLEXIVO TRIMESTRAL', 0, 1, 'C')
-        self.ln(5)
-
-# 3. LÓGICA DE BASE DE DATOS TEMPORAL
-if 'alumnos_db' not in st.session_state:
-    st.session_state.alumnos_db = {}
-
-# 4. INTERFAZ DE NAVEGACIÓN
-menu = st.sidebar.selectbox("Selecciona una sección", ["Registro Diario", "Evaluación Trimestral"])
-
-# --- SECCIÓN REGISTRO ---
-if menu == "Registro Diario":
-    st.title("✍️ Registro de Avances Diarios")
-    nombre = st.text_input("Nombre del Alumno").upper()
-    reflexion = st.text_area("Descripción de lo aprendido hoy")
+# 3. INTERFAZ DE USUARIO (DENTRO DEL PANEL)
+def mostrar_dashboard():
+    user_id = st.session_state.db["current_user"]
+    user_data = st.session_state.db["usuarios"][user_id]
+    plan = user_data["plan"]
+    limite = PLANES[plan]["limite"]
     
-    if st.button("Guardar Avance"):
-        if nombre and reflexion:
-            if nombre not in st.session_state.alumnos_db:
-                st.session_state.alumnos_db[nombre] = []
-            st.session_state.alumnos_db[nombre].append(reflexion)
-            st.success(f"Registro guardado para {nombre}")
-        else:
-            st.warning("Completa los campos.")
-
-# --- SECCIÓN EVALUACIÓN ---
-elif menu == "Evaluación Trimestral":
-    st.title("📊 Evaluación Trimestral Estructurada")
+    st.title(f"🍎 Panel de Control - {user_data['name']}")
     
-    busqueda = st.text_input("Buscar Alumno").upper()
+    # Barra de estado de suscripción
+    cols = st.columns(4)
+    with cols[0]:
+        st.metric("Tu Plan", plan)
+    with cols[1]:
+        # Si es Magna o Platino, el límite es infinito visualmente
+        uso_actual = user_data["uso"]["plan"] + user_data["uso"]["diario"] + user_data["uso"]["eval"]
+        restante = "∞" if limite > 1000 else (limite - uso_actual)
+        st.metric("Créditos restantes", restante)
     
-    if busqueda in st.session_state.alumnos_db:
-        # Recuperar historial
-        historial = " ".join(st.session_state.alumnos_db[busqueda])
-        
-        # Formulario de Evaluación
-        c1, c2 = st.columns(2) # CORREGIDO: Se agregaron paréntesis
-        escuela = c1.text_input("Escuela", "San Nicolas")
-        nivel = c2.text_input("Nivel", "4to Primaria")
-        
-        st.subheader("Campos Formativos")
-        f1 = st.text_area("LENGUAJES", historial) # Se pre-carga el historial
-        f2 = st.text_area("SABERES Y PENSAMIENTO CIENTÍFICO")
-        f3 = st.text_area("ÉTICA, NATURALEZA Y SOCIEDADES")
-        f4 = st.text_area("DE LO HUMANO Y LO COMUNITARIO")
-        
-        recom = st.text_area("RECOMENDACIONES Y COMPROMISOS")
+    st.divider()
 
-        if st.button("Generar PDF"):
-            pdf = ReporteTrimestral()
-            pdf.add_page()
-            
-            # Datos Generales
-            pdf.set_font("Arial", 'B', 10)
-            pdf.cell(0, 5, f"Nombre de la Escuela: {limpiar_texto(escuela)}", 0, 1)
-            pdf.cell(0, 5, f"Nivel: {limpiar_texto(nivel)}", 0, 1)
-            pdf.cell(0, 5, f"Alumno: {limpiar_texto(busqueda)}", 0, 1)
-            pdf.ln(10)
+    # --- SIMULACIÓN DE CONTENIDO ---
+    st.subheader("🛠️ Herramientas de Generación")
+    c1, c2, c3 = st.columns(3)
+    
+    with c1:
+        st.write("📋 **Planeación ABCD**")
+        if st.button("Generar Planeación"):
+            validar_y_generar(user_id, "plan")
 
-            # Secciones (Campos Formativos)
-            secciones = [
-                ("LENGUAJES", f1),
-                ("SABERES Y PENSAMIENTOS CIENTIFICOS", f2),
-                ("ETICA, NATURALEZA Y SOCIEDADES", f3),
-                ("DE LO HUMANO Y LO COMUNITARIO", f4)
-            ]
+    with c2:
+        st.write("✍️ **Escrito Reflexivo**")
+        if st.button("Generar Escrito"):
+            validar_y_generar(user_id, "diario")
 
-            for titulo, contenido in secciones:
-                pdf.set_font("Arial", 'B', 11)
-                pdf.cell(0, 8, titulo, 0, 1, 'C')
-                pdf.set_font("Arial", '', 10)
-                pdf.multi_cell(0, 5, limpiar_texto(contenido))
-                pdf.ln(4)
+    with c3:
+        st.write("📊 **Evaluación Trimestral**")
+        if st.button("Generar Evaluación"):
+            validar_y_generar(user_id, "eval")
 
-            # Firmas al final
-            pdf.ln(20)
-            pdf.line(20, pdf.get_y(), 80, pdf.get_y())
-            pdf.line(120, pdf.get_y(), 180, pdf.get_y())
-            pdf.set_font("Arial", '', 8)
-            pdf.text(25, pdf.get_y() + 5, "Firma del EC.")
-            pdf.text(125, pdf.get_y() + 5, "Firma del Padre de Familia.")
+# 4. MOTOR DE VALIDACIÓN DE LÍMITES
+def validar_y_generar(user_id, tipo_doc):
+    user_data = st.session_state.db["usuarios"][user_id]
+    plan = user_data["plan"]
+    limite = PLANES[plan]["limite"]
+    uso_actual = sum(user_data["uso"].values())
 
-            # Descarga
-            output = pdf.output(dest='S').encode('latin-1', 'ignore')
-            st.download_button("📥 Descargar Reporte", output, f"Evaluacion_{busqueda}.pdf")
+    if uso_actual < limite:
+        # Aumentar el contador
+        user_data["uso"][tipo_doc] += 1
+        st.success(f"✅ Documento generado. Uso actual: {uso_actual + 1}/{limite if limite < 1000 else '∞'}")
+        # Aquí llamaríamos a la función del PDF que hicimos antes
     else:
-        st.info("Alumno no encontrado. Asegúrate de haberlo registrado en la sección 'Registro Diario'.")
+        st.error(f"❌ Has agotado tus créditos del plan {plan}.")
+        st.info("Mejora tu suscripción para seguir creando materiales.")
+        mostrar_tabla_precios()
+
+# 5. TABLA DE PRECIOS PROFESIONAL
+def mostrar_tabla_precios():
+    st.markdown("### 🚀 Mejora tu Nivel Educativo")
+    cols = st.columns(len(PLANES))
+    for i, (nombre, info) in enumerate(PLANES.items()):
+        with cols[i]:
+            st.info(f"**{nombre}**")
+            st.write(f"**{info['precio']}**")
+            st.caption(info['desc'])
+            if st.button(f"Elegir {nombre}", key=f"btn_{nombre}"):
+                st.toast(f"Redirigiendo a pasarela de pago para plan {nombre}...")
+
+# --- LÓGICA PRINCIPAL ---
+if not st.session_state.db["auth"]:
+    # Aquí iría el código de Login/Registro que ya tenemos
+    st.warning("Inicia sesión para ver tus límites de suscripción.")
+    # (Para efectos de esta demo, vamos a simular que el admin entra)
+    if st.button("Simular Entrada Admin"):
+        st.session_state.db["auth"] = True
+        st.session_state.db["current_user"] = "admin"
+        st.rerun()
+else:
+    mostrar_dashboard()
+    if st.sidebar.button("Ver Planes"):
+        mostrar_tabla_precios()
