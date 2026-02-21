@@ -1,4 +1,3 @@
 streamlit
+google-generativeai
 fpdf2
-Pillow
-google-genai
