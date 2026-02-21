@@ -6,6 +6,7 @@ import time
 
 def clean(txt):
     if not txt: return ""
+    # Normalización para evitar errores de codificación en el PDF
     txt = "".join(c for c in unicodedata.normalize('NFD', str(txt)) if unicodedata.category(c) != 'Mn')
     txt = txt.replace('ñ', 'n').replace('Ñ', 'N').replace('“', '"').replace('”', '"').replace('•', '-')
     return txt.encode('latin-1', 'ignore').decode('latin-1')
@@ -54,7 +55,7 @@ if submit:
     with st.spinner("⏳ Generando contenido pedagógico final..."):
         time.sleep(1)
         
-        # --- LÓGICA DE RUTINAS INTEGRADAS ---
+        # --- LÓGICA DE RUTINAS INTEGRADAS POR NIVEL ---
         if nivel == "Preescolar":
             regalo_lectura = "Lectura: 'La Tortuga que no podia correr'. El docente leera pausadamente usando onomatopeyas e invitando a los niños a imitar sonidos del mar."
             bienvenida = "Bienvenida: Actividad 'El caparazon gigante'. Usar una manta donde todos los niños entran para simbolizar proteccion y trabajo en equipo."
@@ -65,17 +66,7 @@ if submit:
             regalo_lectura = "Lectura: 'Informe Cientifico: Impacto de microplasticos'. Analisis de terminos tecnicos y redaccion de postura critica sobre la responsabilidad humana."
             bienvenida = "Bienvenida: Actividad 'Debate de Posturas'. Confrontar ideas sobre desarrollo economico vs. conservacion ambiental."
 
-        # --- MARCO TEÓRICO ---
+        # --- MARCO TEÓRICO EXTENSO ---
         marco_teorico = f"""El estudio de {tema} en la comunidad de {comunidad} es vital para entender la biodiversidad local. 
 Las tortugas marinas son reptiles ancestrales que cumplen la funcion de mantener la salud de los pastos marinos y arrecifes. 
-Anatomia: Poseen un caparazon oseo unido a la columna vertebral, aletas adaptadas para el nado y un sistema de orientacion magnetica. 
-Este proyecto integra campos de Saberes (biologia/fisica), Lenguajes (redaccion de informes) y Etica (preservacion ambiental)."""
-
-        # --- GENERACION PDF ---
-        pdf = PlaneacionFinalPDF()
-        pdf.add_page()
-        
-        # Seccion I: Datos
-        pdf.barra("I. DATOS GENERALES")
-        pdf.set_font('Helvetica', '', 10)
-        pdf.cell(0, 7, clean(f"Educador: {educador} |
+Anatomia: Poseen un caparazon oseo unido a la columna vertebral, aletas adaptadas para el nado y un sistema de orientacion magnetica
