@@ -1,166 +1,118 @@
 import streamlit as st
-import random
 from fpdf import FPDF
 from datetime import datetime
 
-# --- 1. CONFIGURACIÓN Y ESTILOS ---
-st.set_page_config(page_title="ProfeEduca V0.5", page_icon="🍎", layout="wide")
-
-st.markdown("""
-    <style>
-    .stApp { background: radial-gradient(circle at top, #0f172a 0%, #020617 100%); color: #f8fafc; }
-    .stButton>button {
-        background: rgba(255, 255, 255, 0.05);
-        color: rgba(248, 250, 252, 0.8);
-        border: 1px solid rgba(56, 189, 248, 0.2);
-        border-radius: 12px;
-        backdrop-filter: blur(8px);
-        transition: all 0.3s ease;
-    }
-    .stButton>button:hover {
-        background: rgba(56, 189, 248, 0.15);
-        border-color: #38bdf8;
-        color: #38bdf8;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-# --- 2. LÓGICA DEL GENERADOR PDF ---
+# --- CLASE PDF MEJORADA ---
 class PDF(FPDF):
     def header(self):
-        self.set_font('Arial', 'B', 15)
-        self.cell(0, 10, 'PLANEACIÓN PEDAGÓGICA - MODELO DE DIÁLOGO', 0, 1, 'C')
+        self.set_font('Arial', 'B', 14)
+        self.cell(0, 10, 'GUÍA DE APRENDIZAJE - MODELO DE DIÁLOGO', 0, 1, 'C')
         self.ln(5)
 
     def chapter_title(self, title):
-        self.set_font('Arial', 'B', 12)
-        self.set_fill_color(30, 41, 59)
+        self.set_font('Arial', 'B', 11)
+        self.set_fill_color(44, 62, 80)
         self.set_text_color(255, 255, 255)
         self.cell(0, 8, title, 0, 1, 'L', True)
         self.set_text_color(0, 0, 0)
         self.ln(2)
 
-def crear_planeacion_pdf(d):
+    def create_table(self, data):
+        self.set_font('Arial', 'B', 10)
+        self.set_fill_color(240, 240, 240)
+        for key, value in data.items():
+            self.cell(50, 8, key, 1, 0, 'L', True)
+            self.set_font('Arial', '', 10)
+            self.cell(0, 8, value, 1, 1, 'L')
+            self.set_font('Arial', 'B', 10)
+        self.ln(5)
+
+def generar_contenido_ia(tema, nivel):
+    # Aquí simulamos la respuesta de la IA redactando temas reales
+    # En la siguiente fase conectaremos Gemini API para que sea 100% único
+    return {
+        "pase_lista": f"Actividad 'El eco del saber': Al mencionar su nombre, el alumno debe decir una palabra que rime con {tema} y hacer un movimiento corporal representativo.",
+        "regalo_lectura": f"Lectura de 'El viaje de {tema}': Relato breve sobre cómo este elemento influye en nuestra naturaleza. Al finalizar, cada niño compartirá qué parte le sorprendió más.",
+        "bienvenida": f"Dinámica 'Círculo de Ideas': Los niños se pasan una pelota de estambre y dicen qué conocen sobre {tema}, formando una red visual de conocimientos.",
+        "estacion1": f"Exploración Sensorial: Manipular materiales que representen a {tema}. Los alumnos describen texturas y formas en su cuaderno.",
+        "estacion2": f"Simulación Práctica: Usar objetos reciclados para construir un modelo de {tema}, explicando su funcionamiento a sus compañeros.",
+        "estacion3": f"Expresión Artística: Crear un mural comunitario donde cada alumno dibuje cómo {tema} ayuda a su propia familia.",
+        "tutoreo_desarrollo": f"Profundización en {tema}: Explicar que este proceso es vital para el equilibrio local. Ejemplo: Si trabajamos {tema}, compararlo con el crecimiento de las siembras en la comunidad.",
+        "tutoreo_actividades": f"1. Elaborar un diagrama de flujo con ramas y hojas secas.\n2. Crear una exposición oral para el resto del grupo usando cartones reciclados.",
+        "producto": f"Maqueta funcional o álbum ilustrado de {tema} con materiales de bajo costo (tierra, cartón, envases)."
+    }
+
+def crear_pdf_final(d):
     pdf = PDF()
     pdf.add_page()
-    pdf.set_auto_page_break(auto=True, margin=15)
     
-    # OBJETIVO GENERAL
-    pdf.chapter_title("I. OBJETIVO GENERAL")
+    # 1. TABLA DE IDENTIFICACIÓN
+    pdf.chapter_title("I. DATOS DE IDENTIFICACIÓN")
+    tabla_datos = {
+        "Nivel y Grado": f"{d['nivel']} - {d['grado']}",
+        "Educador / ECA": f"{d['nombre_ed']} / {d['nombre_eca']}",
+        "Comunidad": d['comunidad'],
+        "Fecha": d['fecha'],
+        "Tema Central": d['tema'],
+        "Rincón": d['rincon'] if d['rincon'] else "General"
+    }
+    pdf.create_table(tabla_datos)
+
+    # 2. OBJETIVO GENERAL
+    pdf.chapter_title("II. OBJETIVO GENERAL")
     pdf.set_font('Arial', '', 10)
-    objetivo_texto = (
-        f"Esta planeación integral para el nivel {d['nivel']} busca que los alumnos desarrollen "
-        f"aprendizajes profundos sobre '{d['tema']}'. A través del diálogo tutorado y estaciones "
-        "de trabajo, los estudiantes adquirirán habilidades de investigación científica y pensamiento "
-        "crítico. El proceso fomenta la autonomía, permitiendo que cada niño construya su conocimiento "
-        "mediante el desafío y la exploración de su entorno inmediato. "
-        "Se prioriza la vinculación comunitaria y el uso de materiales locales para garantizar que "
-        "lo aprendido sea significativo y aplicable a su realidad cotidiana."
-    )
-    pdf.multi_cell(0, 5, objetivo_texto)
+    objetivo = (f"Que los alumnos de {d['nivel']} comprendan a profundidad el tema '{d['tema']}' "
+                "mediante procesos de investigación y diálogo colaborativo. Se busca desarrollar "
+                "habilidades de observación y análisis, logrando que el estudiante sea capaz de "
+                "explicar el tema con sus propias palabras y lo vincule con su vida diaria.")
+    pdf.multi_cell(0, 5, objetivo)
     pdf.ln(5)
 
-    # DATOS GENERALES
-    pdf.chapter_title("II. DATOS DE IDENTIFICACIÓN")
-    pdf.set_font('Arial', '', 10)
-    info = [
-        f"Educador: {d['nombre_ed']}", f"ECA: {d['nombre_eca']}",
-        f"Grado: {d['grado']}", f"Comunidad: {d['comunidad']}",
-        f"Fecha: {d['fecha']}", f"Rincón: {d['rincon']}"
-    ]
-    for line in info:
-        pdf.cell(0, 6, line, 0, 1)
-    pdf.ln(5)
+    # Contenido generado por IA
+    ia = generar_contenido_ia(d['tema'], d['nivel'])
 
-    # RUTINA DE INICIO
-    pdf.chapter_title("III. MOMENTO DE INICIO (PEDAGOGÍA DE BIENVENIDA)")
-    pdf.cell(0, 6, "1. Pase de lista (5 min): Mencionar una característica del tema.", 0, 1)
-    pdf.cell(0, 6, "2. Regalo de lectura (10 min): Texto narrativo sobre el entorno.", 0, 1)
-    pdf.cell(0, 6, "3. Actividad de bienvenida (10 min): Juego rítmico grupal.", 0, 1)
-    pdf.ln(5)
-
-    # ESTACIONES
-    pdf.chapter_title("IV. ESTACIONES DE APRENDIZAJE (45 min c/u)")
-    pdf.set_font('Arial', 'B', 9)
-    pdf.cell(60, 7, "Estación 1: Lenguaje", 1)
-    pdf.cell(60, 7, "Estación 2: Saberes", 1)
-    pdf.cell(60, 7, "Estación 3: Ética", 1, 1)
-    pdf.set_font('Arial', '', 9)
-    pdf.multi_cell(0, 6, "Actividades diarias rotativas con materiales reciclados (cartón, envases, hojas secas).")
-    pdf.ln(5)
-
-    # TUTOREO IA
-    pdf.chapter_title(f"V. TUTOREO UNO A UNO: {d['tema'].upper()}")
+    # 3. RUTINA DE INICIO
+    pdf.chapter_title("III. INICIO (MOMENTOS PEDAGÓGICOS)")
     pdf.set_font('Arial', 'B', 10)
-    pdf.cell(0, 6, "Preguntas Detonantes (Generadas por IA):", 0, 1)
-    pdf.set_font('Arial', 'I', 10)
-    pdf.multi_cell(0, 5, f"1. ¿Cómo influye {d['tema']} en lo que hacemos en el pueblo?\n2. ¿Qué pasaría si {d['tema']} desapareciera de un día para otro?")
+    pdf.cell(0, 6, "Pase de lista (5 min):", 0, 1); pdf.set_font('Arial', '', 10)
+    pdf.multi_cell(0, 5, ia['pase_lista']); pdf.ln(2)
+    
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(0, 6, "Regalo de lectura (10 min):", 0, 1); pdf.set_font('Arial', '', 10)
+    pdf.multi_cell(0, 5, ia['regalo_lectura']); pdf.ln(2)
+
+    # 4. ESTACIONES
+    pdf.chapter_title("IV. ESTACIONES DE TRABAJO (45 min)")
+    pdf.multi_cell(0, 5, f"1. {ia['estacion1']}\n\n2. {ia['estacion2']}\n\n3. {ia['estacion3']}")
+    pdf.ln(5)
+
+    # 5. TUTOREO PROFUNDO
+    pdf.chapter_title(f"V. TUTOREO: {d['tema'].upper()}")
+    pdf.multi_cell(0, 5, f"Introducción al tema: {ia['tutoreo_desarrollo']}")
     pdf.ln(3)
-    pdf.set_font('Arial', 'B', 10)
-    pdf.cell(0, 6, "Actividades de Tutoreo sugeridas:", 0, 1)
-    pdf.set_font('Arial', '', 10)
-    pdf.multi_cell(0, 5, "A. Experimentación con elementos del rincón.\nB. Diálogo reflexivo y registro en el cuaderno de campo.")
-    pdf.ln(5)
+    pdf.set_font('Arial', 'B', 10); pdf.cell(0, 6, "Actividades de desarrollo:", 0, 1); pdf.set_font('Arial', '', 10)
+    pdf.multi_cell(0, 5, ia['tutoreo_actividades'])
+    pdf.ln(3)
+    pdf.set_font('Arial', 'B', 10); pdf.cell(0, 6, "Producto Final:", 0, 1); pdf.set_font('Arial', '', 10)
+    pdf.multi_cell(0, 5, ia['producto'])
 
-    # POST-RECESO
+    # 6. POST-RECESO
     pdf.chapter_title("VI. ACTIVIDADES POST-RECESO")
-    pdf.cell(0, 6, f"1. Materia 1: {d['materia1']} (45 min) - Dinámicas de aula.", 0, 1)
-    pdf.cell(0, 6, f"2. Materia 2: {d['materia2']} (45 min) - Incluye Educación Física.", 0, 1)
-    pdf.ln(5)
+    pdf.multi_cell(0, 5, f"Materia 1: {d['materia1']}\nDesarrollo: Actividad práctica de refuerzo cognitivo utilizando materiales sobrantes.\n\nMateria 2: {d['materia2']}\nDesarrollo: Sesión de coordinación motriz y juegos tradicionales de la comunidad.")
 
-    # REFERENCIAS
-    pdf.chapter_title("VII. REFERENCIAS BIBLIOGRÁFICAS")
-    pdf.set_font('Arial', 'I', 8)
-    pdf.multi_cell(0, 4, "UNESCO (2021). Reimaginar nuestros futuros juntos.\nSEP (2022). Plan de Estudio para la educación preescolar, primaria y secundaria.\nMateriales del entorno y saberes comunitarios.")
-    
     return pdf.output(dest='S').encode('latin-1')
 
-# --- 3. INTERFAZ DE USUARIO ---
-if 'seccion' not in st.session_state: st.session_state.seccion = "inicio"
-
-col_menu, col_main = st.columns([1, 2.5])
-
-with col_menu:
-    st.title("🍎 Menú")
-    if st.button("🏠 Inicio", use_container_width=True): st.session_state.seccion = "inicio"
-    if st.button("📝 Planeación ABCD", use_container_width=True): st.session_state.seccion = "plan"
-
-with col_main:
-    if st.session_state.seccion == "plan":
-        st.header("📋 Taller de Planeación ABCD")
-        
-        with st.container():
-            col1, col2 = st.columns(2)
-            with col1:
-                nivel = st.selectbox("Nivel educativo", ["Preescolar", "Primaria", "Secundaria"])
-                grado = st.text_input("Grado del grupo", placeholder="Ej. 1°, 2° y 3° Multigrado")
-                nombre_ed = st.text_input("Nombre del educador")
-                nombre_eca = st.text_input("Nombre del ECA")
-            with col2:
-                comunidad = st.text_input("Comunidad")
-                fecha = st.date_input("Fecha de planeación")
-                tema = st.text_input("Tema de interés", placeholder="Ej. Las mariposas")
-                rincon = st.text_input("Rincón (Opcional)")
-            
-            st.subheader("Post-Receso")
-            m1 = st.text_input("Materia 1", value="Educación Física")
-            m2 = st.text_input("Materia 2", placeholder="Ej. Artes")
-
-        if st.button("🚀 GENERAR PLANEACIÓN EN PDF", use_container_width=True):
-            datos = {
-                "nivel": nivel, "grado": grado, "nombre_ed": nombre_ed,
-                "nombre_eca": nombre_eca, "comunidad": comunidad,
-                "fecha": str(fecha), "tema": tema, "rincon": rincon,
-                "materia1": m1, "materia2": m2
-            }
-            if not tema or not nombre_ed:
-                st.error("Por favor completa los campos principales (Nombre y Tema).")
-            else:
-                pdf_bytes = crear_planeacion_pdf(datos)
-                st.download_button(
-                    label="📥 Descargar PDF Listo",
-                    data=pdf_bytes,
-                    file_name=f"Planeacion_{tema}.pdf",
-                    mime="application/pdf"
-                )
-                st.success("¡Generado en menos de 10 segundos! 🚀")
+# --- INTERFAZ STREAMLIT (Botón Planeación ABCD) ---
+# ... (Aquí va tu código de menú y columnas de la Fase anterior)
+if st.session_state.seccion == "plan":
+    st.header("📋 Taller de Planeación ABCD")
+    # Campos de entrada...
+    if st.button("🚀 GENERAR PLANEACIÓN COMPLETA", use_container_width=True):
+        datos_pdf = {
+            "nivel": nivel, "grado": grado, "nombre_ed": nombre_ed,
+            "nombre_eca": nombre_eca, "comunidad": comunidad,
+            "fecha": str(fecha), "tema": tema, "rincon": rincon,
+            "materia1": m1, "materia2": m2
+        }
+        archivo = crear_pdf_final(datos_pdf)
+        st.download_button("📥 Descargar Guía Pedagógica", archivo, f"Guia_{tema}.pdf", "application/pdf")
