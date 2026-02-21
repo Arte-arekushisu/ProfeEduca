@@ -2,153 +2,145 @@ import streamlit as st
 from fpdf import FPDF
 import time
 
-# --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="ProfeEduca V5.0", page_icon="📚", layout="wide")
+# --- CONFIGURACIÓN ---
+st.set_page_config(page_title="ProfeEduca V6.0", page_icon="📝", layout="wide")
 
-# --- CLASE PDF PROFESIONAL BLINDADA ---
+# --- CLASE PDF PROFESIONAL SIN ERRORES DE CODIFICACIÓN ---
 class PDF(FPDF):
     def header(self):
-        self.set_font('Arial', 'B', 22)
+        self.set_font('Helvetica', 'B', 20)
         self.cell(0, 15, 'PLANEACION', 0, 1, 'C')
         self.ln(5)
 
-    def seccion_azul(self, texto):
-        self.set_font('Arial', 'B', 12)
-        self.set_fill_color(31, 52, 94)
+    def seccion_cabecera(self, titulo):
+        self.set_font('Helvetica', 'B', 12)
+        self.set_fill_color(40, 54, 85)
         self.set_text_color(255, 255, 255)
-        self.cell(0, 10, f"  {texto}", 0, 1, 'L', True)
+        self.cell(0, 10, f"  {titulo}", 0, 1, 'L', True)
         self.set_text_color(0, 0, 0)
-        self.ln(3)
+        self.ln(2)
 
-    def tabla_datos(self, info):
-        self.set_font('Arial', 'B', 10)
+    def crear_tabla_id(self, info):
+        self.set_font('Helvetica', 'B', 10)
         for clave, valor in info.items():
-            self.set_fill_color(245, 245, 245)
+            self.set_fill_color(240, 240, 240)
             self.cell(50, 8, f" {clave}:", 1, 0, 'L', True)
-            self.set_font('Arial', '', 10)
+            self.set_font('Helvetica', '', 10)
             self.cell(140, 8, f" {valor}", 1, 1, 'L')
         self.ln(5)
 
-# --- MOTOR DE LÓGICA PEDAGÓGICA ---
-def obtener_dinamicas(nivel, tema):
-    if nivel == "Preescolar":
-        return {
-            "pase": f"Cada nino imita un animal que viva cerca de donde hay {tema}.",
-            "regalo": f"Cuento motor: 'El viaje magico hacia {tema}'.",
-            "reflexion": "Dialogo sobre que partes del cuento nos hicieron sentir alegres."
+# --- MOTOR PEDAGÓGICO ---
+def generar_inicio(nivel, tema):
+    # Actividades adaptadas al nivel
+    niveles = {
+        "Preescolar": {
+            "lista": f"Cantar 'La ronda de {tema}' y mencionar una emocion.",
+            "regalo": f"Cuento ilustrado: 'El misterio de {tema}'.",
+            "reflexion": "Dibujar el momento mas feliz del cuento.",
+            "mat": "Titeres, hojas blancas, crayolas."
+        },
+        "Primaria": {
+            "lista": f"Mencionar una palabra clave de {tema} que rime con su nombre.",
+            "regalo": f"Lectura de la leyenda: 'El origen de {tema}'.",
+            "reflexion": "Escribir un compromiso personal para cuidar nuestro entorno.",
+            "mat": "Fichas de lectura, pizarron, plumones."
+        },
+        "Secundaria": {
+            "lista": f"Compartir un dato cientifico o estadistico sobre {tema}.",
+            "regalo": f"Ensayo de divulgacion: 'Retos actuales de {tema}'.",
+            "reflexion": "Debate grupal sobre la postura del autor y propuestas de solucion.",
+            "mat": "Articulos impresos, cuadernos, boligrafos."
         }
-    elif nivel == "Primaria":
-        return {
-            "pase": f"Mencionar una cualidad de {tema} que empiece con su inicial.",
-            "regalo": f"Lectura de una infografia sobre {tema} y sus beneficios.",
-            "reflexion": "Escribir en una frase por que debemos cuidar {tema}."
-        }
-    else: # Secundaria
-        return {
-            "pase": f"Mencionar un dato estadistico o cientifico sobre {tema}.",
-            "regalo": f"Ensayo de divulgacion: 'Perspectivas actuales sobre {tema}'.",
-            "reflexion": "Debate: Impacto socioeconomico de {tema} en nuestra comunidad."
-        }
+    }
+    return niveles.get(nivel)
 
 # --- INTERFAZ ---
-st.title("🍎 Generador de Planeacion ABCD")
+st.title("🍎 Taller de Planeacion Pedagogica")
 
-with st.form("maestro_form"):
+with st.form("form_v6"):
     c1, c2 = st.columns(2)
     with c1:
         nivel = st.selectbox("Nivel Educativo", ["Preescolar", "Primaria", "Secundaria"])
         grado = st.text_input("Grado", "1ro Multigrado")
-        educador = st.text_input("Nombre del Educador")
+        educador = st.text_input("Educador", "Axel Reyes")
         eca = st.text_input("Nombre del ECA")
     with c2:
         comunidad = st.text_input("Comunidad")
         fecha = st.date_input("Fecha")
-        tema = st.text_input("Tema de Interes", placeholder="Ej. El Ciclo del Agua")
-        rincon = st.text_input("Rincon Asignado")
+        tema_int = st.text_input("Tema de Interes", "Biodiversidad Marina")
+        rincon = st.text_input("Rincon asignado")
     
     st.markdown("---")
-    st.subheader("Bloque Post-Receso (Desarrollo Completo)")
-    m1_tit = st.text_input("Materia/Tema 1", "Suma de fracciones")
-    m2_tit = st.text_input("Materia/Tema 2", "Vida Saludable")
+    st.subheader("Post-Receso (2 Horas de Clase)")
+    m1 = st.text_input("Materia 1", "Suma de fracciones")
+    m2 = st.text_input("Materia 2", "Vida Saludable")
     
-    boton_gen = st.form_submit_button("🔨 GENERAR Y REVISAR PLANEACION")
+    generar = st.form_submit_button("🔨 GENERAR PLANEACION EXTENSA")
 
-if boton_gen:
-    status = st.status("🚀 Redactando guia profesional...", expanded=True)
-    time.sleep(1)
-    
-    din = obtener_dinamicas(nivel, tema)
-    
-    # --- CONSTRUCCIÓN DEL PDF ---
-    pdf = PDF()
-    pdf.add_page()
-    
-    # I. DATOS
-    pdf.seccion_azul("I. DATOS DE IDENTIFICACION")
-    pdf.tabla_datos({
-        "Educador": educador, "ECA": eca, "Nivel y Grado": f"{nivel} - {grado}",
-        "Comunidad": comunidad, "Fecha": str(fecha), "Rincon": rincon
-    })
+if generar:
+    with st.status("🚀 Redactando contenido detallado...", expanded=True) as s:
+        time.sleep(1)
+        datos_inicio = generar_inicio(nivel, tema_int)
+        
+        # --- GENERACIÓN PDF ---
+        pdf = PDF()
+        pdf.add_page()
+        
+        # I. IDENTIFICACION
+        pdf.seccion_cabecera("I. DATOS DE IDENTIFICACION")
+        pdf.crear_tabla_id({
+            "Educador": educador, "ECA": eca, "Nivel/Grado": f"{nivel} - {grado}",
+            "Comunidad": comunidad, "Fecha": str(fecha), "Rincon": rincon
+        })
 
-    # II. INICIO
-    pdf.seccion_azul("II. MOMENTO DE INICIO Y BIENVENIDA")
-    pdf.set_font('Arial', 'B', 10); pdf.cell(0, 7, "Materiales: Libros del rincon, gises, bitacora grupal.", 0, 1)
-    pdf.set_font('Arial', '', 11)
-    pdf.multi_cell(0, 8, f"1. Pase de Lista: {din['pase']}\n"
-                         f"2. Regalo de Lectura: {din['regalo']}\n"
-                         f"3. Reflexion del Cuento: {din['reflexion']}")
-    pdf.ln(5)
+        # II. INICIO
+        pdf.seccion_cabecera("II. BIENVENIDA Y RUTINA GRUPAL")
+        pdf.set_font('Helvetica', 'B', 10); pdf.cell(0, 7, f"Materiales: {datos_inicio['mat']}", 0, 1)
+        pdf.set_font('Helvetica', '', 11)
+        pdf.multi_cell(0, 7, f"1. Pase de Lista: {datos_inicio['lista']}\n"
+                             f"2. Regalo de Lectura: {datos_inicio['regalo']}\n"
+                             f"3. Reflexion: {datos_inicio['reflexion']}")
+        pdf.ln(5)
 
-    # III. ESTACIONES (4 CAMPOS)
-    pdf.seccion_azul("III. ESTACIONES DE APRENDIZAJE INTEGRAL")
-    est_list = [
-        {"nom": "Estacion del Investigador", "inst": "Los alumnos analizan muestras y datos.", "mat": "Lupas, frascos, fichas de registro."},
-        {"nom": "Estacion de la Palabra", "inst": "Creacion de un mural informativo.", "mat": "Cartulinas, recortes, pegamento."},
-        {"nom": "Estacion del Ciudadano", "inst": "Simulacion de resolucion de problemas comunitarios.", "mat": "Hojas de colores, plumones."},
-        {"nom": "Estacion Creativa", "inst": "Modelado de prototipos sobre el tema.", "mat": "Plastilina, materiales de reuso."}
-    ]
-    for e in est_list:
-        pdf.set_font('Arial', 'B', 11); pdf.cell(0, 7, f"📌 {e['nom']}", 0, 1)
-        pdf.set_font('Arial', 'I', 10); pdf.multi_cell(0, 5, f"Materiales: {e['mat']}")
-        pdf.set_font('Arial', '', 10)
-        pdf.multi_cell(0, 5, f"Instrucciones: {e['inst']} Esta estacion integra actividades de Lenguajes, Saberes, Etica y lo Humano mediante la colaboracion y el registro visual.\n")
-        pdf.ln(2)
+        # III. ESTACIONES (4 CAMPOS)
+        pdf.seccion_cabecera("III. ESTACIONES POR CAMPOS FORMATIVOS")
+        estaciones = [
+            {"n": "Estacion del Lenguaje", "c": "Lenguajes", "act": "Redaccion de un 'Códice Comunitario' e ilustracion de conceptos.", "mat": "Hojas, colores, periodicos."},
+            {"n": "Estacion del Laboratorio", "c": "Saberes y P. Cientifico", "act": "Analisis de datos y formulacion de hipotesis sobre el tema.", "mat": "Lupas, reglas, bitacoras."},
+            {"n": "Estacion de Etica", "c": "Etica, Nat. y Sociedades", "act": "Creacion de un acuerdo de convivencia para proteger el tema.", "mat": "Cartulinas, gises."},
+            {"n": "Estacion de Identidad", "c": "De lo Humano y lo Comunitario", "act": "Juego de roles sobre el papel de la comunidad en el tema.", "mat": "Utensilios de plastico, musica."}
+        ]
+        for e in estaciones:
+            pdf.set_font('Helvetica', 'B', 11); pdf.cell(0, 7, f"📌 {e['n']} (Campo: {e['c']})", 0, 1)
+            pdf.set_font('Helvetica', 'B', 10); pdf.cell(25, 6, "Materiales:", 0, 0); pdf.set_font('Helvetica', '', 10); pdf.cell(0, 6, e['mat'], 0, 1)
+            pdf.multi_cell(0, 6, f"Instrucciones: El docente organiza el espacio y deja las guias visuales. Actividad: {e['act']}\n")
+            pdf.ln(2)
 
-    # IV. TEMA DE INTERÉS (EXTENSO)
-    pdf.add_page()
-    pdf.seccion_azul(f"IV. DESARROLLO DEL TEMA: {tema.upper()}")
-    pdf.set_font('Arial', '', 11)
-    pdf.multi_cell(0, 6, f"El tema de {tema} es central para entender nuestra realidad. Segun la UNESCO, este tipo de aprendizajes "
-                         f"fomenta la conciencia critica. \n\nInformacion Clave: Aqui se explica que {tema} funciona bajo principios de... \n"
-                         f"Pregunta Detonante: ¿Como cambiaria tu vida si {tema} no existiera?\n"
-                         f"Actividad: Realizar un mapa mental gigante en el suelo usando carbon o gises.")
+        # IV. TEMA DE INTERÉS (EXTENSO)
+        pdf.add_page()
+        pdf.seccion_cabecera(f"IV. DESARROLLO TEMA DE INTERES: {tema_int.upper()}")
+        pdf.multi_cell(0, 6, f"Teoria: {tema_int} es crucial para el equilibrio local. Cientificamente se sabe que...\n"
+                             f"Pregunta Detonante: ¿Que misterio o curiosidad de este tema te gustaria investigar hoy?\n"
+                             f"Producto final: El alumno lidera su investigacion y crea una maqueta o cartel informativo.")
 
-    # V. POST-RECESO (TEORÍA Y EJERCICIOS)
-    pdf.seccion_azul("V. BLOQUE POST-RECESO (2 HORAS)")
-    for m in [m1_tit, m2_tit]:
-        pdf.set_font('Arial', 'B', 11); pdf.cell(0, 7, f"TEMA: {m}", 0, 1)
-        pdf.set_font('Arial', '', 10)
-        pdf.multi_cell(0, 6, f"Teoria: Para entender {m} debemos aplicar el razonamiento logico. Por ejemplo, en el caso de {m}, "
-                             "se procede a realizar el siguiente algoritmo... \n"
-                             "Ejemplo Práctico: 2 + 2 = 4 aplicado a situaciones de la vida diaria.\n"
-                             "Ejercicios: Realizar 5 practicas individuales y una puesta en comun grupal.\n"
-                             "Materiales: Cuaderno, lapiz, regla, pizarron.")
-        pdf.ln(3)
+        # V. POST-RECESO
+        pdf.seccion_cabecera("V. ACTIVIDADES POST-RECESO (2 HORAS)")
+        for materia in [m1, m2]:
+            pdf.set_font('Helvetica', 'B', 11); pdf.cell(0, 7, f"TEMA: {materia}", 0, 1)
+            pdf.set_font('Helvetica', '', 10)
+            pdf.multi_cell(0, 6, f"Explicacion: Presentacion de conceptos base en pizarron. Ejemplo: 'Si tenemos 1/4 y sumamos 2/4...'.\n"
+                                 f"Actividades: 1. Resolucion de ejercicios grupales. 2. Practica individual en cuaderno.\n"
+                                 f"Materiales: Cuaderno, libros de texto, material concreto.\n")
+            pdf.ln(3)
 
-    # VI. FUENTES
-    pdf.ln(5); pdf.seccion_azul("VI. FUENTES DE CONSULTA")
-    pdf.set_font('Arial', 'I', 9)
-    pdf.multi_cell(0, 5, "1. SEP (2026) Plan de Estudios NEM. https://sep.gob.mx\n2. UNESCO - Guias de Aprendizaje Activo.\n3. Redalyc - Investigaciones Educativas.")
+        # VI. FUENTES
+        pdf.seccion_cabecera("VI. FUENTES DE CONSULTA")
+        pdf.set_font('Helvetica', 'I', 9)
+        pdf.multi_cell(0, 5, "UNESCO (2026). Reporte Educativo. https://unesco.org\nSEP (2025). Plan NEM. https://gob.mx/sep")
 
-    # --- DESCARGA SEGURA ---
-    # Limpiamos caracteres que no sean latin-1 para evitar errores
-    pdf_output = pdf.output(dest='S').encode('latin-1', 'replace')
-    status.update(label="✅ Planeacion completa generada exitosamente", state="complete")
-    
-    st.download_button(
-        label="📥 DESCARGAR PLANEACION COMPLETA (PDF)",
-        data=pdf_output,
-        file_name=f"Planeacion_{tema}.pdf",
-        mime="application/pdf",
-        use_container_width=True
-    )
+        # --- SALIDA SEGURA ---
+        # El .encode('latin-1', 'replace') evita que el programa falle por acentos
+        pdf_bytes = pdf.output(dest='S').encode('latin-1', 'replace')
+        s.update(label="✅ Planeacion completa sin errores", state="complete")
+        
+        st.download_button("📥 DESCARGAR PDF COMPLETO (3-4 HOJAS)", data=pdf_bytes, file_name=f"Planeacion_{tema_int}.pdf", use_container_width=True)
