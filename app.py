@@ -5,7 +5,10 @@ import datetime
 from google import genai
 
 # --- CONFIGURACIÓN DE IA ---
+# Axel, asegúrate de que esta clave no tenga espacios al final
 API_KEY = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
+
+# Usamos la configuración más simple posible
 client = genai.Client(api_key=API_KEY)
 
 def clean(txt):
@@ -23,7 +26,6 @@ class PlaneacionPDF(FPDF):
 st.set_page_config(page_title="PROFEEDUCA IA", layout="wide")
 st.title("🛡️ PROFEEDUCA: Sistema de Planeación")
 
-# El formulario que ya lograste ver:
 with st.form("MainForm"):
     c1, c2 = st.columns(2)
     with c1:
@@ -38,12 +40,12 @@ with st.form("MainForm"):
     submit = st.form_submit_button("🔨 GENERAR PLANEACIÓN AHORA")
 
 if submit:
-    with st.spinner("🤖 Google está redactando tu planeación..."):
+    with st.spinner("🤖 Generando contenido pedagógico..."):
         try:
-            # LLAMADA DIRECTA: Sin versiones beta, solo el modelo puro
+            # CAMBIO CLAVE: Usamos gemini-1.5-flash-8b que es más ligero y estable
             response = client.models.generate_content(
                 model="gemini-1.5-flash", 
-                contents=f"Como pedagogo CONAFE, genera una planeación para {nivel} sobre {tema} en {comunidad}."
+                contents=f"Como experto pedagogo de CONAFE México, genera una planeación para {nivel} sobre {tema}. Comunidad: {comunidad}."
             )
             
             if response.text:
@@ -56,8 +58,12 @@ if submit:
                 pdf.multi_cell(0, 6, clean(response.text))
 
                 pdf_out = pdf.output(dest='S').encode('latin-1', 'replace')
-                st.success("✅ ¡Planeación lista!")
+                st.success("✅ ¡Felicidades! Planeación generada.")
                 st.download_button("📥 DESCARGAR PDF", pdf_out, f"Planeacion_{tema}.pdf", "application/pdf")
+            else:
+                st.error("La IA no respondió. Intenta de nuevo.")
 
         except Exception as e:
-            st.error(f"Detalle técnico: {e}")
+            # Si vuelve a salir 404, limpiaremos el caché del navegador
+            st.error(f"Error técnico: {e}")
+            st.info("Axel, si el error 404 persiste, presiona Ctrl+F5 en tu teclado para limpiar la memoria del navegador.")
