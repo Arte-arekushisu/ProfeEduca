@@ -3,10 +3,9 @@ from fpdf import FPDF
 import unicodedata
 import datetime
 
-# --- MOTOR DE NORMALIZACIÓN (SEGURIDAD CONTRA ACCENTOS) ---
+# --- MOTOR DE NORMALIZACIÓN ---
 def clean(txt):
     if not txt: return ""
-    # Convierte caracteres especiales para que FPDF no colapse
     return "".join(c for c in unicodedata.normalize('NFD', str(txt)) 
                   if unicodedata.category(c) != 'Mn').replace('ñ', 'n').replace('Ñ', 'N')
 
@@ -26,7 +25,7 @@ class PlaneacionPDF(FPDF):
         self.set_text_color(0, 0, 0)
         self.ln(3)
 
-# --- CONFIGURACIÓN DE LA APP ---
+# --- APP STREAMLIT ---
 st.set_page_config(page_title="Innovacion Educativa v0.4", layout="wide", page_icon="🍎")
 st.title("🧩 Rompecabezas: Consolidacion de Fase 4")
 
@@ -53,20 +52,17 @@ with st.form("SaaS_Form"):
 if boton:
     with st.status("🧠 Extrayendo información técnica y unificando fases...", expanded=True) as s:
         
-        # --- MOTOR DE INTELIGENCIA (EXTENSIÓN DE CONTENIDO) ---
-        # Aquí definimos la "Teoría de Biblioteca" para que el PDF sea extenso
         teoria_dic = {
-            "Preescolar": "El enfoque se basa en la curiosidad natural. Se busca que el niño desarrolle nociones espaciales y de cuidado del entorno a través de la exploración táctil y visual del tema.",
-            "Primaria": "Se implementa el Pensamiento Crítico. El alumno debe analizar cómo el tema afecta su entorno inmediato y proponer soluciones sencillas basadas en la observación científica.",
-            "Secundaria": "Investigación epistemológica profunda. Se requiere que el estudiante conecte el tema con problemáticas globales (ODS) y realice una síntesis técnica usando fuentes bibliográficas diversas."
+            "Preescolar": "El enfoque se basa en la curiosidad natural. Se busca que el niño desarrolle nociones espaciales y de cuidado del entorno.",
+            "Primaria": "Se implementa el Pensamiento Critico. El alumno debe analizar como el tema afecta su entorno inmediato y proponer soluciones.",
+            "Secundaria": "Investigacion epistemologica profunda. Se requiere que el estudiante conecte el tema con problematicas globales y sintesis tecnica."
         }
 
         pdf = PlaneacionPDF()
         pdf.add_page()
         
-        # I. DATOS DE IDENTIFICACIÓN (CORREGIDO)
+        # I. IDENTIFICACIÓN
         pdf.seccion_barra("I. DATOS DE IDENTIFICACION")
-        # Estructura de tabla limpia para evitar el IndexError de tu captura
         datos_tabla = [
             ["Educador", educador], ["ECA", nombre_eca],
             ["Nivel/Grado", f"{nivel} / {grado}"], ["Comunidad", comunidad],
@@ -79,26 +75,39 @@ if boton:
             pdf.cell(140, 8, f" {clean(fila[1])}", 1, 1, 'L')
         pdf.ln(5)
 
-        # II. BIENVENIDA (Fase 3 recuperada)
-        pdf.seccion_barra("II. INICIO Y BIENVENIDA (PEDAGOGIA DEL AFECTO)")
+        # II. BIENVENIDA
+        pdf.seccion_barra("II. INICIO Y BIENVENIDA")
         pdf.set_font('Helvetica', '', 11)
-        pdf.multi_cell(0, 7, f"Actividad: 'El eco de mi voz' centrada en {clean(tema)}. (15 min).\n"
-                             "Regalo de lectura: Texto literario profundo acorde al nivel. Reflexion grupal sobre el impacto local.\n"
-                             "Dinamica: Sincronizacion ritmica para crear cohesion grupal y enfoque en el aprendizaje.")
+        pdf.multi_cell(0, 7, f"Actividad: Enfoque en {clean(tema)}. Regalo de lectura adecuado al nivel. Reflexion grupal sobre el impacto local.")
         pdf.ln(5)
 
-        # III. ESTACIONES (Los 4 Campos Formativos - Fase 4)
+        # III. ESTACIONES (4 CAMPOS)
         pdf.seccion_barra("III. ESTACIONES POR CAMPOS FORMATIVOS")
         campos = [
-            ["Lenguajes", "Creacion de un 'Codigo Comunitario' sobre el tema. Materiales: Hojas, colores, periodicos."],
-            ["Saberes y P.C.", f"Analisis de formas y medidas relacionados con {clean(tema)}. Materiales: Reglas, lupas."],
-            ["Etica y Nat.", "Dialogo reflexivo sobre el impacto humano. Propuesta de 'Acuerdo de Convivencia'."],
-            ["De lo Humano", "Juego de roles: 'El mercado del pueblo' aplicado al intercambio de saberes."]
+            ["Lenguajes", "Creacion de un Codigo Comunitario. Materiales: Hojas, colores."],
+            ["Saberes y P.C.", f"Analisis de formas relacionados con {clean(tema)}. Materiales: Reglas."],
+            ["Etica y Nat.", "Dialogo sobre el impacto humano. Acuerdos de Convivencia."],
+            ["De lo Humano", "Juego de roles aplicado al intercambio de saberes."]
         ]
         for c in campos:
             pdf.set_font('Helvetica', 'B', 11); pdf.cell(0, 7, clean(c[0]), 0, 1)
             pdf.set_font('Helvetica', '', 10); pdf.multi_cell(0, 6, f"Instrucciones: {clean(c[1])}\n")
         
-        # IV. TUTOREO (MOTOR DE INFORMACIÓN EXTENSA)
+        # IV. TUTOREO (LÍNEA CORREGIDA)
         pdf.add_page()
-        pdf.seccion_barra(f"IV. TUTOREO Y
+        pdf.seccion_barra(f"IV. TUTOREO Y PROFUNDIZACION: {clean(tema)}")
+        pdf.set_font('Helvetica', 'B', 11); pdf.cell(0, 8, "Marco Teorico de Investigacion:", 0, 1)
+        pdf.set_font('Helvetica', '', 11)
+        pdf.multi_cell(0, 7, f"{teoria_dic[nivel]} \n\nEstudio de {clean(tema)} bajo la guia del tutor.")
+
+        # V. POST-RECESO
+        pdf.ln(5); pdf.seccion_barra("V. BLOQUE POST-RECESO")
+        for m in [materia1, materia2]:
+            pdf.set_font('Helvetica', 'B', 11); pdf.cell(0, 8, f"Materia: {clean(m)}", 0, 1)
+            pdf.set_font('Helvetica', '', 10)
+            pdf.multi_cell(0, 6, "Explicacion: Concepto en pizarron. Actividad: Resolucion de ejercicios practicos.\n")
+
+        # --- CIERRE ---
+        pdf_out = pdf.output(dest='S').encode('latin-1', 'replace')
+        s.update(label="✅ Fase 4 Completada", state="complete")
+        st.download_button("📥 DESCARGAR PLANEACION", data=pdf_out, file_name=f"Fase4_{clean(tema)}.pdf", use_container_width=True)
