@@ -4,10 +4,9 @@ from PIL import Image
 import base64
 import io
 
-# 1. CONFIGURACIÓN DE PÁGINA
+# 1. CONFIGURACIÓN DE PÁGINA Y ESTILO ESTELAR
 st.set_page_config(page_title="Profe Educa ABCD", page_icon="🍎", layout="wide")
 
-# Estilo visual de la App (Mantenemos tu gradiente y diseño moderno)
 st.markdown("""
     <style>
     .stApp { 
@@ -17,116 +16,137 @@ st.markdown("""
         color: white; 
     }
     @keyframes gradient { 0% {background-position: 0% 50%;} 50% {background-position: 100% 50%;} 100% {background-position: 0% 50%;} }
-    .comment-card { background: rgba(255, 255, 255, 0.1); border-radius: 15px; padding: 15px; margin: 10px; border-left: 5px solid #00d4ff; }
-    .profile-pic { border-radius: 50%; width: 50px; height: 50px; object-fit: cover; border: 2px solid #00d4ff; }
+    
+    .comment-card { 
+        background: rgba(255, 255, 255, 0.1); 
+        border-radius: 15px; 
+        padding: 15px; 
+        margin: 10px; 
+        border-left: 5px solid #00d4ff; 
+        animation: fadeIn 1s;
+    }
+    .profile-pic { 
+        border-radius: 50%; 
+        width: 50px; 
+        height: 50px; 
+        object-fit: cover; 
+        border: 2px solid #00d4ff; 
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. CLASE PDF PROFESIONAL (ESTILO CONAFE)
-class PDF_PRO(FPDF):
-    def header(self):
-        # Aquí podrías añadir logos si tuvieras los archivos locales
-        self.set_font('Arial', 'B', 16)
-        self.cell(0, 10, 'Texto Reflexivo Trimestral', 0, 1, 'C')
-        self.set_font('Arial', '', 10)
-        self.cell(0, 5, 'Sistema Integral ABCD', 0, 1, 'C')
-        self.ln(10)
-
-    def seccion_titulo(self, titulo):
-        self.set_fill_color(240, 240, 240)
-        self.set_font('Arial', 'B', 11)
-        self.cell(0, 8, limpiar(titulo), 1, 1, 'C', fill=True)
-        self.ln(2)
-
-    def bloque_campo(self, nombre_campo, contenido):
-        self.set_font('Arial', 'B', 10)
-        self.set_text_color(0, 51, 102) # Azul oscuro
-        self.cell(0, 6, limpiar(nombre_campo.upper()), 0, 1, 'C')
-        self.set_text_color(0, 0, 0)
-        self.set_font('Arial', '', 9)
-        self.multi_cell(0, 5, limpiar(contenido), 0, 'J')
-        self.ln(4)
+# 2. FUNCIONES TÉCNICAS
+@st.cache_data(show_spinner=False)
+def process_image(image_file):
+    if image_file is not None:
+        try:
+            img = Image.open(image_file)
+            img.thumbnail((150, 150))
+            buffered = io.BytesIO()
+            img.save(buffered, format="PNG")
+            return base64.b64encode(buffered.getvalue()).decode()
+        except: return ""
+    return ""
 
 def limpiar(t):
     r = {"á":"a","é":"e","í":"i","ó":"o","ú":"u","ñ":"n","Á":"A","É":"E","Í":"I","Ó":"O","Ú":"U","Ñ":"N"}
     for k, v in r.items(): t = str(t).replace(k, v)
     return t
 
-# 3. BASE DE DATOS Y LÓGICA (Mantenemos tus funciones anteriores)
+class PDF_ABCD(FPDF):
+    def __init__(self, logo_izq=None, logo_der=None):
+        super().__init__()
+        self.logo_izq = logo_izq
+        self.logo_der = logo_der
+
+    def header(self):
+        if self.logo_izq:
+            self.image(self.logo_izq, 10, 8, 25)
+        if self.logo_der:
+            self.image(self.logo_der, 175, 8, 25)
+        self.set_font('Arial', 'B', 14)
+        self.cell(0, 10, 'TEXTO REFLEXIVO TRIMESTRAL - ABCD', 0, 1, 'C')
+        self.ln(5)
+
+# 3. BASE DE DATOS DE SESIÓN BLINDADA
 if 'db' not in st.session_state:
     st.session_state.db = {
-        "auth": False, "user_data": {}, "alumnos": {}, 
+        "auth": False, 
+        "user_data": {}, 
+        "alumnos": {}, 
         "comentarios": [{"user": "Admin", "text": "¡Bienvenidos a la era ABCD!", "pic": ""}]
     }
 
-# --- (Omitido por brevedad: Código de Login y Registro igual al anterior) ---
-# [Aquí va tu bloque de login/registro anterior]
+# 4. ACCESO AL SISTEMA
 if not st.session_state.db["auth"]:
-    st.info("Por favor, inicia sesión para continuar.")
-    # ... (Tu código de login original funciona perfecto aquí)
-    st.session_state.db["auth"] = True # Simulación para este ejemplo
-    st.session_state.db["user"] = "admin"
-    st.session_state.db["user_data"]["admin"] = {"name": "Educador", "pic": ""}
+    t1, t2 = st.tabs(["🔑 Ingresar", "📝 Registrarse"])
+    
+    with t2:
+        st.subheader("Registro de Educador Comunitario")
+        with st.form("reg_form"):
+            new_u = st.text_input("Usuario")
+            new_p = st.text_input("Contraseña", type="password")
+            nom = st.text_input("Nombre(s)")
+            ape = st.text_input("Apellidos")
+            foto = st.file_uploader("Foto de Perfil", type=['jpg', 'png'])
+            if st.form_submit_button("REGISTRARSE"):
+                if new_u and new_p:
+                    pic_b64 = process_image(foto)
+                    st.session_state.db["user_data"][new_u] = {"pass": new_p, "name": f"{nom} {ape}", "pic": pic_b64}
+                    st.success("¡Cuenta creada! Ya puedes ingresar.")
+                
+    with t1:
+        st.subheader("Inicio de Sesión")
+        with st.form("login_form"):
+            u = st.text_input("Usuario")
+            p = st.text_input("Contraseña", type="password")
+            if st.form_submit_button("ENTRAR"):
+                if u in st.session_state.db["user_data"] and st.session_state.db["user_data"][u]["pass"] == p:
+                    st.session_state.db["auth"] = True
+                    st.session_state.db["user"] = u
+                    st.rerun()
+                else: st.error("Usuario o contraseña incorrectos")
 
 else:
+    # --- BARRA LATERAL ---
+    user_info = st.session_state.db["user_data"][st.session_state.db["user"]]
+    st.sidebar.markdown(f"### Hola, {user_info['name']}")
+    if user_info.get('pic'):
+        st.sidebar.markdown(f'<img src="data:image/png;base64,{user_info["pic"]}" class="profile-pic">', unsafe_allow_html=True)
+    
+    st.sidebar.divider()
     menu = st.sidebar.radio("MENÚ", ["🏠 Inicio", "✍️ Diario Reflexivo", "📊 Evaluación"])
+    
+    # --- 1. INICIO ---
+    if menu == "🏠 Inicio":
+        st.title("Panel Profe Educa")
+        st.info("Suscripción Oro: Activa ✅ | Período: 2026")
+        # [Mantenemos tu código original de comentarios aquí...]
 
-    if menu == "✍️ Diario Reflexivo":
+    # --- 2. DIARIO REFLEXIVO (Mejorado con Temas de Interés) ---
+    elif menu == "✍️ Diario Reflexivo":
         st.header("Registro de Avances Diarios")
-        alumno = st.text_input("Nombre del Alumno").upper()
-        # Campos por Campo Formativo para mayor orden
-        c1, c2 = st.columns(2)
-        lang = c1.text_area("Lenguajes (Avances)")
-        saberes = c2.text_area("Saberes y Pensamiento Científico")
-        etica = c1.text_area("Ética, Naturaleza y Sociedades")
-        comu = c2.text_area("De lo Humano y lo Comunitario")
+        col_diario1, col_diario2 = st.columns(2)
+        
+        with col_diario1:
+            alumno = st.text_input("Nombre del Alumno").upper()
+        with col_diario2:
+            temas_interes = st.text_input("Temas de interés del niño hoy")
+            
+        texto = st.text_area("Escrito reflexivo de hoy (Avances en campos formativos)")
         
         if st.button("Guardar Registro"):
             if alumno:
-                st.session_state.db["alumnos"][alumno] = {
-                    "Lenguajes": lang, "Saberes": saberes, 
-                    "Etica": etica, "Comunitario": comu
-                }
-                st.success(f"Datos de {alumno} actualizados.")
+                if alumno not in st.session_state.db["alumnos"]:
+                    st.session_state.db["alumnos"][alumno] = {"diario": [], "temas": []}
+                st.session_state.db["alumnos"][alumno]["diario"].append(texto)
+                st.session_state.db["alumnos"][alumno]["temas"].append(temas_interes)
+                st.success(f"Registro y temas guardados para {alumno}")
 
+    # --- 3. EVALUACIÓN (Formato Profesional Solicitado) ---
     elif menu == "📊 Evaluación":
-        st.header("Generador de Reporte Profesional")
-        busqueda = st.text_input("Buscar Alumno").upper()
+        st.header("Evaluación Trimestral Estructurada")
         
-        if busqueda in st.session_state.db["alumnos"]:
-            datos = st.session_state.db["alumnos"][busqueda]
-            escuela = st.text_input("Nombre de la Escuela", "San Nicolas")
-            grado = st.text_input("Nivel/Grado", "4to Primaria")
-            
-            if st.button("Generar PDF Estilo Profesional"):
-                pdf = PDF_PRO()
-                pdf.add_page()
-                
-                # Encabezado de Datos
-                pdf.set_font('Arial', 'B', 10)
-                pdf.cell(0, 5, f"Nombre de la Escuela: {escuela}", 0, 1)
-                pdf.cell(0, 5, f"Nivel: {grado}", 0, 1)
-                pdf.cell(0, 5, f"Nombre del alumno: {busqueda}", 0, 1)
-                pdf.ln(5)
-                
-                pdf.seccion_titulo("CAMPOS FORMATIVOS")
-                
-                # Bloques de contenido (Sintetizados de la base de datos)
-                pdf.bloque_campo("Lenguajes", datos.get("Lenguajes", "Sin registro"))
-                pdf.bloque_campo("Saberes y Pensamientos Científicos", datos.get("Saberes", "Sin registro"))
-                pdf.bloque_campo("Ética, Naturaleza y Sociedades", datos.get("Etica", "Sin registro"))
-                pdf.bloque_campo("De lo Humano y lo Comunitario", datos.get("Comunitario", "Sin registro"))
-                
-                # Cuadro de firmas
-                pdf.ln(10)
-                y_actual = pdf.get_y()
-                pdf.line(10, y_actual, 90, y_actual)
-                pdf.line(110, y_actual, 190, y_actual)
-                pdf.set_font('Arial', 'B', 8)
-                pdf.text(30, y_actual + 5, "Nombre y firma del EC.")
-                pdf.text(125, y_actual + 5, "Nombre y firma del padre de familia.")
-
-                pdf_output = pdf.output(dest='S').encode('latin-1', 'ignore')
-                st.download_button("📥 Descargar PDF Profesional", pdf_output, f"Reporte_{busqueda}.pdf")
-        else:
-            st.warning("Busca un alumno registrado en el Diario.")
+        with st.expander("🖼️ Configuración de Imagenes (Logos PDF)", expanded=True):
+            col_l1, col_l2 = st.columns
