@@ -2,12 +2,10 @@ import streamlit as st
 from fpdf import FPDF
 import unicodedata
 import datetime
-from google import genai
+from google import genai  # Usando la librería que ya se instaló exitosamente
 
-# --- CONFIGURACIÓN DE IA (SOLUCIÓN FINAL 2026) ---
+# --- CONFIGURACIÓN DE IA ---
 API_KEY = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
-
-# Forzamos al cliente a usar solo la versión estable
 client = genai.Client(api_key=API_KEY)
 
 def clean(txt):
@@ -19,7 +17,7 @@ def clean(txt):
 class PlaneacionPDF(FPDF):
     def header(self):
         self.set_font('Helvetica', 'B', 16)
-        self.cell(0, 10, 'PLANEACION PROFESIONAL PROFEEDUCA', 0, 1, 'C')
+        self.cell(0, 10, 'PROFEEDUCA - PLANEACION CONAFE', 0, 1, 'C')
         self.ln(5)
 
     def barra(self, titulo, color=(230, 230, 230)):
@@ -29,9 +27,10 @@ class PlaneacionPDF(FPDF):
         self.ln(2)
 
 st.set_page_config(page_title="PROFEEDUCA IA", layout="wide")
-st.title("🛡️ PROFEEDUCA: Sistema Pedagógico Inteligente")
+st.title("🛡️ PROFEEDUCA: Sistema Inteligente")
 
-with st.form("FormularioPrincipal"):
+# Formulario optimizado
+with st.form("MainForm"):
     col1, col2 = st.columns(2)
     with col1:
         nivel = st.selectbox("Nivel Educativo", ["Preescolar", "Primaria", "Secundaria"])
@@ -42,31 +41,37 @@ with st.form("FormularioPrincipal"):
         fecha = st.date_input("Fecha", datetime.date.today())
 
     st.subheader("🗓️ Actividades de la Jornada")
-    mats = st.text_area("Materias (una por línea)", "Matematicas\nEspañol")
+    materias = st.text_area("Materias/Temas", "Matematicas, Español")
     
-    boton = st.form_submit_button("🔨 GENERAR PLANEACIÓN AHORA")
+    submit = st.form_submit_button("🔨 GENERAR PLANEACIÓN AHORA")
 
-if boton:
-    with st.spinner("🤖 Google está redactando tu planeación..."):
+if submit:
+    with st.spinner("🤖 Generando contenido con Gemini 1.5 Flash..."):
         try:
-            # Llamada directa al modelo más estable
+            # Nueva forma de generar contenido (Librería google-genai)
             response = client.models.generate_content(
                 model="gemini-1.5-flash",
-                contents=f"Genera una planeación educativa para {nivel} sobre {tema}. Comunidad: {comunidad}."
+                contents=f"Como experto pedagogo de CONAFE México, genera una planeación para {nivel} sobre {tema}. Comunidad: {comunidad}. Incluye actividades para: {materias}."
             )
             
+            # Crear PDF
             pdf = PlaneacionPDF()
             pdf.add_page()
             pdf.barra("I. DATOS GENERALES")
             pdf.set_font('Helvetica', '', 11)
-            pdf.cell(0, 8, clean(f"Educador: {educador} | Tema: {tema}"), 0, 1)
+            pdf.cell(0, 8, clean(f"Educador: {educador} | Nivel: {nivel}"), 0, 1)
+            pdf.cell(0, 8, clean(f"Tema: {tema} | Comunidad: {comunidad}"), 0, 1)
             
-            pdf.ln(5); pdf.barra("II. DESARROLLO PEDAGÓGICO")
-            pdf.multi_cell(0, 6, clean(response.text))
+            pdf.ln(5)
+            pdf.barra("II. DESARROLLO PEDAGÓGICO")
+            # Acceso correcto al texto en la nueva librería
+            texto_generado = response.text
+            pdf.multi_cell(0, 6, clean(texto_generado))
 
             pdf_output = pdf.output(dest='S').encode('latin-1', 'replace')
-            st.success("✅ ¡Lo logramos! Tu planeación está lista.")
-            st.download_button("📥 DESCARGAR PDF", pdf_output, "Planeacion.pdf", "application/pdf")
+            st.success("✅ ¡Planeación generada exitosamente!")
+            st.download_button("📥 DESCARGAR MI PDF", pdf_output, f"Planeacion_{tema}.pdf", "application/pdf")
             
         except Exception as e:
-            st.error(f"Error de sincronización. Por favor, realiza un 'Reboot' en el panel derecho.")
+            st.error(f"Error al conectar con la IA. Detalles: {e}")
+            st.info("Asegúrate de que el archivo 'requirements.txt' contenga solo: streamlit, fpdf2, Pillow, google-genai")
