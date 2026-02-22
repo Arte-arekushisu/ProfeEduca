@@ -4,12 +4,9 @@ from fpdf import FPDF
 import unicodedata
 import datetime
 
-# --- CONFIGURACIÓN DE IA (FORZANDO VERSIÓN ESTABLE) ---
+# --- CONFIGURACIÓN DE IA (LA FORMA MÁS COMPATIBLE) ---
 API_KEY = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
-
-# Este es el cambio clave: forzamos la API a v1
-client_options = {"api_version": "v1"}
-genai.configure(api_key=API_KEY, client_options=client_options)
+genai.configure(api_key=API_KEY)
 
 def clean(txt):
     if not txt: return ""
@@ -40,12 +37,12 @@ with st.form("MainForm"):
     submit = st.form_submit_button("🔨 GENERAR PLANEACIÓN AHORA")
 
 if submit:
-    with st.spinner("🤖 Generando contenido estable..."):
+    with st.spinner("🤖 Generando contenido pedagógico..."):
         try:
-            # Llamamos al modelo directamente
+            # Usamos el modelo directamente sin configuraciones extra
             model = genai.GenerativeModel('gemini-1.5-flash')
             response = model.generate_content(
-                f"Actúa como experto pedagogo CONAFE. Genera una planeación para {nivel} sobre {tema} en {comunidad}."
+                f"Genera una planeación para {nivel} sobre {tema}. Comunidad: {comunidad}."
             )
             
             if response.text:
@@ -60,6 +57,6 @@ if submit:
                 pdf_out = pdf.output(dest='S').encode('latin-1', 'replace')
                 st.success("✅ ¡CONSEGUIDO! Planeación generada.")
                 st.download_button("📥 DESCARGAR PDF", pdf_out, f"Planeacion_{tema}.pdf", "application/pdf")
-
+        
         except Exception as e:
-            st.error(f"Error técnico detectado: {e}")
+            st.error(f"Aviso del sistema: {e}")
