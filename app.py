@@ -8,12 +8,10 @@ st.set_page_config(page_title="PROFEEDUCA - Escritos", layout="wide", page_icon=
 
 def clean(txt):
     if not txt: return ""
-    # Paso 1: Quitar acentos de forma segura
+    # Quita acentos y normaliza texto para FPDF
     txt = "".join(c for c in unicodedata.normalize('NFD', str(txt)) if unicodedata.category(c) != 'Mn')
     txt = txt.replace('ñ', 'n').replace('Ñ', 'N')
-    # Paso 2: Forzar codificación compatible con FPDF (latin-1)
-    clean_text = txt.encode('latin-1', 'replace').decode('latin-1')
-    return clean_text
+    return txt.encode('latin-1', 'replace').decode('latin-1')
 
 class RegistroPDF(FPDF):
     def header(self):
@@ -65,24 +63,43 @@ if st.button("📝 GUARDAR Y GENERAR PDF", use_container_width=True):
         try:
             pdf = RegistroPDF()
             pdf.add_page()
+            
+            # Encabezado de datos
             pdf.tabla_datos(
-                clean(nombre_ec), 
-                clean(comunidad), 
-                clean(nombre_alumno), 
-                clean(nivel_edu), 
-                clean(grado_edu), 
-                str(fecha_reg), 
-                clean(trimestre)
+                clean(nombre_ec), clean(comunidad), clean(nombre_alumno), 
+                clean(nivel_edu), clean(grado_edu), str(fecha_reg), clean(trimestre)
             )
             
-            # Sección 1
+            # Bloque 1
             pdf.set_font('Helvetica', 'B', 12)
-            pdf.set_fill_color(128, 0, 0); pdf.set_text_color(255, 255, 255)
+            pdf.set_fill_color(128, 0, 0)
+            pdf.set_text_color(255, 255, 255)
             pdf.cell(0, 10, " 1. ACTIVIDADES REALIZADAS", 0, 1, 'L', True)
-            pdf.ln(2); pdf.set_text_color(0, 0, 0); pdf.set_font('Helvetica', '', 11)
+            pdf.ln(2)
+            pdf.set_text_color(0, 0, 0)
+            pdf.set_font('Helvetica', '', 11)
             pdf.multi_cell(0, 6, clean(que_hizo))
             pdf.ln(5)
 
-            # Sección 2
+            # Bloque 2
             pdf.set_font('Helvetica', 'B', 12)
-            pdf.set_fill_color(128, 0, 0); pdf.
+            pdf.set_fill_color(128, 0, 0)
+            pdf.set_text_color(255, 255, 255)
+            pdf.cell(0, 10, " 2. PROCESO Y DESEMPEÑO", 0, 1, 'L', True)
+            pdf.ln(2)
+            pdf.set_text_color(0, 0, 0)
+            pdf.set_font('Helvetica', 'I', 11)
+            pdf.multi_cell(0, 6, clean(como_hizo))
+
+            # Generar salida
+            pdf_out = pdf.output()
+            st.download_button(
+                label="📥 DESCARGAR PDF", 
+                data=bytes(pdf_out), 
+                file_name=f"Reflexion_{nombre_alumno}.pdf", 
+                mime="application/pdf"
+            )
+            st.success("¡PDF listo!")
+            
+        except Exception as e:
+            st.error(f"Error técnico: {e}")
