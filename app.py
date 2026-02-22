@@ -8,14 +8,14 @@ st.set_page_config(page_title="PROFEEDUCA - Fase 6", layout="wide", page_icon="�
 
 def clean(txt):
     if not txt: return ""
-    # Normalizar para eliminar acentos y caracteres especiales no compatibles con latin-1
+    # Eliminamos acentos para evitar errores de codificación en el PDF
     txt = "".join(c for c in unicodedata.normalize('NFD', str(txt)) if unicodedata.category(c) != 'Mn')
     txt = txt.replace('ñ', 'n').replace('Ñ', 'N')
     return txt
 
 class RegistroPDF(FPDF):
     def header(self):
-        # Encabezado institucional
+        # Franja institucional roja
         self.set_fill_color(128, 0, 0)
         self.rect(0, 0, 210, 25, 'F')
         self.set_text_color(255, 255, 255)
@@ -28,7 +28,7 @@ class RegistroPDF(FPDF):
         self.set_font('Helvetica', 'B', 10)
         self.set_fill_color(240, 240, 240)
         w, h = 95, 8
-        # Datos en tabla organizada
+        # Tabla de identificación simplificada (Sin ECA)
         self.cell(w, h, clean(f" EDUCADOR: {ec}"), 1, 0, 'L', True)
         self.cell(w, h, clean(f" COMUNIDAD: {com}"), 1, 1, 'L', True)
         self.cell(w, h, clean(f" ALUMNO: {alumno}"), 1, 0, 'L', True)
@@ -55,25 +55,25 @@ with c3:
 
 st.divider()
 
-# Captura Manual Descriptiva
+# Descripción Manual
 st.subheader("📝 Descripción del Desempeño")
 col_a, col_b = st.columns(2)
 with col_a:
-    que_hizo = st.text_area("¿Qué hizo el alumno hoy?", height=250)
+    que_hizo = st.text_area("¿Qué hizo el alumno hoy?", height=250, placeholder="Ej: Leer el tema de tortugas marinas...")
 with col_b:
-    como_hizo = st.text_area("¿Cómo realizó las actividades?", height=250)
+    como_hizo = st.text_area("¿Cómo realizó las actividades?", height=250, placeholder="Ej: Realizó un producto final con dibujos...")
 
-# --- PROCESAMIENTO ---
+# --- GENERACIÓN DEL PDF ---
 if st.button("📝 GUARDAR Y GENERAR ESCRITO REFLEXIVO", use_container_width=True):
     if not nombre_alumno or not que_hizo:
-        st.error("⚠️ Falta el nombre del alumno o la descripción.")
+        st.error("⚠️ Falta completar el nombre del alumno o las actividades.")
     else:
         try:
             pdf = RegistroPDF()
             pdf.add_page()
             pdf.tabla_datos(nombre_ec, comunidad, nombre_alumno, nivel_edu, grado_edu, str(fecha_registro))
 
-            # Bloque 1
+            # Bloque 1: Actividades
             pdf.set_font('Helvetica', 'B', 12)
             pdf.set_fill_color(128, 0, 0)
             pdf.set_text_color(255, 255, 255)
@@ -84,7 +84,7 @@ if st.button("📝 GUARDAR Y GENERAR ESCRITO REFLEXIVO", use_container_width=Tru
             pdf.multi_cell(0, 6, clean(que_hizo))
             pdf.ln(10)
 
-            # Bloque 2
+            # Bloque 2: Desempeño
             pdf.set_font('Helvetica', 'B', 12)
             pdf.set_fill_color(128, 0, 0)
             pdf.set_text_color(255, 255, 255)
@@ -94,16 +94,16 @@ if st.button("📝 GUARDAR Y GENERAR ESCRITO REFLEXIVO", use_container_width=Tru
             pdf.set_font('Helvetica', 'I', 11)
             pdf.multi_cell(0, 6, clean(como_hizo))
 
-            # SOLUCIÓN AL ERROR DE ATRIBUTO:
-            # En fpdf2, output() devuelve bytes si no se especifica nombre de archivo.
-            pdf_output = pdf.output() 
+            # CONVERSIÓN CRÍTICA: Forzamos la salida a bytes puros para Streamlit
+            pdf_output = pdf.output()
+            pdf_bytes = bytes(pdf_output) 
             
-            st.success(f"✅ Registro de {nombre_alumno} listo.")
+            st.success(f"✅ Registro de {nombre_alumno} listo para descargar.")
             st.download_button(
-                label="📥 DESCARGAR ESCRITO REFLEXIVO",
-                data=pdf_output,
-                file_name=f"Reflexion_{nombre_alumno}.pdf",
+                label="📥 DESCARGAR ESCRITO REFLEXIVO (PDF)",
+                data=pdf_bytes,
+                file_name=f"Reflexion_{nombre_alumno}_{fecha_registro}.pdf",
                 mime="application/pdf"
             )
         except Exception as e:
-            st.error(f"Error al generar el PDF: {e}")
+            st.error(f"Error técnico al generar el PDF: {e}")
