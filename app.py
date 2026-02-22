@@ -4,7 +4,7 @@ import unicodedata
 import datetime
 
 # --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="PROFEEDUCA - Seguimiento Alumno", layout="wide", page_icon="📝")
+st.set_page_config(page_title="PROFEEDUCA - Registro Individual", layout="wide", page_icon="👤")
 
 def clean(txt):
     if not txt: return ""
@@ -12,97 +12,96 @@ def clean(txt):
     txt = txt.replace('ñ', 'n').replace('Ñ', 'N').replace('“', '"').replace('”', '"')
     return txt.encode('latin-1', 'ignore').decode('latin-1')
 
-class SeguimientoPDF(FPDF):
+class RegistroPDF(FPDF):
     def header(self):
         self.set_fill_color(128, 0, 0)
         self.rect(0, 0, 210, 25, 'F')
         self.set_text_color(255, 255, 255)
         self.set_font('Helvetica', 'B', 16)
-        self.cell(0, 15, clean('ESCRITO REFLEXIVO: SEGUIMIENTO DIARIO'), 0, 1, 'C')
+        self.cell(0, 15, clean('ESCRITO REFLEXIVO: SEGUIMIENTO DEL ALUMNO'), 0, 1, 'C')
         self.ln(5)
 
-    def tabla_identificacion(self, ec, eca, com, alumno, niv, gra):
+    def tabla_datos(self, ec, com, alumno, niv, gra, fec):
         self.set_text_color(0, 0, 0)
-        self.set_font('Helvetica', 'B', 9)
-        self.set_fill_color(245, 245, 245)
-        w, h = 95, 7
-        self.cell(w, h, clean(f" NOMBRE DEL EC: {ec}"), 1, 0, 'L', True)
-        self.cell(w, h, clean(f" NOMBRE DEL ECA: {eca}"), 1, 1, 'L', True)
-        self.cell(w, h, clean(f" COMUNIDAD: {com}"), 1, 0, 'L', True)
-        self.cell(w, h, clean(f" ALUMNO: {alumno}"), 1, 1, 'L', True)
+        self.set_font('Helvetica', 'B', 10)
+        self.set_fill_color(240, 240, 240)
+        w, h = 95, 8
+        self.cell(w, h, clean(f" EDUCADOR: {ec}"), 1, 0, 'L', True)
+        self.cell(w, h, clean(f" COMUNIDAD: {com}"), 1, 1, 'L', True)
+        self.cell(w, h, clean(f" ALUMNO: {alumno}"), 1, 0, 'L', True)
+        self.cell(w, h, clean(f" FECHA: {fec}"), 1, 1, 'L', True)
         self.cell(w, h, clean(f" NIVEL: {niv}"), 1, 0, 'L', True)
         self.cell(w, h, clean(f" GRADO: {gra}"), 1, 1, 'L', True)
         self.ln(10)
 
-# --- INTERFAZ LATERAL ---
-with st.sidebar:
-    st.header("📌 Datos de Identificación")
-    nombre_ec = st.text_input("Nombre EC", "AXEL REYES")
-    nombre_eca = st.text_input("Nombre ECA")
-    comunidad = st.text_input("Comunidad", "CRUZ")
-    nombre_alumno = st.text_input("Nombre del Alumno", placeholder="Ej. Juan Pérez")
-    nivel = st.selectbox("Nivel", ["Preescolar", "Primaria", "Secundaria"])
-    grados = ["1", "2", "3", "4", "5", "6", "Multigrado"] if nivel == "Primaria" else ["1", "2", "3", "Multigrado"]
-    grado = st.selectbox("Grado", grados)
+# --- INTERFAZ ---
+st.title("👤 Registro de Reflexión Individual")
 
-# --- CUERPO PRINCIPAL ---
-st.title("📔 Bitácora de Reflexión Diaria")
-st.info(f"Registrando avance para: **{nombre_alumno if nombre_alumno else 'Alumno no especificado'}**")
+# Datos de Identificación en columnas
+with st.container():
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        nombre_ec = st.text_input("Nombre del Educador", "AXEL REYES")
+        nombre_alumno = st.text_input("Nombre del Alumno")
+    with c2:
+        comunidad = st.text_input("Comunidad", "CRUZ")
+        fecha_registro = st.date_input("Fecha de Registro", datetime.date.today())
+    with c3:
+        nivel_edu = st.selectbox("Nivel", ["Preescolar", "Primaria", "Secundaria"])
+        grados_op = ["1", "2", "3", "4", "5", "6", "Multigrado"] if nivel_edu == "Primaria" else ["1", "2", "3", "Multigrado"]
+        grado_edu = st.selectbox("Grado", grados_op)
 
-dias = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes"]
-registros = {}
-
-for dia in dias:
-    with st.expander(f"📅 REGISTRO DEL {dia.upper()}", expanded=(dia == "Lunes")):
-        col1, col2 = st.columns(2)
-        with col1:
-            que_hizo = st.text_area(f"¿Qué actividades realizó el alumno?", key=f"que_{dia}", height=150, placeholder="Describe los temas o ejercicios trabajados...")
-        with col2:
-            como_hizo = st.text_area(f"¿Cómo realizó las actividades?", key=f"como_{dia}", height=150, placeholder="Describe su desempeño de forma sencilla (ej. con ayuda, rápido, se le dificultó...)")
-        registros[dia] = {"que": que_hizo, "como": como_hizo}
-
-# --- GENERACIÓN DEL PDF ---
 st.divider()
-if st.button("📝 GENERAR ESCRITO REFLEXIVO DIARIO", use_container_width=True):
-    if not nombre_alumno:
-        st.warning("⚠️ Por favor, escribe el nombre del alumno en la barra lateral.")
+
+# Sección de Datos Manuales
+st.subheader("📝 Descripción del Desempeño")
+col_a, col_b = st.columns(2)
+
+with col_a:
+    que_hizo = st.text_area("¿Qué hizo el alumno hoy?", height=250, 
+                            placeholder="Describe de forma manual las actividades o temas que el alumno trabajó...")
+
+with col_b:
+    como_hizo = st.text_area("¿Cómo realizó las actividades?", height=250, 
+                             placeholder="Describe de forma sencilla el proceso: si necesitó ayuda, si terminó rápido, sus dificultades, etc.")
+
+# --- BOTÓN DE GENERACIÓN ---
+if st.button("📝 GUARDAR Y GENERAR ESCRITO REFLEXIVO", use_container_width=True):
+    if not nombre_alumno or not que_hizo:
+        st.error("⚠️ Falta el nombre del alumno o la descripción de actividades.")
     else:
-        pdf = SeguimientoPDF()
-        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf = RegistroPDF()
         pdf.add_page()
+        pdf.tabla_datos(nombre_ec, comunidad, nombre_alumno, nivel_edu, grado_edu, str(fecha_registro))
+
+        # Bloque "¿Qué hizo?"
+        pdf.set_font('Helvetica', 'B', 12)
+        pdf.set_fill_color(128, 0, 0)
+        pdf.set_text_color(255, 255, 255)
+        pdf.cell(0, 10, clean(" 1. ACTIVIDADES REALIZADAS"), 0, 1, 'L', True)
+        pdf.ln(2)
+        pdf.set_text_color(0, 0, 0)
+        pdf.set_font('Helvetica', '', 11)
+        pdf.multi_cell(0, 6, clean(que_hizo))
+        pdf.ln(10)
+
+        # Bloque "¿Cómo lo hizo?"
+        pdf.set_font('Helvetica', 'B', 12)
+        pdf.set_fill_color(128, 0, 0)
+        pdf.set_text_color(255, 255, 255)
+        pdf.cell(0, 10, clean(" 2. PROCESO Y DESEMPEÑO (DESCRIPTIVO)"), 0, 1, 'L', True)
+        pdf.ln(2)
+        pdf.set_text_color(0, 0, 0)
+        pdf.set_font('Helvetica', 'I', 11)
+        pdf.multi_cell(0, 6, clean(como_hizo))
         
-        pdf.tabla_identificacion(nombre_ec, nombre_eca, comunidad, nombre_alumno, nivel, grado)
-
-        for dia, contenido in registros.items():
-            if contenido['que'].strip() or contenido['como'].strip():
-                # Título del día
-                pdf.set_font('Helvetica', 'B', 11)
-                pdf.set_fill_color(128, 0, 0)
-                pdf.set_text_color(255, 255, 255)
-                pdf.cell(0, 8, clean(f" JORNADA: {dia.upper()}"), 0, 1, 'L', True)
-                
-                # Sección ¿Qué hizo?
-                pdf.ln(2)
-                pdf.set_text_color(0, 0, 0)
-                pdf.set_font('Helvetica', 'B', 10)
-                pdf.cell(0, 6, clean("¿Qué hizo el alumno?"), 0, 1)
-                pdf.set_font('Helvetica', '', 10)
-                pdf.multi_cell(0, 5, clean(contenido['que']))
-                
-                # Sección ¿Cómo lo hizo?
-                pdf.ln(2)
-                pdf.set_font('Helvetica', 'B', 10)
-                pdf.cell(0, 6, clean("¿Cómo realizó las actividades? (Descripción sencilla)"), 0, 1)
-                pdf.set_font('Helvetica', 'I', 10)
-                pdf.set_text_color(50, 50, 50)
-                pdf.multi_cell(0, 5, clean(contenido['como']))
-                pdf.ln(5)
-
+        # Guardar PDF
         pdf_bytes = pdf.output(dest='S').encode('latin-1', 'ignore')
-        st.success(f"✅ Bitácora de {nombre_alumno} lista para descargar.")
+        
+        st.success(f"✅ Registro de {nombre_alumno} generado correctamente.")
         st.download_button(
             label="📥 DESCARGAR ESCRITO REFLEXIVO",
             data=pdf_bytes,
-            file_name=f"Reflexion_{nombre_alumno}_{comunidad}.pdf",
+            file_name=f"Reflexion_{nombre_alumno}_{fecha_registro}.pdf",
             mime="application/pdf"
         )
