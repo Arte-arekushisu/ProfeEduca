@@ -3,8 +3,8 @@ from fpdf import FPDF
 import unicodedata
 import datetime
 
-# --- CONFIGURACIÓN DE INTERFAZ ---
-st.set_page_config(page_title="PROFEEDUCA - Gestión CONAFE", layout="wide", page_icon="🛡️")
+# --- CONFIGURACIÓN DE PÁGINA ---
+st.set_page_config(page_title="PROFEEDUCA - Planeación CONAFE", layout="wide", page_icon="📝")
 
 def clean(txt):
     if not txt: return ""
@@ -14,70 +14,86 @@ def clean(txt):
 
 class PlaneacionPDF(FPDF):
     def header(self):
-        self.set_fill_color(200, 30, 30) # Rojo institucional
-        self.rect(0, 0, 210, 35, 'F')
+        self.set_fill_color(128, 0, 0) # Rojo oscuro institucional
+        self.rect(0, 0, 210, 30, 'F')
         self.set_text_color(255, 255, 255)
-        self.set_font('Helvetica', 'B', 20)
-        self.cell(0, 15, 'PROFEEDUCA: SISTEMA DE PLANEACION', 0, 1, 'C')
-        self.set_font('Helvetica', 'I', 10)
-        self.cell(0, 5, 'Herramienta de Apoyo para el Educador Comunitario (CONAFE)', 0, 1, 'C')
-        self.ln(15)
+        self.set_font('Helvetica', 'B', 15)
+        self.cell(0, 10, 'CONAFE - MODELO ABCD', 0, 1, 'C')
+        self.set_font('Helvetica', 'I', 9)
+        self.cell(0, 5, 'Sistema de Estructuracion Pedagógica', 0, 1, 'C')
+        self.ln(10)
 
     def seccion(self, titulo):
         self.set_text_color(0, 0, 0)
-        self.set_font('Helvetica', 'B', 12)
-        self.set_fill_color(240, 240, 240)
-        self.cell(0, 10, f"  {clean(titulo)}", 1, 1, 'L', True)
-        self.ln(3)
+        self.set_font('Helvetica', 'B', 11)
+        self.set_fill_color(230, 230, 230)
+        self.cell(0, 8, f" {clean(titulo)}", 1, 1, 'L', True)
+        self.ln(2)
 
-# --- PANEL DE CONTROL ---
-st.title("🛡️ PROFEEDUCA: Centro de Gestión Pedagógica")
-st.info("Modo: Plantilla de Estructuración (Listo para migración a servidor privado)")
+# --- INTERFAZ ---
+st.title("🛡️ PROFEEDUCA: Gestión de Planeación")
 
-with st.expander("📝 DATOS DE IDENTIFICACIÓN", expanded=True):
-    c1, c2, c3 = st.columns(3)
+with st.form("Formulario_ABCD"):
+    st.subheader("📋 Datos de Identificación")
+    c1, c2 = st.columns(2)
     with c1:
-        nivel = st.selectbox("Nivel", ["Preescolar", "Primaria", "Secundaria"])
-        educador = st.text_input("Nombre del Educador", "AXEL REYES")
+        nombre_ec = st.text_input("Nombre del EC (Educador Comunitario)", "AXEL REYES")
+        nombre_eca = st.text_input("Nombre del ECA (Enlace de Cultura)")
     with c2:
         comunidad = st.text_input("Comunidad", "CRUZ")
-        fecha = st.date_input("Fecha de Aplicación")
-    with c3:
-        tema = st.text_input("Tema Central", "LAS TORTUGAS MARINAS")
-        microregion = st.text_input("Microregión", "CIENCIAS")
+        fecha = st.date_input("Fecha de la Jornada", datetime.date.today())
 
-# --- CUERPO DE LA PLANEACIÓN ---
-st.subheader("🚀 Desarrollo de la Jornada")
-actividades = st.text_area("Descripción de Actividades (Lo que antes hacía la IA, ahora lo estructuramos aquí):", 
-                          placeholder="Escribe aquí los desafíos, actividades de inicio, desarrollo y cierre...")
+    st.divider()
+    
+    st.subheader("🍎 Actividades Post-Receso")
+    temas_post = st.text_area("Temas o materias post-receso:", placeholder="Ej: Matematicas, Lectura, Artes...")
+    detalles_post = st.text_area("Descripción de la planeación post-receso:", height=150)
+    
+    # Botón con el nombre solicitado
+    submit = st.form_submit_button("🔨 PLANEACIONES ABCD")
 
-objetivos = st.text_area("Objetivos de Aprendizaje:")
-
-if st.button("📄 GENERAR DOCUMENTO OFICIAL"):
-    if not actividades:
-        st.warning("Por favor, describe las actividades para generar el reporte.")
+# --- PROCESAMIENTO Y VISUALIZACIÓN ---
+if submit:
+    if not temas_post or not detalles_post:
+        st.error("Por favor, completa los temas y la descripción del post-receso.")
     else:
+        # 1. Visualización previa en la app
+        st.success("### 👁️ Vista Previa de la Planeación")
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.write(f"**EC:** {nombre_ec}")
+            st.write(f"**ECA:** {nombre_eca}")
+        with col_b:
+            st.write(f"**Comunidad:** {comunidad}")
+            st.write(f"**Fecha:** {fecha}")
+        
+        st.info(f"**Materias Post-Receso:** {temas_post}")
+        st.write(detalles_post)
+
+        # 2. Generación de PDF
         pdf = PlaneacionPDF()
         pdf.add_page()
         
-        pdf.seccion("I. DATOS GENERALES")
+        pdf.seccion("DATOS GENERALES")
         pdf.set_font('Helvetica', '', 11)
-        pdf.cell(0, 7, clean(f"Nivel: {nivel} | Educador: {educador}"), 0, 1)
+        pdf.cell(0, 7, clean(f"EC: {nombre_ec}"), 0, 1)
+        pdf.cell(0, 7, clean(f"ECA: {nombre_eca}"), 0, 1)
         pdf.cell(0, 7, clean(f"Comunidad: {comunidad} | Fecha: {fecha}"), 0, 1)
-        pdf.cell(0, 7, clean(f"Tema: {tema}"), 0, 1)
         
         pdf.ln(5)
-        pdf.seccion("II. OBJETIVOS")
-        pdf.multi_cell(0, 6, clean(objetivos))
+        pdf.seccion("CONTENIDO POST-RECESO")
+        pdf.set_font('Helvetica', 'B', 11)
+        pdf.cell(0, 7, clean(f"Materias/Temas: {temas_post}"), 0, 1)
+        pdf.ln(2)
+        pdf.set_font('Helvetica', '', 11)
+        pdf.multi_cell(0, 6, clean(detalles_post))
         
-        pdf.ln(5)
-        pdf.seccion("III. DESARROLLO PEDAGÓGICO")
-        pdf.multi_cell(0, 6, clean(actividades))
+        pdf_out = pdf.output(dest='S').encode('latin-1', 'replace')
         
-        pdf_output = pdf.output(dest='S').encode('latin-1', 'replace')
-        st.success("✅ Formato generado correctamente.")
-        st.download_button("📥 DESCARGAR PLANEACIÓN (PDF)", pdf_output, f"Planeacion_{tema}.pdf", "application/pdf")
-
-# --- ESPACIO RESERVADO PARA IA ---
-st.divider()
-st.caption("⚙️ Módulo de IA Gemini: Deshabilitado temporalmente para migración a servidor privado.")
+        st.divider()
+        st.download_button(
+            label="📥 DESCARGAR PDF OFICIAL",
+            data=pdf_out,
+            file_name=f"Planeacion_ABCD_{fecha}.pdf",
+            mime="application/pdf"
+        )
