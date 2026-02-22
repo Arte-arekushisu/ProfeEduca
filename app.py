@@ -36,7 +36,7 @@ class EvaluacionPDF(FPDF):
         self.ln(10)
 
 # --- INTERFAZ ---
-st.title("📊 Fase 0.6: Evaluación con Indicadores y Claves")
+st.title("📊 Fase 0.6: Evaluación y Trayectorias")
 
 with st.sidebar:
     st.header("📌 Identificación")
@@ -53,45 +53,43 @@ with st.sidebar:
 
 st.divider()
 
-# --- SECCIÓN DE TEXTO REFLEXIVO POR CAMPOS ---
-st.subheader("🖋️ Trayectorias / Análisis por Campo Formativo")
+# --- SECCIÓN DINÁMICA DE ANÁLISIS ---
 eval_campos = {}
 campos_nombres = ["Lenguajes", "Saberes y P.C.", "Ética, N. y S.", "De lo Humano y lo Com."]
 
-for campo in campos_nombres:
-    eval_campos[campo] = st.text_area(f"Análisis de {campo}:", height=100, key=f"text_{campo}")
+if nivel_edu == "Preescolar":
+    st.subheader("🖋️ Trayectorias Personalizadas (Manual)")
+    st.info("Escribe detalladamente el progreso del alumno para cada campo.")
+    for campo in campos_nombres:
+        eval_campos[campo] = st.text_area(f"Trayectoria en {campo}:", height=120, key=f"pre_{campo}")
+else:
+    st.subheader("🤖 Análisis por Campo Formativo (IA-Ready)")
+    st.warning("Este apartado será autocompletado por la IA basándose en tus bitácoras diarias.")
+    for campo in campos_nombres:
+        eval_campos[campo] = st.text_area(f"Vista previa del Análisis en {campo}:", height=100, key=f"ia_{campo}")
 
-# --- INDICADORES DE LECTO-ESCRITURA (NUEVO) ---
+# --- INDICADORES Y CALIFICACIONES ---
 st.divider()
 st.subheader("📖 Indicadores de Lectura y Escritura")
 col_ind1, col_ind2 = st.columns(2)
-indicador_lectura = col_ind1.text_input("Indicador de Lectura (Ej: 12A, 1B, 3C, 4D)", placeholder="12A")
-indicador_escritura = col_ind2.text_input("Indicador de Escritura (Ej: 6)", placeholder="6")
+indicador_lectura = col_ind1.text_input("Indicador de Lectura (12A, 1B, etc.)", "12A")
+indicador_escritura = col_ind2.text_input("Indicador de Escritura (6, etc.)", "6")
 
-# --- CAPTURA DE CALIFICACIONES Y CLAVES (NUEVO) ---
-eval_detalles = [] # Lista de diccionarios para guardar concepto, nota y clave
-
+eval_detalles = []
 if nivel_edu != "Preescolar":
     st.divider()
     st.subheader(f"🔢 Calificaciones y Claves ({nivel_edu})")
     
-    if nivel_edu == "Primaria":
-        for campo in campos_nombres:
-            c1, c2 = st.columns([2, 1])
-            nota = c1.number_input(f"Nota: {campo}", 5, 10, 8, key=f"nota_{campo}")
-            clave = c2.text_input(f"Clave (Máx T120)", "T", max_chars=4, key=f"clave_{campo}")
-            eval_detalles.append({"concepto": campo, "nota": nota, "clave": clave})
+    items_lista = campos_nombres if nivel_edu == "Primaria" else ["Español", "Matemáticas", "Ciencias", "Historia", "Geografía", "F. Cívica y Ética"]
     
-    else: # Secundaria
-        materias = ["Español", "Matemáticas", "Ciencias", "Historia", "Geografía", "F. Cívica y Ética"]
-        for mat in materias:
-            c1, c2 = st.columns([2, 1])
-            nota = c1.number_input(f"Nota: {mat}", 5, 10, 8, key=f"nota_{mat}")
-            clave = c2.text_input(f"Clave (Máx T120)", "T", max_chars=4, key=f"clave_{mat}")
-            eval_detalles.append({"concepto": mat, "nota": nota, "clave": clave})
+    for item in items_lista:
+        c1, c2 = st.columns([2, 1])
+        nota = c1.number_input(f"Nota: {item}", 5, 10, 8, key=f"n_{item}")
+        clave = c2.text_input(f"Clave (Máx T120)", "T", max_chars=4, key=f"c_{item}")
+        eval_detalles.append({"concepto": item, "nota": nota, "clave": clave})
 
 # --- GENERACIÓN DEL PDF ---
-if st.button("📊 GENERAR REPORTE DE EVALUACIÓN", use_container_width=True):
+if st.button("📊 GENERAR REPORTE FINAL", use_container_width=True):
     if not nombre_alumno:
         st.error("⚠️ Indica el nombre del alumno.")
     else:
@@ -99,16 +97,17 @@ if st.button("📊 GENERAR REPORTE DE EVALUACIÓN", use_container_width=True):
         pdf.add_page()
         pdf.tabla_datos(nombre_ec, comunidad, nombre_alumno, nivel_edu, grado_edu, trimestre)
 
-        # 1. Indicadores de Lecto-Escritura
+        # Indicadores
         pdf.set_font('Helvetica', 'B', 11)
         pdf.cell(95, 8, clean(f"INDICADOR LECTURA: {indicador_lectura}"), 1, 0, 'L')
         pdf.cell(95, 8, clean(f"INDICADOR ESCRITURA: {indicador_escritura}"), 1, 1, 'L')
         pdf.ln(5)
 
-        # 2. Análisis por Campos
+        # Trayectorias / Análisis
+        titulo_seccion = "TRAYECTORIAS PERSONALIZADAS" if nivel_edu == "Preescolar" else "ANÁLISIS POR CAMPO FORMATIVO"
         pdf.set_font('Helvetica', 'B', 12)
         pdf.set_fill_color(0, 51, 102); pdf.set_text_color(255, 255, 255)
-        pdf.cell(0, 10, clean(" ANÁLISIS POR CAMPO FORMATIVO"), 0, 1, 'L', True)
+        pdf.cell(0, 10, clean(f" {titulo_seccion}"), 0, 1, 'L', True)
         pdf.set_text_color(0, 0, 0)
         pdf.ln(2)
 
@@ -116,31 +115,30 @@ if st.button("📊 GENERAR REPORTE DE EVALUACIÓN", use_container_width=True):
             pdf.set_font('Helvetica', 'B', 10)
             pdf.cell(0, 7, clean(f"{campo}:"), 0, 1)
             pdf.set_font('Helvetica', 'I', 9)
-            pdf.multi_cell(0, 5, clean(texto if texto else "Sin registro."))
+            pdf.multi_cell(0, 5, clean(texto if texto else "Pendiente de registro."))
             pdf.ln(2)
 
-        # 3. Tabla de Calificaciones y Claves
+        # Calificaciones
         if nivel_edu != "Preescolar":
             pdf.ln(5)
-            pdf.set_font('Helvetica', 'B', 10)
-            pdf.set_fill_color(200, 200, 200)
+            pdf.set_font('Helvetica', 'B', 10); pdf.set_fill_color(200, 200, 200)
             pdf.cell(100, 10, clean(" ASIGNATURA / CAMPO"), 1, 0, 'C', True)
             pdf.cell(45, 10, clean(" CALIFICACIÓN"), 1, 0, 'C', True)
             pdf.cell(45, 10, clean(" CLAVE"), 1, 1, 'C', True)
-            
             pdf.set_font('Helvetica', '', 10)
-            for item in eval_detalles:
-                pdf.cell(100, 10, clean(f" {item['concepto']}"), 1, 0, 'L')
-                pdf.cell(45, 10, str(item['nota']), 1, 0, 'C')
-                pdf.cell(45, 10, clean(item['clave']), 1, 1, 'C')
+            for it in eval_detalles:
+                pdf.cell(100, 10, clean(f" {it['concepto']}"), 1, 0, 'L')
+                pdf.cell(45, 10, str(it['nota']), 1, 0, 'C')
+                pdf.cell(45, 10, clean(it['clave']), 1, 1, 'C')
 
-        # 4. Fotos y Firmas
+        # Fotos
         if fotos:
             pdf.add_page()
             y_img = 30
             for i, foto in enumerate(fotos[:2]):
                 pdf.image(io.BytesIO(foto.getvalue()), x=(10 if i==0 else 110), y=y_img, w=90)
 
+        # Firmas
         pdf.set_y(-40)
         pdf.line(20, pdf.get_y(), 80, pdf.get_y())
         pdf.line(130, pdf.get_y(), 190, pdf.get_y())
