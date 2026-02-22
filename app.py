@@ -1,141 +1,109 @@
 import streamlit as st
+from fpdf import FPDF
+import unicodedata
+import datetime
 
-# --- 1. CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="ProfeEduca | Versión 0.2", page_icon="🍎", layout="wide")
+# --- CONFIGURACIÓN DE PÁGINA ---
+st.set_page_config(page_title="PROFEEDUCA - Fase 6", layout="wide", page_icon="👤")
 
-# --- 2. ESTILOS CSS PERSONALIZADOS ---
-st.markdown("""
-    <style>
-    /* Fondo General Unificado */
-    .stApp { 
-        background: radial-gradient(circle at top, #0f172a 0%, #020617 100%);
-        color: #f8fafc;
-    }
+def clean(txt):
+    if not txt: return ""
+    # Eliminamos acentos para evitar errores de codificación en el PDF
+    txt = "".join(c for c in unicodedata.normalize('NFD', str(txt)) if unicodedata.category(c) != 'Mn')
+    txt = txt.replace('ñ', 'n').replace('Ñ', 'N')
+    return txt
 
-    /* Ocultar elementos innecesarios de Streamlit */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
+class RegistroPDF(FPDF):
+    def header(self):
+        # Franja institucional roja
+        self.set_fill_color(128, 0, 0)
+        self.rect(0, 0, 210, 25, 'F')
+        self.set_text_color(255, 255, 255)
+        self.set_font('Helvetica', 'B', 16)
+        self.cell(0, 15, clean('ESCRITO REFLEXIVO: SEGUIMIENTO DEL ALUMNO'), 0, 1, 'C')
+        self.ln(5)
 
-    /* Contenedor Izquierdo (Lista de Navegación) */
-    .nav-list {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-        padding: 20px;
-    }
+    def tabla_datos(self, ec, com, alumno, niv, gra, fec):
+        self.set_text_color(0, 0, 0)
+        self.set_font('Helvetica', 'B', 10)
+        self.set_fill_color(240, 240, 240)
+        w, h = 95, 8
+        # Tabla de identificación simplificada (Sin ECA)
+        self.cell(w, h, clean(f" EDUCADOR: {ec}"), 1, 0, 'L', True)
+        self.cell(w, h, clean(f" COMUNIDAD: {com}"), 1, 1, 'L', True)
+        self.cell(w, h, clean(f" ALUMNO: {alumno}"), 1, 0, 'L', True)
+        self.cell(w, h, clean(f" FECHA: {fec}"), 1, 1, 'L', True)
+        self.cell(w, h, clean(f" NIVEL: {niv}"), 1, 0, 'L', True)
+        self.cell(w, h, clean(f" GRADO: {gra}"), 1, 1, 'L', True)
+        self.ln(10)
 
-    /* Animación del Gusanito entrando y saliendo de la manzana */
-    @keyframes worm-move {
-        0%, 100% { transform: translate(45px, -30px) scale(1); opacity: 0; }
-        25% { transform: translate(30px, -45px) scale(1.1); opacity: 1; }
-        50% { transform: translate(0px, -50px) scale(1.2); opacity: 1; }
-        75% { transform: translate(-30px, -45px) scale(1.1); opacity: 1; }
-        90% { transform: translate(-45px, -30px) scale(1); opacity: 0; }
-    }
-    
-    .apple-container {
-        position: relative;
-        display: inline-block;
-        font-size: 8rem;
-        margin-top: 50px;
-    }
-    
-    .worm-icon {
-        position: absolute;
-        font-size: 3rem;
-        animation: worm-move 5s ease-in-out infinite;
-    }
+# --- INTERFAZ ---
+st.title("👤 Registro de Reflexión Individual")
 
-    /* Estilo del Nombre con Regla y Lápiz unidos */
-    .brand-header {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        font-size: 2.5rem;
-        font-weight: 900;
-        color: #38bdf8;
-        text-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
-    }
+# Datos de Identificación
+c1, c2, c3 = st.columns(3)
+with c1:
+    nombre_ec = st.text_input("Nombre del Educador", "AXEL REYES")
+    nombre_alumno = st.text_input("Nombre del Alumno")
+with c2:
+    comunidad = st.text_input("Comunidad", "CRUZ")
+    fecha_registro = st.date_input("Fecha de Registro", datetime.date.today())
+with c3:
+    nivel_edu = st.selectbox("Nivel", ["Preescolar", "Primaria", "Secundaria"])
+    grados_op = ["1", "2", "3", "4", "5", "6", "Multigrado"] if nivel_edu == "Primaria" else ["1", "2", "3", "Multigrado"]
+    grado_edu = st.selectbox("Grado", grados_op)
 
-    .slogan-final {
-        font-style: italic;
-        font-size: 1.1rem;
-        color: #94a3b8;
-        max-width: 400px;
-        margin: 20px auto;
-        line-height: 1.6;
-    }
-
-    /* Botones de la lista izquierda */
-    .stButton>button {
-        text-align: left;
-        padding: 15px;
-        font-size: 1.1rem;
-        background: transparent;
-        color: #f8fafc;
-        border: none;
-        border-bottom: 1px solid rgba(56, 189, 248, 0.2);
-        transition: 0.3s;
-    }
-    .stButton>button:hover {
-        background: rgba(56, 189, 248, 0.1);
-        padding-left: 25px;
-        color: #38bdf8;
-        border-bottom: 1px solid #38bdf8;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-# --- 3. DISEÑO DE PANTALLA DIVIDIDA ---
-col_menu, col_visual = st.columns([1, 1.5])
-
-# LADO IZQUIERDO: LISTA DE OPCIONES
-with col_menu:
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    st.title("🚀 Menú Maestro")
-    
-    # Lista de botones como solicitaste
-    if st.button("🏠 Inicio"): st.session_state.p = "inicio"
-    if st.button("📝 Planeación ABCD"): st.session_state.p = "plan"
-    if st.button("📓 Escrito Reflexivo"): st.session_state.p = "reflexivo"
-    if st.button("📅 Diario del Maestro"): st.session_state.p = "diario"
-    if st.button("📊 Estadísticas"): st.session_state.p = "stats"
-    
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    st.caption("Ecosistema Digital ProfeEduca © 2026")
-
-# LADO DERECHO: IDENTIDAD Y ANIMACIÓN
-with col_visual:
-    st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
-    
-    # Animación de la Manzana y el Gusanito
-    st.markdown("""
-        <div class="apple-container">
-            <span class="worm-icon">🐛</span>
-            🍎
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # Nombre de marca con Regla y Lápiz unidos
-    st.markdown("""
-        <div class="brand-header">
-            📏 ProfeEduca ✏️
-        </div>
-        <div style="font-weight: 700; color: white; margin-top: 10px;">
-            PLANEACIONES PARA EL MAESTRO ABCD
-        </div>
-        <div class="slogan-final">
-            "Guía de luz en las comunidades más remotas, transformando cada desafío en una oportunidad para el México del mañana."
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# --- 4. CONTENIDO DINÁMICO (Debajo del menú) ---
 st.divider()
-if 'p' not in st.session_state: st.session_state.p = "inicio"
 
-if st.session_state.p == "inicio":
-    st.subheader("Bienvenido al Centro de Innovación Pedagógica")
-    st.write("Tu centro de mando está listo para operar bajo el modelo de aprendizaje autónomo.")
+# Descripción Manual
+st.subheader("📝 Descripción del Desempeño")
+col_a, col_b = st.columns(2)
+with col_a:
+    que_hizo = st.text_area("¿Qué hizo el alumno hoy?", height=250, placeholder="Ej: Leer el tema de tortugas marinas...")
+with col_b:
+    como_hizo = st.text_area("¿Cómo realizó las actividades?", height=250, placeholder="Ej: Realizó un producto final con dibujos...")
+
+# --- GENERACIÓN DEL PDF ---
+if st.button("📝 GUARDAR Y GENERAR ESCRITO REFLEXIVO", use_container_width=True):
+    if not nombre_alumno or not que_hizo:
+        st.error("⚠️ Falta completar el nombre del alumno o las actividades.")
+    else:
+        try:
+            pdf = RegistroPDF()
+            pdf.add_page()
+            pdf.tabla_datos(nombre_ec, comunidad, nombre_alumno, nivel_edu, grado_edu, str(fecha_registro))
+
+            # Bloque 1: Actividades
+            pdf.set_font('Helvetica', 'B', 12)
+            pdf.set_fill_color(128, 0, 0)
+            pdf.set_text_color(255, 255, 255)
+            pdf.cell(0, 10, clean(" 1. ACTIVIDADES REALIZADAS"), 0, 1, 'L', True)
+            pdf.ln(2)
+            pdf.set_text_color(0, 0, 0)
+            pdf.set_font('Helvetica', '', 11)
+            pdf.multi_cell(0, 6, clean(que_hizo))
+            pdf.ln(10)
+
+            # Bloque 2: Desempeño
+            pdf.set_font('Helvetica', 'B', 12)
+            pdf.set_fill_color(128, 0, 0)
+            pdf.set_text_color(255, 255, 255)
+            pdf.cell(0, 10, clean(" 2. PROCESO Y DESEMPEÑO"), 0, 1, 'L', True)
+            pdf.ln(2)
+            pdf.set_text_color(0, 0, 0)
+            pdf.set_font('Helvetica', 'I', 11)
+            pdf.multi_cell(0, 6, clean(como_hizo))
+
+            # CONVERSIÓN CRÍTICA: Forzamos la salida a bytes puros para Streamlit
+            pdf_output = pdf.output()
+            pdf_bytes = bytes(pdf_output) 
+            
+            st.success(f"✅ Registro de {nombre_alumno} listo para descargar.")
+            st.download_button(
+                label="📥 DESCARGAR ESCRITO REFLEXIVO (PDF)",
+                data=pdf_bytes,
+                file_name=f"Reflexion_{nombre_alumno}_{fecha_registro}.pdf",
+                mime="application/pdf"
+            )
+        except Exception as e:
+            st.error(f"Error técnico al generar el PDF: {e}")
