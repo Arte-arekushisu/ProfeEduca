@@ -1,104 +1,131 @@
 import streamlit as st
 from fpdf import FPDF
 import unicodedata
-import io
-from datetime import date
+import datetime
 
 # --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="PROFEEDUCA - Fase 0.8", layout="wide", page_icon="📊")
+st.set_page_config(page_title="PROFEEDUCA - Planeación Semanal", layout="wide", page_icon="📝")
 
-# --- FUNCIONES DE LIMPIEZA PARA PDF ---
 def clean(txt):
     if not txt: return ""
     txt = "".join(c for c in unicodedata.normalize('NFD', str(txt)) if unicodedata.category(c) != 'Mn')
-    txt = txt.replace('ñ', 'n').replace('Ñ', 'N')
-    return txt
+    txt = txt.replace('ñ', 'n').replace('Ñ', 'N').replace('“', '"').replace('”', '"')
+    return txt.encode('latin-1', 'ignore').decode('latin-1')
 
-# --- CLASES DE PDF ---
-class EvaluacionPDF(FPDF):
+class PlaneacionPDF(FPDF):
     def header(self):
-        self.set_fill_color(0, 51, 102) 
+        self.set_fill_color(128, 0, 0) 
         self.rect(0, 0, 210, 25, 'F')
         self.set_text_color(255, 255, 255)
         self.set_font('Helvetica', 'B', 16)
-        self.cell(0, 15, clean('REPORTE DE EVALUACION TRIMESTRAL'), 0, 1, 'C')
+        self.cell(0, 15, clean('PLANEACION SEMANAL'), 0, 1, 'C')
         self.ln(5)
 
-class FacturaPDF(FPDF):
-    def header(self):
-        self.set_fill_color(33, 47, 61)
-        self.rect(0, 0, 210, 30, 'F')
+    def tabla_datos(self, ec, eca, comunidad, fecha, nivel, grado):
+        self.set_text_color(0, 0, 0)
+        self.set_font('Helvetica', 'B', 10)
+        self.set_fill_color(230, 230, 230)
+        w = 95
+        h = 8
+        # Fila 1
+        self.cell(w, h, clean(f" NOMBRE EC: {ec}"), 1, 0, 'L', True)
+        self.cell(w, h, clean(f" NOMBRE ECA: {eca}"), 1, 1, 'L', True)
+        # Fila 2
+        self.cell(w, h, clean(f" COMUNIDAD: {comunidad}"), 1, 0, 'L', True)
+        self.cell(w, h, clean(f" FECHA/SEMANA: {fecha}"), 1, 1, 'L', True)
+        # Fila 3 (Nuevos campos)
+        self.cell(w, h, clean(f" NIVEL: {nivel}"), 1, 0, 'L', True)
+        self.cell(w, h, clean(f" GRADO/MODALIDAD: {grado}"), 1, 1, 'L', True)
+        self.ln(5)
+
+    def seccion_dia(self, titulo):
+        self.set_font('Helvetica', 'B', 11)
+        self.set_fill_color(128, 0, 0)
         self.set_text_color(255, 255, 255)
-        self.set_font('Helvetica', 'B', 20)
-        self.cell(0, 20, clean('COMPROBANTE DE PAGO - PROFEEDUCA'), 0, 1, 'C')
-        self.ln(10)
+        self.cell(0, 8, f" {clean(titulo)}", 0, 1, 'L', True)
+        self.ln(2)
 
-# --- INTERFAZ PRINCIPAL ---
-st.title("📊 PROFEEDUCA: Gestión Integral")
+# --- INTERFAZ ---
+st.title("🛡️ PROFEEDUCA: Planeación Semanal")
 
-# Pestañas para organizar el flujo
-tab_eval, tab_fact = st.tabs(["📝 Evaluación Trimestral", "💳 Facturación y Pagos"])
-
-# --- CONTENIDO DE EVALUACIONES ---
-with tab_eval:
-    with st.sidebar:
-        st.header("📌 Identificación")
-        nombre_ec = st.text_input("Educador", "AXEL REYES")
-        nombre_alumno = st.text_input("Alumno", placeholder="Ej. Tania")
-        nivel_edu = st.selectbox("Nivel", ["Preescolar", "Primaria", "Secundaria"])
-        grado_edu = st.selectbox("Grado", ["1", "2", "3", "4", "5", "6"])
+with st.form("Formulario_Final"):
+    st.subheader("📋 Información General y Nivel Educativo")
+    c1, c2, c3 = st.columns(3)
+    
+    with c1:
+        nombre_ec = st.text_input("Nombre del EC", "AXEL REYES")
+        nombre_eca = st.text_input("Nombre del ECA")
+    
+    with c2:
+        comunidad = st.text_input("Comunidad", "CRUZ")
+        fecha_semana = st.date_input("Semana del:", datetime.date.today())
+    
+    with c3:
+        nivel_edu = st.selectbox("Nivel Educativo", ["Preescolar", "Primaria", "Secundaria"])
         
-        st.divider()
-        st.markdown("### 🆘 AYUDA")
-        with st.expander("🚨 BOTÓN SOS"):
-            st.link_button("📲 Soporte WhatsApp", "https://wa.me/tu_numero")
-
-    st.subheader("Análisis por Campo Formativo")
-    campos = ["Lenguajes", "Saberes y P.C.", "Etica, N. y S.", "De lo Humano y lo Com."]
-    eval_textos = {}
-    
-    cols = st.columns(2)
-    for i, campo in enumerate(campos):
-        with cols[i % 2]:
-            eval_textos[campo] = st.text_area(f"Análisis de {campo}:", height=100)
-
-    if st.button("🚀 GENERAR REPORTE EDUCATIVO"):
-        st.success("¡Generando PDF de Evaluación...!")
-
-# --- CONTENIDO DE FACTURACIÓN ---
-with tab_fact:
-    st.header("🧾 Generación de Comprobantes")
-    
-    col_f1, col_f2 = st.columns(2)
-    with col_f1:
-        razon_social = st.text_input("Nombre / Razón Social", placeholder="Ej. Asociación de Padres")
-        rfc_dni = st.text_input("RFC o Identificación")
-    
-    with col_f2:
-        monto = st.number_input("Monto Total ($)", min_value=0.0, format="%.2f")
-        metodo = st.selectbox("Método de Pago", ["Transferencia", "Efectivo", "Depósito"])
-
-    concepto = st.text_area("Concepto del pago", "Aportación para materiales educativos trimestre 2.")
-
-    if st.button("📝 EMITIR COMPROBANTE DE PAGO"):
-        if not razon_social or monto <= 0:
-            st.error("⚠️ Datos incompletos para facturar.")
-        else:
-            f_pdf = FacturaPDF()
-            f_pdf.add_page()
-            f_pdf.set_font('Helvetica', 'B', 12)
-            f_pdf.cell(0, 10, clean(f"RECEPTOR: {razon_social}"), 0, 1)
-            f_pdf.cell(0, 10, clean(f"RFC/ID: {rfc_dni}"), 0, 1)
-            f_pdf.ln(10)
+        # Lógica de grados según el nivel
+        if nivel_edu == "Preescolar":
+            opciones_grado = ["1", "2", "3", "Multigrado"]
+        elif nivel_edu == "Primaria":
+            opciones_grado = ["1", "2", "3", "4", "5", "6", "Multigrado"]
+        else: # Secundaria
+            opciones_grado = ["1", "2", "3", "Multigrado"]
             
-            # Tabla de Cobro
-            f_pdf.set_fill_color(33, 47, 61); f_pdf.set_text_color(255, 255, 255)
-            f_pdf.cell(140, 10, clean(" CONCEPTO"), 1, 0, 'L', True)
-            f_pdf.cell(50, 10, clean(" TOTAL"), 1, 1, 'C', True)
-            
-            f_pdf.set_text_color(0, 0, 0); f_pdf.set_font('Helvetica', '', 11)
-            f_pdf.cell(140, 15, clean(concepto), 1, 0, 'L')
-            f_pdf.cell(50, 15, f"${monto:,.2f}", 1, 1, 'C')
-            
-            st.download_button("📥 DESCARGAR FACTURA", bytes(f_pdf.output()), f"Factura_{razon_social}.pdf")
-            st.balloons()
+        grado_edu = st.selectbox("Grado", opciones_grado)
+
+    st.divider()
+    st.subheader("🍎 Jornada Post-Receso")
+    
+    dias = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes"]
+    datos_semana = {}
+
+    for dia in dias:
+        with st.expander(f"📅 {dia.upper()}", expanded=(dia == "Lunes")):
+            col1, col2 = st.columns(2)
+            with col1:
+                m1 = st.text_input(f"Materia 1 - {dia}", key=f"m1_{dia}")
+                p1 = st.text_area(f"Actividades Materia 1", key=f"p1_{dia}", height=80)
+            with col2:
+                m2 = st.text_input(f"Materia 2 - {dia}", key=f"m2_{dia}")
+                p2 = st.text_area(f"Actividades Materia 2", key=f"p2_{dia}", height=80)
+            datos_semana[dia] = {"m1": m1, "p1": p1, "m2": m2, "p2": p2}
+    
+    submit = st.form_submit_button("🔨 PLANEACIONES ABCD")
+
+if submit:
+    st.markdown("### 👁️ Vista Previa del Documento")
+    
+    pdf = PlaneacionPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+    
+    # Tabla de datos ahora incluye nivel y grado
+    pdf.tabla_datos(nombre_ec, nombre_eca, comunidad, str(fecha_semana), nivel_edu, grado_edu)
+
+    for dia, info in datos_semana.items():
+        if info['m1'] or info['m2']:
+            pdf.seccion_dia(dia.upper())
+            # Materia 1
+            pdf.set_text_color(0,0,0)
+            pdf.set_font('Helvetica', 'B', 10)
+            pdf.cell(0, 6, clean(f"Materia: {info['m1']}"), 0, 1)
+            pdf.set_font('Helvetica', '', 10)
+            pdf.multi_cell(0, 5, clean(info['p1']))
+            pdf.ln(2)
+            # Materia 2
+            pdf.set_font('Helvetica', 'B', 10)
+            pdf.cell(0, 6, clean(f"Materia: {info['m2']}"), 0, 1)
+            pdf.set_font('Helvetica', '', 10)
+            pdf.multi_cell(0, 5, clean(info['p2']))
+            pdf.ln(5)
+    
+    pdf_output = pdf.output(dest='S')
+    pdf_bytes = bytes(pdf_output) if not isinstance(pdf_output, str) else pdf_output.encode('latin-1')
+
+    st.success("✅ Estructura generada correctamente.")
+    st.download_button(
+        label="📥 DESCARGAR PLANEACIÓN SEMANAL (PDF)",
+        data=pdf_bytes,
+        file_name=f"Planeacion_{nivel_edu}_{grado_edu}_{comunidad}.pdf",
+        mime="application/pdf"
+    )
