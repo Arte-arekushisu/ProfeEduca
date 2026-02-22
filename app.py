@@ -18,7 +18,7 @@ class PlaneacionPDF(FPDF):
         self.rect(0, 0, 210, 25, 'F')
         self.set_text_color(255, 255, 255)
         self.set_font('Helvetica', 'B', 16)
-        self.cell(0, 15, clean('PLANEACION SEMANAL'), 0, 1, 'C')
+        self.cell(0, 15, clean('PLANEACION SEMANAL Y ESCRITO REFLEXIVO'), 0, 1, 'C')
         self.ln(5)
 
     def tabla_datos(self, ec, eca, comunidad, fecha, nivel, grado):
@@ -27,13 +27,10 @@ class PlaneacionPDF(FPDF):
         self.set_fill_color(230, 230, 230)
         w = 95
         h = 8
-        # Fila 1
         self.cell(w, h, clean(f" NOMBRE EC: {ec}"), 1, 0, 'L', True)
         self.cell(w, h, clean(f" NOMBRE ECA: {eca}"), 1, 1, 'L', True)
-        # Fila 2
         self.cell(w, h, clean(f" COMUNIDAD: {comunidad}"), 1, 0, 'L', True)
         self.cell(w, h, clean(f" FECHA/SEMANA: {fecha}"), 1, 1, 'L', True)
-        # Fila 3 (Nuevos campos)
         self.cell(w, h, clean(f" NIVEL: {nivel}"), 1, 0, 'L', True)
         self.cell(w, h, clean(f" GRADO/MODALIDAD: {grado}"), 1, 1, 'L', True)
         self.ln(5)
@@ -46,10 +43,10 @@ class PlaneacionPDF(FPDF):
         self.ln(2)
 
 # --- INTERFAZ ---
-st.title("🛡️ PROFEEDUCA: Planeación Semanal")
+st.title("🛡️ PROFEEDUCA: Planeación y Reflexión")
 
 with st.form("Formulario_Final"):
-    st.subheader("📋 Información General y Nivel Educativo")
+    st.subheader("📋 Información General")
     c1, c2, c3 = st.columns(3)
     
     with c1:
@@ -62,19 +59,11 @@ with st.form("Formulario_Final"):
     
     with c3:
         nivel_edu = st.selectbox("Nivel Educativo", ["Preescolar", "Primaria", "Secundaria"])
-        
-        # Lógica de grados según el nivel
-        if nivel_edu == "Preescolar":
-            opciones_grado = ["1", "2", "3", "Multigrado"]
-        elif nivel_edu == "Primaria":
-            opciones_grado = ["1", "2", "3", "4", "5", "6", "Multigrado"]
-        else: # Secundaria
-            opciones_grado = ["1", "2", "3", "Multigrado"]
-            
-        grado_edu = st.selectbox("Grado", opciones_grado)
+        opciones = ["1", "2", "3", "4", "5", "6", "Multigrado"] if nivel_edu == "Primaria" else ["1", "2", "3", "Multigrado"]
+        grado_edu = st.selectbox("Grado", opciones)
 
     st.divider()
-    st.subheader("🍎 Jornada Post-Receso")
+    st.subheader("🍎 Jornada Post-Receso y Reflexión Diaria")
     
     dias = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes"]
     datos_semana = {}
@@ -83,49 +72,65 @@ with st.form("Formulario_Final"):
         with st.expander(f"📅 {dia.upper()}", expanded=(dia == "Lunes")):
             col1, col2 = st.columns(2)
             with col1:
-                m1 = st.text_input(f"Materia 1 - {dia}", key=f"m1_{dia}")
-                p1 = st.text_area(f"Actividades Materia 1", key=f"p1_{dia}", height=80)
+                st.markdown("**Materia 1**")
+                m1 = st.text_input(f"Nombre", key=f"m1_{dia}")
+                p1 = st.text_area(f"Actividades", key=f"p1_{dia}", height=70)
             with col2:
-                m2 = st.text_input(f"Materia 2 - {dia}", key=f"m2_{dia}")
-                p2 = st.text_area(f"Actividades Materia 2", key=f"p2_{dia}", height=80)
-            datos_semana[dia] = {"m1": m1, "p1": p1, "m2": m2, "p2": p2}
+                st.markdown("**Materia 2**")
+                m2 = st.text_input(f"Nombre", key=f"m2_{dia}")
+                p2 = st.text_area(f"Actividades", key=f"p2_{dia}", height=70)
+            
+            st.markdown("---")
+            # NUEVO: Apartado de Escrito Reflexivo Diario
+            reflexion = st.text_area(f"🖋️ Escrito Reflexivo Diario ({dia})", 
+                                    placeholder="¿Qué aprendieron hoy? ¿Qué dificultades surgieron? ¿Cómo te sentiste como educador?",
+                                    key=f"ref_{dia}", height=100)
+            
+            datos_semana[dia] = {"m1": m1, "p1": p1, "m2": m2, "p2": p2, "reflexion": reflexion}
     
     submit = st.form_submit_button("🔨 PLANEACIONES ABCD")
 
 if submit:
-    st.markdown("### 👁️ Vista Previa del Documento")
+    st.markdown("### 👁️ Vista Previa")
     
     pdf = PlaneacionPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
     
-    # Tabla de datos ahora incluye nivel y grado
     pdf.tabla_datos(nombre_ec, nombre_eca, comunidad, str(fecha_semana), nivel_edu, grado_edu)
 
     for dia, info in datos_semana.items():
-        if info['m1'] or info['m2']:
+        if info['m1'] or info['m2'] or info['reflexion']:
             pdf.seccion_dia(dia.upper())
-            # Materia 1
-            pdf.set_text_color(0,0,0)
-            pdf.set_font('Helvetica', 'B', 10)
-            pdf.cell(0, 6, clean(f"Materia: {info['m1']}"), 0, 1)
-            pdf.set_font('Helvetica', '', 10)
-            pdf.multi_cell(0, 5, clean(info['p1']))
-            pdf.ln(2)
-            # Materia 2
-            pdf.set_font('Helvetica', 'B', 10)
-            pdf.cell(0, 6, clean(f"Materia: {info['m2']}"), 0, 1)
-            pdf.set_font('Helvetica', '', 10)
-            pdf.multi_cell(0, 5, clean(info['p2']))
-            pdf.ln(5)
+            
+            # Materia 1 y 2
+            for i in range(1, 3):
+                m_key, p_key = f'm{i}', f'p{i}'
+                if info[m_key]:
+                    pdf.set_text_color(0,0,0)
+                    pdf.set_font('Helvetica', 'B', 10)
+                    pdf.cell(0, 6, clean(f"Materia {i}: {info[m_key]}"), 0, 1)
+                    pdf.set_font('Helvetica', '', 10)
+                    pdf.multi_cell(0, 5, clean(info[p_key]))
+                    pdf.ln(2)
+            
+            # Escrito Reflexivo en el PDF
+            if info['reflexion']:
+                pdf.set_font('Helvetica', 'B', 10)
+                pdf.set_text_color(128, 0, 0)
+                pdf.cell(0, 6, clean("ESCRITO REFLEXIVO DIARIO:"), 0, 1)
+                pdf.set_font('Helvetica', 'I', 10)
+                pdf.set_text_color(50, 50, 50)
+                pdf.multi_cell(0, 5, clean(info['reflexion']))
+                pdf.ln(5)
     
     pdf_output = pdf.output(dest='S')
     pdf_bytes = bytes(pdf_output) if not isinstance(pdf_output, str) else pdf_output.encode('latin-1')
 
-    st.success("✅ Estructura generada correctamente.")
+    st.success("✅ Planeación y Reflexiones listas.")
     st.download_button(
-        label="📥 DESCARGAR PLANEACIÓN SEMANAL (PDF)",
+        label="📥 DESCARGAR DOCUMENTO COMPLETO (PDF)",
         data=pdf_bytes,
-        file_name=f"Planeacion_{nivel_edu}_{grado_edu}_{comunidad}.pdf",
+        file_name=f"Planeacion_Reflexion_{comunidad}.pdf",
         mime="application/pdf"
     )
