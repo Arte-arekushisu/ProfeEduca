@@ -1,62 +1,83 @@
 import streamlit as st
-import google.generativeai as genai
 from fpdf import FPDF
 import unicodedata
 import datetime
 
-# --- CONFIGURACIÓN DE IA (LA FORMA MÁS COMPATIBLE) ---
-API_KEY = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
-genai.configure(api_key=API_KEY)
+# --- CONFIGURACIÓN DE INTERFAZ ---
+st.set_page_config(page_title="PROFEEDUCA - Gestión CONAFE", layout="wide", page_icon="🛡️")
 
 def clean(txt):
     if not txt: return ""
     txt = "".join(c for c in unicodedata.normalize('NFD', str(txt)) if unicodedata.category(c) != 'Mn')
-    txt = txt.replace('ñ', 'n').replace('Ñ', 'N').replace('“', '"').replace('”', '"').replace('•', '-')
+    txt = txt.replace('ñ', 'n').replace('Ñ', 'N').replace('“', '"').replace('”', '"')
     return txt.encode('latin-1', 'ignore').decode('latin-1')
 
 class PlaneacionPDF(FPDF):
     def header(self):
-        self.set_font('Helvetica', 'B', 16)
-        self.cell(0, 10, 'PROFEEDUCA - PLANEACION CONAFE', 0, 1, 'C')
-        self.ln(5)
+        self.set_fill_color(200, 30, 30) # Rojo institucional
+        self.rect(0, 0, 210, 35, 'F')
+        self.set_text_color(255, 255, 255)
+        self.set_font('Helvetica', 'B', 20)
+        self.cell(0, 15, 'PROFEEDUCA: SISTEMA DE PLANEACION', 0, 1, 'C')
+        self.set_font('Helvetica', 'I', 10)
+        self.cell(0, 5, 'Herramienta de Apoyo para el Educador Comunitario (CONAFE)', 0, 1, 'C')
+        self.ln(15)
 
-st.set_page_config(page_title="PROFEEDUCA IA", layout="wide")
-st.title("🛡️ PROFEEDUCA: Sistema de Planeación")
+    def seccion(self, titulo):
+        self.set_text_color(0, 0, 0)
+        self.set_font('Helvetica', 'B', 12)
+        self.set_fill_color(240, 240, 240)
+        self.cell(0, 10, f"  {clean(titulo)}", 1, 1, 'L', True)
+        self.ln(3)
 
-with st.form("MainForm"):
-    c1, c2 = st.columns(2)
+# --- PANEL DE CONTROL ---
+st.title("🛡️ PROFEEDUCA: Centro de Gestión Pedagógica")
+st.info("Modo: Plantilla de Estructuración (Listo para migración a servidor privado)")
+
+with st.expander("📝 DATOS DE IDENTIFICACIÓN", expanded=True):
+    c1, c2, c3 = st.columns(3)
     with c1:
-        nivel = st.selectbox("Nivel Educativo", ["Preescolar", "Primaria", "Secundaria"])
+        nivel = st.selectbox("Nivel", ["Preescolar", "Primaria", "Secundaria"])
         educador = st.text_input("Nombre del Educador", "AXEL REYES")
-        tema = st.text_input("Tema de Interés", "LAS TORTUGAS MARINAS")
     with c2:
         comunidad = st.text_input("Comunidad", "CRUZ")
-        fecha = st.date_input("Fecha", datetime.date.today())
-        materias = st.text_area("Materias/Temas", "Matematicas, Español")
-    
-    submit = st.form_submit_button("🔨 GENERAR PLANEACIÓN AHORA")
+        fecha = st.date_input("Fecha de Aplicación")
+    with c3:
+        tema = st.text_input("Tema Central", "LAS TORTUGAS MARINAS")
+        microregion = st.text_input("Microregión", "CIENCIAS")
 
-if submit:
-    with st.spinner("🤖 Generando contenido pedagógico..."):
-        try:
-            # Usamos el modelo directamente sin configuraciones extra
-            model = genai.GenerativeModel('gemini-1.5-flash')
-            response = model.generate_content(
-                f"Genera una planeación para {nivel} sobre {tema}. Comunidad: {comunidad}."
-            )
-            
-            if response.text:
-                pdf = PlaneacionPDF()
-                pdf.add_page()
-                pdf.set_font('Helvetica', 'B', 12)
-                pdf.cell(0, 10, clean(f"TEMA: {tema}"), 1, 1, 'C')
-                pdf.ln(5)
-                pdf.set_font('Helvetica', '', 11)
-                pdf.multi_cell(0, 6, clean(response.text))
+# --- CUERPO DE LA PLANEACIÓN ---
+st.subheader("🚀 Desarrollo de la Jornada")
+actividades = st.text_area("Descripción de Actividades (Lo que antes hacía la IA, ahora lo estructuramos aquí):", 
+                          placeholder="Escribe aquí los desafíos, actividades de inicio, desarrollo y cierre...")
 
-                pdf_out = pdf.output(dest='S').encode('latin-1', 'replace')
-                st.success("✅ ¡CONSEGUIDO! Planeación generada.")
-                st.download_button("📥 DESCARGAR PDF", pdf_out, f"Planeacion_{tema}.pdf", "application/pdf")
+objetivos = st.text_area("Objetivos de Aprendizaje:")
+
+if st.button("📄 GENERAR DOCUMENTO OFICIAL"):
+    if not actividades:
+        st.warning("Por favor, describe las actividades para generar el reporte.")
+    else:
+        pdf = PlaneacionPDF()
+        pdf.add_page()
         
-        except Exception as e:
-            st.error(f"Aviso del sistema: {e}")
+        pdf.seccion("I. DATOS GENERALES")
+        pdf.set_font('Helvetica', '', 11)
+        pdf.cell(0, 7, clean(f"Nivel: {nivel} | Educador: {educador}"), 0, 1)
+        pdf.cell(0, 7, clean(f"Comunidad: {comunidad} | Fecha: {fecha}"), 0, 1)
+        pdf.cell(0, 7, clean(f"Tema: {tema}"), 0, 1)
+        
+        pdf.ln(5)
+        pdf.seccion("II. OBJETIVOS")
+        pdf.multi_cell(0, 6, clean(objetivos))
+        
+        pdf.ln(5)
+        pdf.seccion("III. DESARROLLO PEDAGÓGICO")
+        pdf.multi_cell(0, 6, clean(actividades))
+        
+        pdf_output = pdf.output(dest='S').encode('latin-1', 'replace')
+        st.success("✅ Formato generado correctamente.")
+        st.download_button("📥 DESCARGAR PLANEACIÓN (PDF)", pdf_output, f"Planeacion_{tema}.pdf", "application/pdf")
+
+# --- ESPACIO RESERVADO PARA IA ---
+st.divider()
+st.caption("⚙️ Módulo de IA Gemini: Deshabilitado temporalmente para migración a servidor privado.")
