@@ -36,7 +36,7 @@ class EvaluacionPDF(FPDF):
         self.ln(10)
 
 # --- INTERFAZ ---
-st.title("📊 Fase 0.6: Evaluación Trimestral Formal")
+st.title("📊 Fase 0.6: Evaluación con Indicadores y Claves")
 
 with st.sidebar:
     st.header("📌 Identificación")
@@ -55,35 +55,40 @@ st.divider()
 
 # --- SECCIÓN DE TEXTO REFLEXIVO POR CAMPOS ---
 st.subheader("🖋️ Trayectorias / Análisis por Campo Formativo")
-st.info("Nota: Este contenido debe basarse en tus escritos reflexivos diarios.")
-
 eval_campos = {}
-campos_nombres = [
-    "Lenguajes", 
-    "Saberes y Pensamiento Científico", 
-    "Ética, Naturaleza y Sociedades", 
-    "De lo Humano y lo Comunitario"
-]
+campos_nombres = ["Lenguajes", "Saberes y P.C.", "Ética, N. y S.", "De lo Humano y lo Com."]
 
-# Generar los 4 cuadros de texto para todos los niveles (manual por ahora)
 for campo in campos_nombres:
-    eval_campos[campo] = st.text_area(f"Análisis de {campo}:", height=120, key=f"text_{campo}")
+    eval_campos[campo] = st.text_area(f"Análisis de {campo}:", height=100, key=f"text_{campo}")
 
-# --- CAPTURA DE CALIFICACIONES (PRIMARIA/SECUNDARIA) ---
-eval_notas = {}
+# --- INDICADORES DE LECTO-ESCRITURA (NUEVO) ---
+st.divider()
+st.subheader("📖 Indicadores de Lectura y Escritura")
+col_ind1, col_ind2 = st.columns(2)
+indicador_lectura = col_ind1.text_input("Indicador de Lectura (Ej: 12A, 1B, 3C, 4D)", placeholder="12A")
+indicador_escritura = col_ind2.text_input("Indicador de Escritura (Ej: 6)", placeholder="6")
+
+# --- CAPTURA DE CALIFICACIONES Y CLAVES (NUEVO) ---
+eval_detalles = [] # Lista de diccionarios para guardar concepto, nota y clave
+
 if nivel_edu != "Preescolar":
     st.divider()
-    st.subheader("🔢 Calificaciones Numéricas")
+    st.subheader(f"🔢 Calificaciones y Claves ({nivel_edu})")
+    
     if nivel_edu == "Primaria":
-        c1, c2 = st.columns(2)
-        for i, campo in enumerate(campos_nombres):
-            col = c1 if i < 2 else c2
-            eval_notas[campo] = col.number_input(f"Nota: {campo}", 5, 10, 8)
+        for campo in campos_nombres:
+            c1, c2 = st.columns([2, 1])
+            nota = c1.number_input(f"Nota: {campo}", 5, 10, 8, key=f"nota_{campo}")
+            clave = c2.text_input(f"Clave (Máx T120)", "T", max_chars=4, key=f"clave_{campo}")
+            eval_detalles.append({"concepto": campo, "nota": nota, "clave": clave})
+    
     else: # Secundaria
         materias = ["Español", "Matemáticas", "Ciencias", "Historia", "Geografía", "F. Cívica y Ética"]
-        cols = st.columns(3)
-        for i, mat in enumerate(materias):
-            eval_notas[mat] = cols[i % 3].number_input(mat, 5, 10, 8)
+        for mat in materias:
+            c1, c2 = st.columns([2, 1])
+            nota = c1.number_input(f"Nota: {mat}", 5, 10, 8, key=f"nota_{mat}")
+            clave = c2.text_input(f"Clave (Máx T120)", "T", max_chars=4, key=f"clave_{mat}")
+            eval_detalles.append({"concepto": mat, "nota": nota, "clave": clave})
 
 # --- GENERACIÓN DEL PDF ---
 if st.button("📊 GENERAR REPORTE DE EVALUACIÓN", use_container_width=True):
@@ -94,10 +99,15 @@ if st.button("📊 GENERAR REPORTE DE EVALUACIÓN", use_container_width=True):
         pdf.add_page()
         pdf.tabla_datos(nombre_ec, comunidad, nombre_alumno, nivel_edu, grado_edu, trimestre)
 
-        # Imprimir Análisis por Campos
+        # 1. Indicadores de Lecto-Escritura
+        pdf.set_font('Helvetica', 'B', 11)
+        pdf.cell(95, 8, clean(f"INDICADOR LECTURA: {indicador_lectura}"), 1, 0, 'L')
+        pdf.cell(95, 8, clean(f"INDICADOR ESCRITURA: {indicador_escritura}"), 1, 1, 'L')
+        pdf.ln(5)
+
+        # 2. Análisis por Campos
         pdf.set_font('Helvetica', 'B', 12)
-        pdf.set_fill_color(0, 51, 102)
-        pdf.set_text_color(255, 255, 255)
+        pdf.set_fill_color(0, 51, 102); pdf.set_text_color(255, 255, 255)
         pdf.cell(0, 10, clean(" ANÁLISIS POR CAMPO FORMATIVO"), 0, 1, 'L', True)
         pdf.set_text_color(0, 0, 0)
         pdf.ln(2)
@@ -105,22 +115,26 @@ if st.button("📊 GENERAR REPORTE DE EVALUACIÓN", use_container_width=True):
         for campo, texto in eval_campos.items():
             pdf.set_font('Helvetica', 'B', 10)
             pdf.cell(0, 7, clean(f"{campo}:"), 0, 1)
-            pdf.set_font('Helvetica', 'I', 10)
-            pdf.multi_cell(0, 5, clean(texto if texto else "Sin registro en este periodo."))
-            pdf.ln(3)
+            pdf.set_font('Helvetica', 'I', 9)
+            pdf.multi_cell(0, 5, clean(texto if texto else "Sin registro."))
+            pdf.ln(2)
 
-        # Imprimir Tabla Numérica si aplica
+        # 3. Tabla de Calificaciones y Claves
         if nivel_edu != "Preescolar":
             pdf.ln(5)
-            pdf.set_font('Helvetica', 'B', 11)
-            pdf.cell(140, 10, clean(" ASIGNATURA / CAMPO"), 1, 0, 'C', True)
-            pdf.cell(50, 10, clean(" CALIFICACIÓN"), 1, 1, 'C', True)
+            pdf.set_font('Helvetica', 'B', 10)
+            pdf.set_fill_color(200, 200, 200)
+            pdf.cell(100, 10, clean(" ASIGNATURA / CAMPO"), 1, 0, 'C', True)
+            pdf.cell(45, 10, clean(" CALIFICACIÓN"), 1, 0, 'C', True)
+            pdf.cell(45, 10, clean(" CLAVE"), 1, 1, 'C', True)
+            
             pdf.set_font('Helvetica', '', 10)
-            for concepto, nota in eval_notas.items():
-                pdf.cell(140, 10, clean(f" {concepto}"), 1, 0, 'L')
-                pdf.cell(50, 10, str(nota), 1, 1, 'C')
+            for item in eval_detalles:
+                pdf.cell(100, 10, clean(f" {item['concepto']}"), 1, 0, 'L')
+                pdf.cell(45, 10, str(item['nota']), 1, 0, 'C')
+                pdf.cell(45, 10, clean(item['clave']), 1, 1, 'C')
 
-        # Fotos y Firmas (igual que la versión anterior)
+        # 4. Fotos y Firmas
         if fotos:
             pdf.add_page()
             y_img = 30
