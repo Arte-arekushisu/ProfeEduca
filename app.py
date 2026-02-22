@@ -4,7 +4,7 @@ import unicodedata
 import datetime
 
 # --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="PROFEEDUCA - Fase 6", layout="wide", page_icon="👤")
+st.set_page_config(page_title="PROFEEDUCA - Registro de Reflexión", layout="wide", page_icon="👤")
 
 def clean(txt):
     if not txt: return ""
@@ -23,18 +23,19 @@ class RegistroPDF(FPDF):
         self.cell(0, 15, clean('ESCRITO REFLEXIVO: SEGUIMIENTO DEL ALUMNO'), 0, 1, 'C')
         self.ln(5)
 
-    def tabla_datos(self, ec, com, alumno, niv, gra, fec):
+    def tabla_datos(self, ec, com, alumno, niv, gra, fec, periodo):
         self.set_text_color(0, 0, 0)
         self.set_font('Helvetica', 'B', 10)
         self.set_fill_color(240, 240, 240)
         w, h = 95, 8
-        # Tabla de identificación simplificada (Sin ECA)
+        # Tabla de identificación con Trimestre
         self.cell(w, h, clean(f" EDUCADOR: {ec}"), 1, 0, 'L', True)
         self.cell(w, h, clean(f" COMUNIDAD: {com}"), 1, 1, 'L', True)
         self.cell(w, h, clean(f" ALUMNO: {alumno}"), 1, 0, 'L', True)
-        self.cell(w, h, clean(f" FECHA: {fec}"), 1, 1, 'L', True)
+        self.cell(w, h, clean(f" TRIMESTRE: {periodo}"), 1, 1, 'L', True) # Campo nuevo
         self.cell(w, h, clean(f" NIVEL: {niv}"), 1, 0, 'L', True)
-        self.cell(w, h, clean(f" GRADO: {gra}"), 1, 1, 'L', True)
+        self.cell(w, h, clean(f" GRADO: {gra}"), 1, 0, 'L', True)
+        self.cell(95, h, clean(f" FECHA: {fec}"), 1, 1, 'L', True)
         self.ln(10)
 
 # --- INTERFAZ ---
@@ -50,6 +51,10 @@ with c2:
     fecha_registro = st.date_input("Fecha de Registro", datetime.date.today())
 with c3:
     nivel_edu = st.selectbox("Nivel", ["Preescolar", "Primaria", "Secundaria"])
+    # Apartado para Trimestre
+    trimestre = st.selectbox("Trimestre de Evaluación", ["1er Trimestre", "2do Trimestre", "3er Trimestre"])
+    
+    # Lógica de grados según nivel
     grados_op = ["1", "2", "3", "4", "5", "6", "Multigrado"] if nivel_edu == "Primaria" else ["1", "2", "3", "Multigrado"]
     grado_edu = st.selectbox("Grado", grados_op)
 
@@ -71,7 +76,8 @@ if st.button("📝 GUARDAR Y GENERAR ESCRITO REFLEXIVO", use_container_width=Tru
         try:
             pdf = RegistroPDF()
             pdf.add_page()
-            pdf.tabla_datos(nombre_ec, comunidad, nombre_alumno, nivel_edu, grado_edu, str(fecha_registro))
+            # Se añade el parámetro 'trimestre' a la tabla
+            pdf.tabla_datos(nombre_ec, comunidad, nombre_alumno, nivel_edu, grado_edu, str(fecha_registro), trimestre)
 
             # Bloque 1: Actividades
             pdf.set_font('Helvetica', 'B', 12)
@@ -94,16 +100,5 @@ if st.button("📝 GUARDAR Y GENERAR ESCRITO REFLEXIVO", use_container_width=Tru
             pdf.set_font('Helvetica', 'I', 11)
             pdf.multi_cell(0, 6, clean(como_hizo))
 
-            # CONVERSIÓN CRÍTICA: Forzamos la salida a bytes puros para Streamlit
+            # Generación de bytes para descarga
             pdf_output = pdf.output()
-            pdf_bytes = bytes(pdf_output) 
-            
-            st.success(f"✅ Registro de {nombre_alumno} listo para descargar.")
-            st.download_button(
-                label="📥 DESCARGAR ESCRITO REFLEXIVO (PDF)",
-                data=pdf_bytes,
-                file_name=f"Reflexion_{nombre_alumno}_{fecha_registro}.pdf",
-                mime="application/pdf"
-            )
-        except Exception as e:
-            st.error(f"Error técnico al generar el PDF: {e}")
