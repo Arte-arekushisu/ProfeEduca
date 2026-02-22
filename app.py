@@ -1,7 +1,6 @@
 import streamlit as st
 from fpdf import FPDF
 import unicodedata
-import datetime
 import io
 
 # --- CONFIGURACIÓN DE PÁGINA ---
@@ -36,7 +35,7 @@ class EvaluacionPDF(FPDF):
         self.ln(10)
 
 # --- INTERFAZ ---
-st.title("📊 Fase 0.6: Evaluación Trimestral")
+st.title("📊 Fase 0.6: Evaluación con Integración IA")
 
 with st.sidebar:
     st.header("📌 Identificación")
@@ -53,67 +52,59 @@ with st.sidebar:
 
 st.divider()
 
-# --- SECCIÓN UNIVERSAL DE ANÁLISIS (IA-READY) ---
-# Esta sección es igual para todos, preparando el terreno para Gemini
-st.subheader("🖋️ Análisis por Campo Formativo")
-st.info("💡 Este apartado se alimentará automáticamente de tus bitácoras diarias mediante IA.")
+# --- SECCIÓN DE ANÁLISIS POR CAMPO (TODOS LOS NIVELES) ---
+st.subheader("🖋️ Análisis Cualitativo por Campo Formativo")
+st.info("💡 Este espacio está diseñado para ser completado por la IA a partir de las bitácoras diarias.")
 
 eval_campos = {}
-campos_nombres = ["Lenguajes", "Saberes y P.C.", "Ética, N. y S.", "De lo Humano y lo Com."]
+campos_nombres = ["Lenguajes", "Saberes y P.C.", "Etica, N. y S.", "De lo Humano y lo Com."]
 
-# Título dinámico según el nivel
-tipo_analisis = "Trayectoria" if nivel_edu == "Preescolar" else "Análisis"
-
-cols_campos = st.columns(2)
+cols = st.columns(2)
 for i, campo in enumerate(campos_nombres):
-    with cols_campos[i % 2]:
-        eval_campos[campo] = st.text_area(f"{tipo_analisis} en {campo}:", 
-                                        height=150, 
-                                        placeholder="Esperando datos de bitácoras diarias...",
-                                        key=f"ia_{campo}")
+    with cols[i % 2]:
+        eval_campos[campo] = st.text_area(f"Análisis de {campo}:", height=120, key=f"ia_{campo}", 
+                                        placeholder="La IA generará este texto basado en tus registros diarios...")
 
 # --- INDICADORES ---
 st.divider()
+st.subheader("📖 Indicadores de Logro")
 col_ind1, col_ind2 = st.columns(2)
-indicador_lectura = col_ind1.text_input("📖 Indicador de Lectura (12A, 1B, etc.)", "12A")
-indicador_escritura = col_ind2.text_input("✍️ Indicador de Escritura (6, etc.)", "6")
+indicador_lectura = col_ind1.text_input("Indicador de Lectura (ej. 12A)", "12A")
+indicador_escritura = col_ind2.text_input("Indicador de Escritura (ej. 6)", "6")
 
-# --- CALIFICACIONES (PRIMARIA Y SECUNDARIA) ---
+# --- CALIFICACIONES Y CLAVES (PRIMARIA / SECUNDARIA) ---
 eval_detalles = []
 if nivel_edu != "Preescolar":
     st.divider()
     st.subheader(f"🔢 Calificaciones y Claves ({nivel_edu})")
     
-    # Primaria usa campos formativos, Secundaria usa materias
-    items_lista = campos_nombres if nivel_edu == "Primaria" else ["Español", "Matemáticas", "Ciencias", "Historia", "Geografía", "F. Cívica y Ética"]
+    items = campos_nombres if nivel_edu == "Primaria" else ["Español", "Matemáticas", "Ciencias", "Historia", "Geografía", "F. Cívica y Ética"]
     
-    for item in items_lista:
+    for item in items:
         c1, c2 = st.columns([2, 1])
         nota = c1.number_input(f"Nota: {item}", 5, 10, 8, key=f"n_{item}")
-        clave = c2.text_input(f"Clave (Máx T120)", "T", max_chars=4, key=f"c_{item}")
+        clave = c2.text_input(f"Clave (ej. T120)", "T", max_chars=5, key=f"c_{item}")
         eval_detalles.append({"concepto": item, "nota": nota, "clave": clave})
 
 # --- GENERACIÓN DEL PDF ---
-if st.button("📊 GENERAR REPORTE EVALUATIVO", use_container_width=True):
+if st.button("📊 GENERAR REPORTE DE EVALUACIÓN", use_container_width=True):
     if not nombre_alumno:
-        st.error("⚠️ Indica el nombre del alumno.")
+        st.error("⚠️ Por favor, ingresa el nombre del alumno.")
     else:
         pdf = EvaluacionPDF()
         pdf.add_page()
         pdf.tabla_datos(nombre_ec, comunidad, nombre_alumno, nivel_edu, grado_edu, trimestre)
 
-        # Indicadores de Lecto-Escritura
+        # Indicadores
         pdf.set_font('Helvetica', 'B', 10)
-        pdf.set_fill_color(230, 230, 230)
-        pdf.cell(95, 8, clean(f"INDICADOR LECTURA: {indicador_lectura}"), 1, 0, 'L', True)
-        pdf.cell(95, 8, clean(f"INDICADOR ESCRITURA: {indicador_escritura}"), 1, 1, 'L', True)
+        pdf.cell(95, 8, clean(f"INDICADOR LECTURA: {indicador_lectura}"), 1, 0, 'L')
+        pdf.cell(95, 8, clean(f"INDICADOR ESCRITURA: {indicador_escritura}"), 1, 1, 'L')
         pdf.ln(5)
 
-        # Sección de Análisis (Alimentada por IA)
-        titulo_seccion = "TRAYECTORIAS (DESCRIPTIVO)" if nivel_edu == "Preescolar" else "ANALISIS CUALITATIVO (IA)"
+        # Análisis Cualitativo
         pdf.set_font('Helvetica', 'B', 12)
         pdf.set_fill_color(0, 51, 102); pdf.set_text_color(255, 255, 255)
-        pdf.cell(0, 10, clean(f" {titulo_seccion}"), 0, 1, 'L', True)
+        pdf.cell(0, 10, clean(" ANALISIS POR CAMPO FORMATIVO (IA-READY)"), 0, 1, 'L', True)
         pdf.set_text_color(0, 0, 0)
         pdf.ln(2)
 
@@ -121,16 +112,28 @@ if st.button("📊 GENERAR REPORTE EVALUATIVO", use_container_width=True):
             pdf.set_font('Helvetica', 'B', 10)
             pdf.cell(0, 7, clean(f"{campo}:"), 0, 1)
             pdf.set_font('Helvetica', '', 9)
-            # Texto por defecto si la IA aún no ha procesado nada
-            txt_mostrar = texto if texto else "Informacion en proceso de analisis desde bitacoras diarias..."
-            pdf.multi_cell(0, 5, clean(txt_mostrar))
+            pdf.multi_cell(0, 5, clean(texto if texto else "Pendiente de procesamiento por IA."))
             pdf.ln(2)
 
-        # Tabla de Notas Numéricas
+        # Tabla de Notas
         if nivel_edu != "Preescolar":
             pdf.ln(5)
             pdf.set_font('Helvetica', 'B', 10); pdf.set_fill_color(200, 200, 200)
-            pdf.cell(100, 10, clean(" ASIGNATURA / CAMPO"), 1, 0, 'C', True)
-            pdf.cell(45, 10, clean(" CALIFICACION"), 1, 0, 'C', True)
-            pdf.cell(45, 10, clean(" CLAVE"), 1, 1, 'C', True)
-            pdf.set_font('Helvetica',
+            pdf.cell(90, 10, clean(" ASIGNATURA / CAMPO"), 1, 0, 'C', True)
+            pdf.cell(50, 10, clean(" CALIFICACION"), 1, 0, 'C', True)
+            pdf.cell(50, 10, clean(" CLAVE"), 1, 1, 'C', True)
+            pdf.set_font('Helvetica', '', 10)
+            for it in eval_detalles:
+                pdf.cell(90, 10, clean(f" {it['concepto']}"), 1, 0, 'L')
+                pdf.cell(50, 10, str(it['nota']), 1, 0, 'C')
+                pdf.cell(50, 10, clean(it['clave']), 1, 1, 'C')
+
+        # Firmas
+        pdf.set_y(-30)
+        pdf.set_font('Helvetica', 'B', 8)
+        pdf.cell(95, 5, clean("__________________________"), 0, 0, 'C')
+        pdf.cell(95, 5, clean("__________________________"), 0, 1, 'C')
+        pdf.cell(95, 5, clean("FIRMA DEL EC"), 0, 0, 'C')
+        pdf.cell(95, 5, clean("FIRMA PADRE / APEC"), 0, 1, 'C')
+
+        st.download_button("📥 DESCARGAR REPORTE PDF", bytes(pdf.output()), f"Reporte_{nombre_alumno}.pdf", "application/pdf")
