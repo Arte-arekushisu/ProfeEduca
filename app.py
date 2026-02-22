@@ -36,7 +36,7 @@ class EvaluacionPDF(FPDF):
         self.ln(10)
 
 # --- INTERFAZ ---
-st.title("📊 Fase 0.6: Evaluación y Trayectorias")
+st.title("📊 Fase 0.6: Evaluación Trimestral")
 
 with st.sidebar:
     st.header("📌 Identificación")
@@ -53,33 +53,38 @@ with st.sidebar:
 
 st.divider()
 
-# --- SECCIÓN DINÁMICA DE ANÁLISIS ---
+# --- SECCIÓN UNIVERSAL DE ANÁLISIS (IA-READY) ---
+# Esta sección es igual para todos, preparando el terreno para Gemini
+st.subheader("🖋️ Análisis por Campo Formativo")
+st.info("💡 Este apartado se alimentará automáticamente de tus bitácoras diarias mediante IA.")
+
 eval_campos = {}
 campos_nombres = ["Lenguajes", "Saberes y P.C.", "Ética, N. y S.", "De lo Humano y lo Com."]
 
-if nivel_edu == "Preescolar":
-    st.subheader("🖋️ Trayectorias Personalizadas (Manual)")
-    st.info("Escribe detalladamente el progreso del alumno para cada campo.")
-    for campo in campos_nombres:
-        eval_campos[campo] = st.text_area(f"Trayectoria en {campo}:", height=120, key=f"pre_{campo}")
-else:
-    st.subheader("🤖 Análisis por Campo Formativo (IA-Ready)")
-    st.warning("Este apartado será autocompletado por la IA basándose en tus bitácoras diarias.")
-    for campo in campos_nombres:
-        eval_campos[campo] = st.text_area(f"Vista previa del Análisis en {campo}:", height=100, key=f"ia_{campo}")
+# Título dinámico según el nivel
+tipo_analisis = "Trayectoria" if nivel_edu == "Preescolar" else "Análisis"
 
-# --- INDICADORES Y CALIFICACIONES ---
+cols_campos = st.columns(2)
+for i, campo in enumerate(campos_nombres):
+    with cols_campos[i % 2]:
+        eval_campos[campo] = st.text_area(f"{tipo_analisis} en {campo}:", 
+                                        height=150, 
+                                        placeholder="Esperando datos de bitácoras diarias...",
+                                        key=f"ia_{campo}")
+
+# --- INDICADORES ---
 st.divider()
-st.subheader("📖 Indicadores de Lectura y Escritura")
 col_ind1, col_ind2 = st.columns(2)
-indicador_lectura = col_ind1.text_input("Indicador de Lectura (12A, 1B, etc.)", "12A")
-indicador_escritura = col_ind2.text_input("Indicador de Escritura (6, etc.)", "6")
+indicador_lectura = col_ind1.text_input("📖 Indicador de Lectura (12A, 1B, etc.)", "12A")
+indicador_escritura = col_ind2.text_input("✍️ Indicador de Escritura (6, etc.)", "6")
 
+# --- CALIFICACIONES (PRIMARIA Y SECUNDARIA) ---
 eval_detalles = []
 if nivel_edu != "Preescolar":
     st.divider()
     st.subheader(f"🔢 Calificaciones y Claves ({nivel_edu})")
     
+    # Primaria usa campos formativos, Secundaria usa materias
     items_lista = campos_nombres if nivel_edu == "Primaria" else ["Español", "Matemáticas", "Ciencias", "Historia", "Geografía", "F. Cívica y Ética"]
     
     for item in items_lista:
@@ -89,7 +94,7 @@ if nivel_edu != "Preescolar":
         eval_detalles.append({"concepto": item, "nota": nota, "clave": clave})
 
 # --- GENERACIÓN DEL PDF ---
-if st.button("📊 GENERAR REPORTE FINAL", use_container_width=True):
+if st.button("📊 GENERAR REPORTE EVALUATIVO", use_container_width=True):
     if not nombre_alumno:
         st.error("⚠️ Indica el nombre del alumno.")
     else:
@@ -97,14 +102,15 @@ if st.button("📊 GENERAR REPORTE FINAL", use_container_width=True):
         pdf.add_page()
         pdf.tabla_datos(nombre_ec, comunidad, nombre_alumno, nivel_edu, grado_edu, trimestre)
 
-        # Indicadores
-        pdf.set_font('Helvetica', 'B', 11)
-        pdf.cell(95, 8, clean(f"INDICADOR LECTURA: {indicador_lectura}"), 1, 0, 'L')
-        pdf.cell(95, 8, clean(f"INDICADOR ESCRITURA: {indicador_escritura}"), 1, 1, 'L')
+        # Indicadores de Lecto-Escritura
+        pdf.set_font('Helvetica', 'B', 10)
+        pdf.set_fill_color(230, 230, 230)
+        pdf.cell(95, 8, clean(f"INDICADOR LECTURA: {indicador_lectura}"), 1, 0, 'L', True)
+        pdf.cell(95, 8, clean(f"INDICADOR ESCRITURA: {indicador_escritura}"), 1, 1, 'L', True)
         pdf.ln(5)
 
-        # Trayectorias / Análisis
-        titulo_seccion = "TRAYECTORIAS PERSONALIZADAS" if nivel_edu == "Preescolar" else "ANÁLISIS POR CAMPO FORMATIVO"
+        # Sección de Análisis (Alimentada por IA)
+        titulo_seccion = "TRAYECTORIAS (DESCRIPTIVO)" if nivel_edu == "Preescolar" else "ANALISIS CUALITATIVO (IA)"
         pdf.set_font('Helvetica', 'B', 12)
         pdf.set_fill_color(0, 51, 102); pdf.set_text_color(255, 255, 255)
         pdf.cell(0, 10, clean(f" {titulo_seccion}"), 0, 1, 'L', True)
@@ -114,36 +120,17 @@ if st.button("📊 GENERAR REPORTE FINAL", use_container_width=True):
         for campo, texto in eval_campos.items():
             pdf.set_font('Helvetica', 'B', 10)
             pdf.cell(0, 7, clean(f"{campo}:"), 0, 1)
-            pdf.set_font('Helvetica', 'I', 9)
-            pdf.multi_cell(0, 5, clean(texto if texto else "Pendiente de registro."))
+            pdf.set_font('Helvetica', '', 9)
+            # Texto por defecto si la IA aún no ha procesado nada
+            txt_mostrar = texto if texto else "Informacion en proceso de analisis desde bitacoras diarias..."
+            pdf.multi_cell(0, 5, clean(txt_mostrar))
             pdf.ln(2)
 
-        # Calificaciones
+        # Tabla de Notas Numéricas
         if nivel_edu != "Preescolar":
             pdf.ln(5)
             pdf.set_font('Helvetica', 'B', 10); pdf.set_fill_color(200, 200, 200)
             pdf.cell(100, 10, clean(" ASIGNATURA / CAMPO"), 1, 0, 'C', True)
-            pdf.cell(45, 10, clean(" CALIFICACIÓN"), 1, 0, 'C', True)
+            pdf.cell(45, 10, clean(" CALIFICACION"), 1, 0, 'C', True)
             pdf.cell(45, 10, clean(" CLAVE"), 1, 1, 'C', True)
-            pdf.set_font('Helvetica', '', 10)
-            for it in eval_detalles:
-                pdf.cell(100, 10, clean(f" {it['concepto']}"), 1, 0, 'L')
-                pdf.cell(45, 10, str(it['nota']), 1, 0, 'C')
-                pdf.cell(45, 10, clean(it['clave']), 1, 1, 'C')
-
-        # Fotos
-        if fotos:
-            pdf.add_page()
-            y_img = 30
-            for i, foto in enumerate(fotos[:2]):
-                pdf.image(io.BytesIO(foto.getvalue()), x=(10 if i==0 else 110), y=y_img, w=90)
-
-        # Firmas
-        pdf.set_y(-40)
-        pdf.line(20, pdf.get_y(), 80, pdf.get_y())
-        pdf.line(130, pdf.get_y(), 190, pdf.get_y())
-        pdf.set_y(pdf.get_y() + 2)
-        pdf.set_x(20); pdf.cell(60, 5, clean("Firma del EC"), 0, 0, 'C')
-        pdf.set_x(130); pdf.cell(60, 5, clean("Firma del Padre / APEC"), 0, 1, 'C')
-
-        st.download_button("📥 DESCARGAR REPORTE", bytes(pdf.output()), f"Eval_{nombre_alumno}.pdf", "application/pdf")
+            pdf.set_font('Helvetica',
