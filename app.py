@@ -1,131 +1,141 @@
 import streamlit as st
-from fpdf import FPDF
-import unicodedata
-import datetime
 
-# --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="PROFEEDUCA - Planeación Semanal", layout="wide", page_icon="📝")
+# --- 1. CONFIGURACIÓN DE PÁGINA ---
+st.set_page_config(page_title="ProfeEduca | Versión 0.2", page_icon="🍎", layout="wide")
 
-def clean(txt):
-    if not txt: return ""
-    txt = "".join(c for c in unicodedata.normalize('NFD', str(txt)) if unicodedata.category(c) != 'Mn')
-    txt = txt.replace('ñ', 'n').replace('Ñ', 'N').replace('“', '"').replace('”', '"')
-    return txt.encode('latin-1', 'ignore').decode('latin-1')
+# --- 2. ESTILOS CSS PERSONALIZADOS ---
+st.markdown("""
+    <style>
+    /* Fondo General Unificado */
+    .stApp { 
+        background: radial-gradient(circle at top, #0f172a 0%, #020617 100%);
+        color: #f8fafc;
+    }
 
-class PlaneacionPDF(FPDF):
-    def header(self):
-        self.set_fill_color(128, 0, 0) 
-        self.rect(0, 0, 210, 25, 'F')
-        self.set_text_color(255, 255, 255)
-        self.set_font('Helvetica', 'B', 16)
-        self.cell(0, 15, clean('PLANEACION SEMANAL'), 0, 1, 'C')
-        self.ln(5)
+    /* Ocultar elementos innecesarios de Streamlit */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
 
-    def tabla_datos(self, ec, eca, comunidad, fecha, nivel, grado):
-        self.set_text_color(0, 0, 0)
-        self.set_font('Helvetica', 'B', 10)
-        self.set_fill_color(230, 230, 230)
-        w = 95
-        h = 8
-        # Fila 1
-        self.cell(w, h, clean(f" NOMBRE EC: {ec}"), 1, 0, 'L', True)
-        self.cell(w, h, clean(f" NOMBRE ECA: {eca}"), 1, 1, 'L', True)
-        # Fila 2
-        self.cell(w, h, clean(f" COMUNIDAD: {comunidad}"), 1, 0, 'L', True)
-        self.cell(w, h, clean(f" FECHA/SEMANA: {fecha}"), 1, 1, 'L', True)
-        # Fila 3 (Nuevos campos)
-        self.cell(w, h, clean(f" NIVEL: {nivel}"), 1, 0, 'L', True)
-        self.cell(w, h, clean(f" GRADO/MODALIDAD: {grado}"), 1, 1, 'L', True)
-        self.ln(5)
+    /* Contenedor Izquierdo (Lista de Navegación) */
+    .nav-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        padding: 20px;
+    }
 
-    def seccion_dia(self, titulo):
-        self.set_font('Helvetica', 'B', 11)
-        self.set_fill_color(128, 0, 0)
-        self.set_text_color(255, 255, 255)
-        self.cell(0, 8, f" {clean(titulo)}", 0, 1, 'L', True)
-        self.ln(2)
-
-# --- INTERFAZ ---
-st.title("🛡️ PROFEEDUCA: Planeación Semanal")
-
-with st.form("Formulario_Final"):
-    st.subheader("📋 Información General y Nivel Educativo")
-    c1, c2, c3 = st.columns(3)
+    /* Animación del Gusanito entrando y saliendo de la manzana */
+    @keyframes worm-move {
+        0%, 100% { transform: translate(45px, -30px) scale(1); opacity: 0; }
+        25% { transform: translate(30px, -45px) scale(1.1); opacity: 1; }
+        50% { transform: translate(0px, -50px) scale(1.2); opacity: 1; }
+        75% { transform: translate(-30px, -45px) scale(1.1); opacity: 1; }
+        90% { transform: translate(-45px, -30px) scale(1); opacity: 0; }
+    }
     
-    with c1:
-        nombre_ec = st.text_input("Nombre del EC", "AXEL REYES")
-        nombre_eca = st.text_input("Nombre del ECA")
+    .apple-container {
+        position: relative;
+        display: inline-block;
+        font-size: 8rem;
+        margin-top: 50px;
+    }
     
-    with c2:
-        comunidad = st.text_input("Comunidad", "CRUZ")
-        fecha_semana = st.date_input("Semana del:", datetime.date.today())
-    
-    with c3:
-        nivel_edu = st.selectbox("Nivel Educativo", ["Preescolar", "Primaria", "Secundaria"])
-        
-        # Lógica de grados según el nivel
-        if nivel_edu == "Preescolar":
-            opciones_grado = ["1", "2", "3", "Multigrado"]
-        elif nivel_edu == "Primaria":
-            opciones_grado = ["1", "2", "3", "4", "5", "6", "Multigrado"]
-        else: # Secundaria
-            opciones_grado = ["1", "2", "3", "Multigrado"]
-            
-        grado_edu = st.selectbox("Grado", opciones_grado)
+    .worm-icon {
+        position: absolute;
+        font-size: 3rem;
+        animation: worm-move 5s ease-in-out infinite;
+    }
 
-    st.divider()
-    st.subheader("🍎 Jornada Post-Receso")
-    
-    dias = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes"]
-    datos_semana = {}
+    /* Estilo del Nombre con Regla y Lápiz unidos */
+    .brand-header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        font-size: 2.5rem;
+        font-weight: 900;
+        color: #38bdf8;
+        text-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+    }
 
-    for dia in dias:
-        with st.expander(f"📅 {dia.upper()}", expanded=(dia == "Lunes")):
-            col1, col2 = st.columns(2)
-            with col1:
-                m1 = st.text_input(f"Materia 1 - {dia}", key=f"m1_{dia}")
-                p1 = st.text_area(f"Actividades Materia 1", key=f"p1_{dia}", height=80)
-            with col2:
-                m2 = st.text_input(f"Materia 2 - {dia}", key=f"m2_{dia}")
-                p2 = st.text_area(f"Actividades Materia 2", key=f"p2_{dia}", height=80)
-            datos_semana[dia] = {"m1": m1, "p1": p1, "m2": m2, "p2": p2}
-    
-    submit = st.form_submit_button("🔨 PLANEACIONES ABCD")
+    .slogan-final {
+        font-style: italic;
+        font-size: 1.1rem;
+        color: #94a3b8;
+        max-width: 400px;
+        margin: 20px auto;
+        line-height: 1.6;
+    }
 
-if submit:
-    st.markdown("### 👁️ Vista Previa del Documento")
-    
-    pdf = PlaneacionPDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.add_page()
-    
-    # Tabla de datos ahora incluye nivel y grado
-    pdf.tabla_datos(nombre_ec, nombre_eca, comunidad, str(fecha_semana), nivel_edu, grado_edu)
+    /* Botones de la lista izquierda */
+    .stButton>button {
+        text-align: left;
+        padding: 15px;
+        font-size: 1.1rem;
+        background: transparent;
+        color: #f8fafc;
+        border: none;
+        border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+        transition: 0.3s;
+    }
+    .stButton>button:hover {
+        background: rgba(56, 189, 248, 0.1);
+        padding-left: 25px;
+        color: #38bdf8;
+        border-bottom: 1px solid #38bdf8;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-    for dia, info in datos_semana.items():
-        if info['m1'] or info['m2']:
-            pdf.seccion_dia(dia.upper())
-            # Materia 1
-            pdf.set_text_color(0,0,0)
-            pdf.set_font('Helvetica', 'B', 10)
-            pdf.cell(0, 6, clean(f"Materia: {info['m1']}"), 0, 1)
-            pdf.set_font('Helvetica', '', 10)
-            pdf.multi_cell(0, 5, clean(info['p1']))
-            pdf.ln(2)
-            # Materia 2
-            pdf.set_font('Helvetica', 'B', 10)
-            pdf.cell(0, 6, clean(f"Materia: {info['m2']}"), 0, 1)
-            pdf.set_font('Helvetica', '', 10)
-            pdf.multi_cell(0, 5, clean(info['p2']))
-            pdf.ln(5)
-    
-    pdf_output = pdf.output(dest='S')
-    pdf_bytes = bytes(pdf_output) if not isinstance(pdf_output, str) else pdf_output.encode('latin-1')
+# --- 3. DISEÑO DE PANTALLA DIVIDIDA ---
+col_menu, col_visual = st.columns([1, 1.5])
 
-    st.success("✅ Estructura generada correctamente.")
-    st.download_button(
-        label="📥 DESCARGAR PLANEACIÓN SEMANAL (PDF)",
-        data=pdf_bytes,
-        file_name=f"Planeacion_{nivel_edu}_{grado_edu}_{comunidad}.pdf",
-        mime="application/pdf"
-    )
+# LADO IZQUIERDO: LISTA DE OPCIONES
+with col_menu:
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.title("🚀 Menú Maestro")
+    
+    # Lista de botones como solicitaste
+    if st.button("🏠 Inicio"): st.session_state.p = "inicio"
+    if st.button("📝 Planeación ABCD"): st.session_state.p = "plan"
+    if st.button("📓 Escrito Reflexivo"): st.session_state.p = "reflexivo"
+    if st.button("📅 Diario del Maestro"): st.session_state.p = "diario"
+    if st.button("📊 Estadísticas"): st.session_state.p = "stats"
+    
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.caption("Ecosistema Digital ProfeEduca © 2026")
+
+# LADO DERECHO: IDENTIDAD Y ANIMACIÓN
+with col_visual:
+    st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
+    
+    # Animación de la Manzana y el Gusanito
+    st.markdown("""
+        <div class="apple-container">
+            <span class="worm-icon">🐛</span>
+            🍎
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Nombre de marca con Regla y Lápiz unidos
+    st.markdown("""
+        <div class="brand-header">
+            📏 ProfeEduca ✏️
+        </div>
+        <div style="font-weight: 700; color: white; margin-top: 10px;">
+            PLANEACIONES PARA EL MAESTRO ABCD
+        </div>
+        <div class="slogan-final">
+            "Guía de luz en las comunidades más remotas, transformando cada desafío en una oportunidad para el México del mañana."
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# --- 4. CONTENIDO DINÁMICO (Debajo del menú) ---
+st.divider()
+if 'p' not in st.session_state: st.session_state.p = "inicio"
+
+if st.session_state.p == "inicio":
+    st.subheader("Bienvenido al Centro de Innovación Pedagógica")
+    st.write("Tu centro de mando está listo para operar bajo el modelo de aprendizaje autónomo.")
