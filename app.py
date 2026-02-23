@@ -4,7 +4,7 @@ import unicodedata
 import datetime
 import io
 
-# --- 1. CONFIGURACIÓN DE PÁGINA Y ESTILOS ---
+# --- 1. CONFIGURACIÓN DE PÁGINA Y ESTILO ---
 st.set_page_config(page_title="PROFEEDUCA - Sistema Integral", layout="wide", page_icon="🍎")
 
 def clean(txt):
@@ -13,9 +13,9 @@ def clean(txt):
     txt = txt.replace('ñ', 'n').replace('Ñ', 'N')
     return txt.encode('latin-1', 'replace').decode('latin-1')
 
-# --- 2. CLASES PARA GENERACIÓN DE PDF ---
-class MaestroPDF(FPDF):
-    def header_style(self, titulo, color_rgb=(128, 0, 0)):
+# --- 2. CLASE PDF UNIFICADA (Para todos los documentos) ---
+class ProfeEducaPDF(FPDF):
+    def header_institucional(self, titulo, color_rgb=(128, 0, 0)):
         self.set_fill_color(*color_rgb)
         self.rect(0, 0, 210, 25, 'F')
         self.set_text_color(255, 255, 255)
@@ -23,25 +23,24 @@ class MaestroPDF(FPDF):
         self.cell(0, 15, clean(titulo), 0, 1, 'C')
         self.ln(5)
 
-    def tabla_identificacion(self, datos):
+    def tabla_identificacion(self, dict_datos):
         self.set_text_color(0, 0, 0)
         self.set_font('Helvetica', 'B', 10)
         self.set_fill_color(240, 240, 240)
-        for label, valor in datos.items():
-            self.cell(95, 8, clean(f" {label}: {valor}"), 1, 0, 'L', True)
-            if list(datos.keys()).index(label) % 2 != 0: self.ln(8)
-        self.ln(5)
+        for i, (label, valor) in enumerate(dict_datos.items()):
+            self.cell(95, 8, clean(f" {label}: {valor}"), 1, (i % 2), 'L', True)
+        self.ln(10)
 
-# --- 3. INTERFAZ Y ESTILOS CSS ---
+# --- 3. ESTILOS VISUALES (Basados en Fase 0.1 y 0.2) ---
 st.markdown("""
     <style>
     .stApp { background: radial-gradient(circle at top, #0f172a 0%, #020617 100%); color: #f8fafc; }
     div[data-testid="stExpander"] { border: 2px solid #FF4B4B !important; background-color: #1e293b; border-radius: 10px; }
-    .main-header { color: #38bdf8; font-size: 2.5rem; font-weight: bold; text-align: center; }
+    .stButton>button { border-radius: 8px; font-weight: bold; transition: 0.3s; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 4. BARRA LATERAL (IDENTIDAD Y SOS) ---
+# --- 4. BARRA LATERAL (DATOS MAESTROS Y SOS) ---
 with st.sidebar:
     st.markdown("<h1 style='text-align: center;'>🍎 PROFEEDUCA</h1>", unsafe_allow_html=True)
     nombre_ec = st.text_input("Educador Comunitario", "AXEL REYES")
@@ -51,73 +50,71 @@ with st.sidebar:
     st.divider()
     st.markdown("### 🆘 CENTRO DE AYUDA")
     with st.expander("🚨 BOTÓN SOS", expanded=False):
-        st.error("¿Necesitas asistencia?")
-        st.info("Tip: Si el PDF marca error, verifica que no usaste emojis o símbolos raros en los textos.")
-        st.link_button("📲 Soporte WhatsApp", "https://wa.me/tu_numero")
+        st.error("¿Algo no funciona?")
+        if st.button("🤖 Ayuda IA", use_container_width=True):
+            st.info("La IA requiere textos detallados en las bitácoras para generar el análisis.")
+        st.link_button("📲 Soporte Directo", "https://wa.me/tu_numero", use_container_width=True)
 
-# --- 5. NAVEGACIÓN POR PESTAÑAS (TABS) ---
-tabs = st.tabs(["📝 Escritos Reflexivos", "📅 Planeación", "📊 Evaluación", "🧾 Facturación"])
+# --- 5. CUERPO PRINCIPAL (NAVEGACIÓN POR TABS) ---
+t1, t2, t3, t4 = st.tabs(["👤 Escrito Reflexivo", "🗓️ Planeación", "📊 Evaluación", "🧾 Facturación"])
 
-# --- TAB: ESCRITOS REFLEXIVOS ---
-with tabs[0]:
-    st.subheader("👤 Registro de Reflexión Individual")
+# --- TAB 1: ESCRITO REFLEXIVO (Fase 0.4) ---
+with t1:
+    st.subheader("📝 Seguimiento Individual del Alumno")
     col1, col2 = st.columns(2)
-    alumno_ref = col1.text_input("Nombre del Alumno", key="ref_nom")
-    trimestre_ref = col2.selectbox("Trimestre", ["1ro", "2do", "3ro"], key="ref_tri")
+    alumno_ref = col1.text_input("Nombre del Alumno", key="ref_n")
+    trimestre_ref = col2.selectbox("Trimestre", ["1ero", "2do", "3ero"], key="ref_t")
     
-    que_hizo = st.text_area("¿Qué hizo el alumno hoy?")
-    como_hizo = st.text_area("¿Cómo realizó las actividades?")
+    q_hizo = st.text_area("¿Qué hizo el alumno hoy?")
+    c_hizo = st.text_area("¿Cómo realizó las actividades?")
     
-    if st.button("💾 Generar Escrito PDF"):
-        pdf = MaestroPDF()
+    if st.button("💾 GENERAR ESCRITO PDF"):
+        pdf = ProfeEducaPDF()
         pdf.add_page()
-        pdf.header_style("ESCRITO REFLEXIVO")
+        pdf.header_institucional("ESCRITO REFLEXIVO")
         pdf.tabla_identificacion({"ALUMNO": alumno_ref, "TRIMESTRE": trimestre_ref, "EC": nombre_ec, "COMUNIDAD": comunidad})
-        pdf.set_font('Helvetica', 'B', 12); pdf.cell(0, 10, "1. ACTIVIDADES", 0, 1)
-        pdf.set_font('Helvetica', '', 11); pdf.multi_cell(0, 6, clean(que_hizo))
-        st.download_button("📥 Descargar Escrito", data=bytes(pdf.output()), file_name="Escrito.pdf")
+        st.download_button("📥 Descargar", data=bytes(pdf.output()), file_name="Escrito.pdf")
 
-# --- TAB: PLANEACIÓN SEMANAL ---
-with tabs[1]:
+# --- TAB 2: PLANEACIÓN (Fase 0.5) ---
+with t2:
     st.subheader("🗓️ Planeación Semanal ABCD")
-    fecha_plan = st.date_input("Semana del:", datetime.date.today())
-    # Estructura simplificada basada en Fase 0.5
-    dia_plan = st.selectbox("Día a planear", ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"])
-    actividad_plan = st.text_area(f"Actividades para el {dia_plan}")
+    fecha_p = st.date_input("Semana del:", datetime.date.today())
+    dia_p = st.selectbox("Día", ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"])
+    actividades_p = st.text_area(f"Actividades para el {dia_p}")
     
-    if st.button("🔨 Crear Planeación"):
-        st.success("Planeación generada (Módulo unificado)")
+    if st.button("🔨 CREAR PLANEACIÓN"):
+        st.success("Módulo de planeación activado.")
 
-# --- TAB: EVALUACIÓN TRIMESTRAL ---
-with tabs[2]:
-    st.subheader("📉 Reporte de Evaluación")
-    alumno_ev = st.text_input("Nombre del Alumno", key="ev_nom")
+# --- TAB 3: EVALUACIÓN (Fase 0.6 / 0.7) ---
+with t3:
+    st.subheader("📉 Reporte de Evaluación Trimestral")
+    alumno_ev = st.text_input("Alumno a evaluar", key="ev_n")
     
     campos = ["Lenguajes", "Saberes y P.C.", "Etica, N. y S.", "De lo Humano y lo Com."]
     eval_textos = {}
-    cols_ev = st.columns(2)
+    c_ev = st.columns(2)
     for i, campo in enumerate(campos):
-        eval_textos[campo] = cols_ev[i%2].text_area(f"Análisis {campo}")
+        eval_textos[campo] = c_ev[i%2].text_area(f"Análisis {campo}")
 
-    if st.button("🚀 Generar Evaluación"):
-        pdf = MaestroPDF()
+    if st.button("🚀 GENERAR REPORTE TRIMESTRAL"):
+        pdf = ProfeEducaPDF()
         pdf.add_page()
-        pdf.header_style("REPORTE TRIMESTRAL", (0, 51, 102))
+        pdf.header_institucional("REPORTE DE EVALUACION", (0, 51, 102))
         pdf.tabla_identificacion({"ALUMNO": alumno_ev, "NIVEL": nivel_edu, "EC": nombre_ec})
-        st.download_button("📥 Descargar Evaluación", data=bytes(pdf.output()), file_name="Evaluacion.pdf")
+        st.download_button("📥 Descargar Reporte", data=bytes(pdf.output()), file_name="Evaluacion.pdf")
 
-# --- TAB: FACTURACIÓN ---
-with tabs[3]:
-    st.subheader("🧾 Comprobantes de Pago")
+# --- TAB 4: FACTURACIÓN (Fase 0.7 / 0.8) ---
+with t4:
+    st.subheader("🧾 Gestión Administrativa")
     col_f1, col_f2 = st.columns(2)
-    razon = col_f1.text_input("Razón Social / Nombre")
-    monto = col_f2.number_input("Monto ($)", min_value=0.0)
+    razon_f = col_f1.text_input("Razón Social")
+    monto_f = col_f2.number_input("Monto total ($)", min_value=0.0)
     
-    if st.button("📝 Emitir Comprobante"):
-        if monto > 0:
-            pdf = MaestroPDF()
+    if st.button("📝 EMITIR COMPROBANTE"):
+        if monto_f > 0:
+            pdf = ProfeEducaPDF()
             pdf.add_page()
-            pdf.header_style("COMPROBANTE DE PAGO", (33, 47, 61))
-            pdf.tabla_identificacion({"RECEPTOR": razon, "MONTO": f"${monto}", "FECHA": str(datetime.date.today())})
-            st.download_button("📥 Descargar Factura", data=bytes(pdf.output()), file_name="Factura.pdf")
+            pdf.header_institucional("COMPROBANTE DE PAGO", (33, 47, 61))
+            pdf.tabla_identificacion({"RECEPTOR": razon_f, "MONTO": f"${monto_f}", "FECHA": str(datetime.date.today())})
+            st.download_button("📥 Descargar Recibo", data=bytes(pdf.output()), file_name="Factura.pdf")
             st.balloons()
