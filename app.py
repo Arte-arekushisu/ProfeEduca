@@ -13,6 +13,7 @@ supabase = create_client(URL_SUPABASE, KEY_SUPABASE)
 genai.configure(api_key=KEY_GEMINI)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
+
 # --- FUNCIONES ---
 def pedir_ayuda_a_gemini(tema):
     prompt = f"Eres un experto maestro. Haz una planeación corta para el tema: {tema}"
