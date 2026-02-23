@@ -3,67 +3,59 @@ from supabase import create_client
 import google.generativeai as genai
 
 # --- 1. LLAVES SECRETAS ---
-# Pon tus llaves reales aquí adentro
 URL_SUPABASE = "https://pmqmqeukhufaqecbuodg.supabase.co"
-KEY_SUPABASE = "sb_publishable_MXI7GvNreB5ZEhUJxQ2mXw_rzQpuyZ4" 
-KEY_GEMINI = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
+KEY_SUPABASE = "TU_LLAVE_ANON_AQUI" 
+KEY_GEMINI = "TU_API_KEY_AQUI"
 
 # --- 2. CONFIGURACIÓN ---
 try:
-    # Conexión a Base de Datos
     supabase = create_client(URL_SUPABASE, KEY_SUPABASE)
-    # Conexión a IA
     genai.configure(api_key=KEY_GEMINI)
     
-    # EL CAMBIO MÁGICO: Probamos con el nombre corto que pide la versión actual
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # TRUCO PARA EL ERROR 404: Buscamos el modelo disponible en tu cuenta
+    model_name = 'gemini-1.5-flash' # Nombre base
+    model = genai.GenerativeModel(model_name)
 except Exception as e:
-    st.error(f"Error de conexión: {e}")
+    st.error(f"Error de configuración: {e}")
 
 # --- 3. FUNCIÓN DE LA IA ---
 def pedir_ayuda_a_gemini(tema):
-    # Instrucciones para el asistente
-    prompt = f"Eres un experto maestro del modelo ABCD. Diseña una planeación profesional para: {tema}"
+    prompt = f"Eres un experto maestro. Haz una planeación ABCD profesional para el tema: {tema}."
     try:
-        # Intentamos generar el contenido
+        # Intento normal
         respuesta = model.generate_content(prompt)
         return respuesta.text
     except Exception as e:
-        # Si el primer nombre falla, este bloque intenta el nombre largo automáticamente
+        # Si falla el anterior (error 404), intentamos con el prefijo models/
         try:
-            model_alt = genai.GenerativeModel('models/gemini-1.5-flash')
-            respuesta = model_alt.generate_content(prompt)
+            modelo_alt = genai.GenerativeModel(f'models/{model_name}')
+            respuesta = modelo_alt.generate_content(prompt)
             return respuesta.text
-        except:
-            return f"Lo siento, la IA todavía no responde. Error: {e}"
+        except Exception as e2:
+            return f"Error crítico de conexión con Google: {e2}"
 
 # --- 4. INTERFAZ VISUAL ---
 st.set_page_config(page_title="ProfeEduca", page_icon="🍎")
 st.markdown("<h1 style='text-align: center; color: #ff4b4b;'>🍎 ProfeEduca</h1>", unsafe_allow_html=True)
 st.write("---")
 
-tema_usuario = st.text_input("¿Qué tema quieres planear hoy?", placeholder="Ej. El ciclo del agua")
+tema_maestro = st.text_input("¿Qué tema quieres planear hoy?", placeholder="Ej. El ciclo del agua")
 
 if st.button("🪄 Generar Planeación Mágicamente"):
-    if tema_usuario:
+    if tema_maestro:
         with st.spinner("⏳ Redactando..."):
-            # Generamos el texto
-            resultado = pedir_ayuda_a_gemini(tema_usuario)
+            resultado = pedir_ayuda_a_gemini(tema_maestro)
             
-            # Mostramos en pantalla
             st.markdown("### Resultado de tu Planeación:")
             st.write(resultado)
             
-            # Intentamos guardar en la base de datos (Supabase)
+            # Guardado en Supabase
             try:
-                # Nota: la tabla 'planeaciones' ya existe según tus capturas
-                supabase.table("planeaciones").insert({"tema": tema_usuario, "contenido_ia": resultado}).execute()
+                supabase.table("planeaciones").insert({"tema": tema_maestro, "contenido_ia": resultado}).execute()
                 st.success("✅ Guardado en la nube")
             except:
-                st.info("Planeación lista, pero no se pudo guardar en la base de datos (revisa tu llave Anon).")
+                st.info("Planeación lista. (Nota: No se guardó en la base de datos, revisa tus llaves de Supabase)")
     else:
         st.warning("Escribe un tema primero.")
 
-# Barra lateral
-st.sidebar.markdown("### Estado del Sistema")
 st.sidebar.success("Conectado a la Nube")
