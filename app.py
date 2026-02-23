@@ -2,49 +2,57 @@ import streamlit as st
 from supabase import create_client
 import google.generativeai as genai
 
-# --- 1. LLAVES SECRETAS ---
-# Pon tus datos reales entre las comillas
+# --- 1. CONFIGURACIÓN DE PÁGINA (DEBE IR PRIMERO) ---
+st.set_page_config(page_title="ProfeEduca", page_icon="🍎")
+
+# --- 2. LLAVES SECRETAS ---
 URL_SUPABASE = "https://pmqmqeukhufaqecbuodg.supabase.co"
-KEY_SUPABASE = "sb_publishable_MXI7GvNreB5ZEhUJxQ2mXw_rzQpuyZ4" 
+KEY_SUPABASE = "TU_LLAVE_ANON_AQUIsb_publishable_MXI7GvNreB5ZEhUJxQ2mXw_rzQpuyZ4" 
 KEY_GEMINI = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
 
-# --- 2. CONFIGURACIÓN ---
+# --- 3. CONEXIONES ---
 try:
     supabase = create_client(URL_SUPABASE, KEY_SUPABASE)
     genai.configure(api_key=KEY_GEMINI)
-    # Usamos solo el nombre del modelo, sin el prefijo 'models/'
+    # Usamos el nombre del modelo que Google reconoce actualmente
     model = genai.GenerativeModel('gemini-1.5-flash')
 except Exception as e:
     st.error(f"Error de configuración: {e}")
 
-# --- 3. FUNCIÓN DE LA IA ---
+# --- 4. FUNCIÓN DE LA IA ---
 def pedir_ayuda_a_gemini(tema):
-    prompt = f"Actúa como experto pedagogo. Crea una planeación para: {tema}"
+    prompt = f"Eres un experto maestro. Crea una planeación ABCD completa para el tema: {tema}."
     try:
-        # Intento de generación directa
-        respuesta = model.generate_content(tema)
+        # Intentamos la generación
+        respuesta = model.generate_content(prompt)
         return respuesta.text
     except Exception as e:
-        return f"La IA aún no responde: {e}"
+        return f"Error al conectar con la IA: {e}"
 
-# --- 4. INTERFAZ ---
-st.set_page_config(page_title="ProfeEduca", page_icon="🍎")
-st.markdown("<h1 style='text-align: center;'>🍎 ProfeEduca</h1>", unsafe_allow_html=True)
+# --- 5. INTERFAZ VISUAL ---
+st.markdown("<h1 style='text-align: center; color: #ff4b4b;'>🍎 ProfeEduca</h1>", unsafe_allow_html=True)
+st.write("---")
 
-tema = st.text_input("¿Qué tema quieres planear hoy?")
+tema_maestro = st.text_input("¿Qué tema quieres planear hoy?", placeholder="Ej. El ciclo del agua")
 
-if st.button("🪄 Generar Planeación"):
-    if tema:
-        with st.spinner("⏳ Gemini está escribiendo..."):
-            resultado = pedir_ayuda_a_gemini(tema)
-            st.markdown("### Planeación Generada:")
+if st.button("🪄 Generar Planeación Mágicamente"):
+    if tema_maestro:
+        with st.spinner("⏳ Redactando tu planeación..."):
+            # Obtenemos el resultado de la IA
+            resultado = pedir_ayuda_a_gemini(tema_maestro)
+            
+            # Lo mostramos en pantalla
+            st.markdown("### Resultado de tu Planeación:")
             st.write(resultado)
             
-            # Guardado
+            # Lo guardamos en Supabase
             try:
-                supabase.table("planeaciones").insert({"tema": tema, "contenido_ia": resultado}).execute()
-                st.success("✅ Guardado en Supabase")
+                supabase.table("planeaciones").insert({"tema": tema_maestro, "contenido_ia": resultado}).execute()
+                st.success("✅ ¡Éxito! Guardado en la nube.")
             except:
-                st.info("Nota: La planeación está lista, pero no se guardó en la base de datos.")
+                st.info("Planeación lista. (Nota: No se pudo guardar en la base de datos, revisa tus llaves).")
     else:
-        st.warning("Escribe un tema.")
+        st.warning("Escribe un tema primero.")
+
+# Barra lateral
+st.sidebar.success("Conectado a la Nube")
