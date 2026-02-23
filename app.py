@@ -2,45 +2,46 @@ import streamlit as st
 from supabase import create_client
 import google.generativeai as genai
 
-# --- 1. CONFIGURACIÓN DE PÁGINA ---
+# --- CONFIGURACIÓN INICIAL ---
 st.set_page_config(page_title="ProfeEduca", page_icon="🍎")
 
-# --- 2. LLAVES ---
-# Verifica que no tengan espacios en blanco al principio o al final
+# --- TUS LLAVES ---
 URL_SUPABASE = "https://pmqmqeukhufaqecbuodg.supabase.co"
 KEY_SUPABASE = "sb_publishable_MXI7GvNreB5ZEhUJxQ2mXw_rzQpuyZ4" 
-KEY_GEMINI = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
+KEY_GEMINI = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM" # Asegúrate de que sea la nueva que generaste
 
-# --- 3. INICIALIZACIÓN DEL SISTEMA ---
+# --- CONEXIÓN AL MODELO ---
 try:
-    # Forzamos el uso de la versión estable de la API para evitar el error 404
     genai.configure(api_key=KEY_GEMINI)
+    # Usamos el nombre estándar para evitar el error 404
     model = genai.GenerativeModel('gemini-1.5-flash')
     supabase = create_client(URL_SUPABASE, KEY_SUPABASE)
 except Exception as e:
-    st.error(f"Error de conexión: {e}")
+    st.error(f"Error de conexión inicial: {e}")
 
-# --- 4. INTERFAZ ---
+# --- INTERFAZ ---
 st.markdown("<h1 style='text-align: center; color: #ff4b4b;'>🍎 ProfeEduca</h1>", unsafe_allow_html=True)
-tema = st.text_input("¿Qué tema quieres planear hoy?")
+st.write("---")
+
+tema = st.text_input("¿Qué tema quieres planear hoy?", placeholder="Ej. El ciclo del agua")
 
 if st.button("🪄 Generar Planeación"):
     if tema:
-        with st.spinner("⏳ Redactando tu planeación..."):
+        with st.spinner("⏳ Gemini está redactando tu clase..."):
             try:
-                # Generamos el contenido
-                respuesta = model.generate_content(f"Crea una planeación pedagógica para: {tema}")
-                texto_planeacion = respuesta.text
+                # Generamos el contenido sin usar versiones beta
+                respuesta = model.generate_content(f"Eres un maestro experto. Crea una planeación ABCD para: {tema}")
+                texto = respuesta.text
                 
-                # Mostramos el resultado
-                st.markdown("### Resultado:")
-                st.write(texto_planeacion)
+                st.markdown("### Planeación Generada:")
+                st.write(texto)
                 
-                # Guardamos en Supabase
-                supabase.table("planeaciones").insert({"tema": tema, "contenido_ia": texto_planeacion}).execute()
-                st.success("✅ ¡Éxito! Guardado en la nube.")
+                # Guardamos en la base de datos
+                supabase.table("planeaciones").insert({"tema": tema, "contenido_ia": texto}).execute()
+                st.success("✅ ¡Éxito! Planeación guardada en la nube.")
+                
             except Exception as e:
-                # Si hay un error, lo mostramos claramente para corregirlo
-                st.error(f"Hubo un problema: {e}")
+                # Este mensaje nos dirá si Google aún tiene algún bloqueo
+                st.error(f"La IA todavía tiene un detalle técnico: {e}")
     else:
-        st.warning("Escribe un tema antes de continuar.")
+        st.warning("Escribe un tema primero.")
