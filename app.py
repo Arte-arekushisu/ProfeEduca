@@ -2,66 +2,56 @@ import streamlit as st
 from supabase import create_client
 import google.generativeai as genai
 
-# --- 1. LLAVES SECRETAS (Pega las tuyas aquí) ---
+# --- 1. LLAVES SECRETAS ---
+# Pon tus datos reales entre las comillas
 URL_SUPABASE = "https://pmqmqeukhufaqecbuodg.supabase.co"
 KEY_SUPABASE = "sb_publishable_MXI7GvNreB5ZEhUJxQ2mXw_rzQpuyZ4" 
 KEY_GEMINI = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
 
-# --- 2. CONFIGURACIÓN DE CONEXIONES ---
-# Este bloque conecta tu app con Supabase y Gemini
+# --- 2. CONFIGURACIÓN ---
 try:
     supabase = create_client(URL_SUPABASE, KEY_SUPABASE)
     genai.configure(api_key=KEY_GEMINI)
-    # Usamos el nombre del modelo más estable para evitar el error 404
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # Nombre de modelo actualizado para evitar el error 404
+    model = genai.GenerativeModel('gemini-1.5-flash-latest')
 except Exception as e:
-    st.error("Revisa tus llaves, parece que hay un error de conexión.")
+    st.error(f"Error de conexión: {e}")
 
-# --- 3. EL CEREBRO DE LA IA ---
+# --- 3. FUNCIONES ---
 def pedir_ayuda_a_gemini(tema):
-    prompt = f"""
-    Eres un experto pedagogo. Diseña una planeación ABCD profesional 
-    para el tema: {tema}. 
-    Estructura la respuesta con: Inicio, Desarrollo y Cierre.
-    No uses símbolos extraños como muchos asteriscos.
-    """
+    prompt = f"Eres un experto maestro. Crea una planeación ABCD profesional para: {tema}"
     try:
+        # Intentamos generar el contenido
         respuesta = model.generate_content(prompt)
         return respuesta.text
     except Exception as e:
-        return f"Error al generar con IA: {e}"
+        return f"La IA dice: {e}"
 
-# --- 4. DISEÑO DE LA PÁGINA (INTERFAZ) ---
-st.set_page_config(page_title="ProfeEduca IA", page_icon="🍎")
-
-# Título visual
-st.markdown("<h1 style='text-align: center; color: #ff4b4b;'>🍎 ProfeEduca</h1>", unsafe_allow_html=True)
+# --- 4. INTERFAZ ---
+st.set_page_config(page_title="ProfeEduca", page_icon="🍎")
+st.markdown("<h1 style='text-align: center;'>🍎 ProfeEduca</h1>", unsafe_allow_html=True)
 st.write("---")
 
-# Entrada del maestro
-tema_usuario = st.text_input("¿Qué tema quieres planear hoy?", placeholder="Ej. El sistema solar")
+tema_usuario = st.text_input("¿Qué tema quieres planear hoy?")
 
 if st.button("🪄 Generar Planeación Mágicamente"):
     if tema_usuario:
-        with st.spinner("⏳ Gemini está redactando..."):
-            # 1. Llamamos a la IA
+        with st.spinner("⏳ Redactando..."):
+            # Generamos
             resultado = pedir_ayuda_a_gemini(tema_usuario)
             
-            # 2. Mostramos el resultado
+            # Mostramos
             st.markdown("### Resultado de tu Planeación:")
             st.write(resultado)
             
-            # 3. Guardamos en la base de datos de Supabase
+            # Guardamos en Supabase
             try:
-                datos = {"tema": tema_usuario, "contenido_ia": resultado}
-                supabase.table("planeaciones").insert(datos).execute()
-                st.success("✅ Guardado en tu cuenta de Supabase")
-            except Exception as e:
-                st.warning("Se generó la planeación, pero no se pudo guardar en la base de datos.")
+                supabase.table("planeaciones").insert({"tema": tema_usuario, "contenido_ia": resultado}).execute()
+                st.success("✅ Guardado en la nube")
+            except:
+                st.warning("Se creó la planeación, pero hubo un detalle al guardar en la base de datos.")
     else:
-        st.warning("Por favor, escribe un tema.")
+        st.warning("Escribe un tema primero.")
 
-# Barra lateral informativa
-st.sidebar.title("Configuración")
+# Barra lateral
 st.sidebar.success("Conectado a ProfeEduca Cloud")
-st.sidebar.info("Plan: Profesional Mensual")
