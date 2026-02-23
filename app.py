@@ -3,63 +3,66 @@ from supabase import create_client
 import google.generativeai as genai
 
 # --- 1. LLAVES SECRETAS ---
+# Pon tus llaves reales aquí adentro
 URL_SUPABASE = "https://pmqmqeukhufaqecbuodg.supabase.co"
 KEY_SUPABASE = "sb_publishable_MXI7GvNreB5ZEhUJxQ2mXw_rzQpuyZ4" 
 KEY_GEMINI = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
 
 # --- 2. CONFIGURACIÓN ---
 try:
-    # Conexión a la base de datos
+    # Conexión a Base de Datos
     supabase = create_client(URL_SUPABASE, KEY_SUPABASE)
-    # Conexión a la Inteligencia Artificial
+    # Conexión a IA
     genai.configure(api_key=KEY_GEMINI)
-    # NOMBRE CORREGIDO: Probamos con el nombre simple
+    
+    # EL CAMBIO MÁGICO: Probamos con el nombre corto que pide la versión actual
     model = genai.GenerativeModel('gemini-1.5-flash')
 except Exception as e:
-    st.error(f"Error de configuración: {e}")
+    st.error(f"Error de conexión: {e}")
 
 # --- 3. FUNCIÓN DE LA IA ---
 def pedir_ayuda_a_gemini(tema):
-    prompt = f"Eres un experto maestro. Haz una planeación ABCD profesional para el tema: {tema}. Usa Inicio, Desarrollo y Cierre."
+    # Instrucciones para el asistente
+    prompt = f"Eres un experto maestro del modelo ABCD. Diseña una planeación profesional para: {tema}"
     try:
-        # Aquí es donde ocurre la magia
+        # Intentamos generar el contenido
         respuesta = model.generate_content(prompt)
         return respuesta.text
     except Exception as e:
-        # Si falla el nombre anterior, intentamos con el nombre alternativo automáticamente
+        # Si el primer nombre falla, este bloque intenta el nombre largo automáticamente
         try:
-            modelo_alt = genai.GenerativeModel('models/gemini-1.5-flash')
-            respuesta = modelo_alt.generate_content(prompt)
+            model_alt = genai.GenerativeModel('models/gemini-1.5-flash')
+            respuesta = model_alt.generate_content(prompt)
             return respuesta.text
         except:
-            return f"Error al conectar con la IA: {e}"
+            return f"Lo siento, la IA todavía no responde. Error: {e}"
 
 # --- 4. INTERFAZ VISUAL ---
 st.set_page_config(page_title="ProfeEduca", page_icon="🍎")
 st.markdown("<h1 style='text-align: center; color: #ff4b4b;'>🍎 ProfeEduca</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center;'>Tu asistente inteligente para maestros</p>", unsafe_allow_html=True)
 st.write("---")
 
-tema_maestro = st.text_input("¿Qué tema quieres planear hoy?", placeholder="Ej. El ciclo del agua")
+tema_usuario = st.text_input("¿Qué tema quieres planear hoy?", placeholder="Ej. El ciclo del agua")
 
 if st.button("🪄 Generar Planeación Mágicamente"):
-    if tema_maestro:
-        with st.spinner("⏳ Redactando tu planeación..."):
-            # Llamamos a la inteligencia
-            resultado = pedir_ayuda_a_gemini(tema_maestro)
+    if tema_usuario:
+        with st.spinner("⏳ Redactando..."):
+            # Generamos el texto
+            resultado = pedir_ayuda_a_gemini(tema_usuario)
             
-            # Mostramos el resultado
+            # Mostramos en pantalla
             st.markdown("### Resultado de tu Planeación:")
             st.write(resultado)
             
-            # Guardamos en Supabase
+            # Intentamos guardar en la base de datos (Supabase)
             try:
-                supabase.table("planeaciones").insert({"tema": tema_maestro, "contenido_ia": resultado}).execute()
-                st.success("✅ Guardado en tu cuenta")
+                # Nota: la tabla 'planeaciones' ya existe según tus capturas
+                supabase.table("planeaciones").insert({"tema": tema_usuario, "contenido_ia": resultado}).execute()
+                st.success("✅ Guardado en la nube")
             except:
-                st.info("Planeación generada. (Nota: Hubo un detalle al guardar en la base de datos, revisa tus llaves de Supabase)")
+                st.info("Planeación lista, pero no se pudo guardar en la base de datos (revisa tu llave Anon).")
     else:
-        st.warning("Por favor, escribe un tema primero.")
+        st.warning("Escribe un tema primero.")
 
 # Barra lateral
 st.sidebar.markdown("### Estado del Sistema")
