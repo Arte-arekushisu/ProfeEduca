@@ -4,8 +4,8 @@ import google.generativeai as genai
 
 # --- 1. LLAVES SECRETAS ---
 URL_SUPABASE = "https://pmqmqeukhufaqecbuodg.supabase.co"
-KEY_SUPABASE = "TU_LLAVE_ANON_AQUI" 
-KEY_GEMINI = "TU_API_KEY_AQUI"
+KEY_SUPABASE = "sb_publishable_MXI7GvNreB5ZEhUJxQ2mXw_rzQpuyZ4" 
+KEY_GEMINI = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
 
 # --- 2. CONFIGURACIÓN ---
 try:
