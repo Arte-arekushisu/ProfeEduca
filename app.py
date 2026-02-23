@@ -1,47 +1,38 @@
 import streamlit as st
-from supabase import create_client
 import google.generativeai as genai
+from supabase import create_client
 
-# --- CONFIGURACIÓN INICIAL ---
+# 1. Configuración
 st.set_page_config(page_title="ProfeEduca", page_icon="🍎")
 
-# --- TUS LLAVES ---
-URL_SUPABASE = "https://pmqmqeukhufaqecbuodg.supabase.co"
-KEY_SUPABASE = "sb_publishable_MXI7GvNreB5ZEhUJxQ2mXw_rzQpuyZ4" 
-KEY_GEMINI = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM" # Asegúrate de que sea la nueva que generaste
+# 2. Credenciales (Asegúrate de que la API KEY sea la NUEVA que generaste)
+GEMINI_KEY = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
+SUPABASE_URL = "https://pmqmqeukhufaqecbuodg.supabase.co"
+SUPABASE_KEY = "sb_publishable_MXI7GvNreB5ZEhUJxQ2mXw_rzQpuyZ4"
 
-# --- CONEXIÓN AL MODELO ---
+# 3. Conexión Forzada a Versión Estable
 try:
-    genai.configure(api_key=KEY_GEMINI)
-    # Usamos el nombre estándar para evitar el error 404
+    # Esta línea es la que quita el error 404 de raíz
+    genai.configure(api_key=GEMINI_KEY, transport='rest') 
     model = genai.GenerativeModel('gemini-1.5-flash')
-    supabase = create_client(URL_SUPABASE, KEY_SUPABASE)
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 except Exception as e:
-    st.error(f"Error de conexión inicial: {e}")
+    st.error(f"Error de configuración: {e}")
 
-# --- INTERFAZ ---
-st.markdown("<h1 style='text-align: center; color: #ff4b4b;'>🍎 ProfeEduca</h1>", unsafe_allow_html=True)
-st.write("---")
+# 4. Interfaz
+st.title("🍎 ProfeEduca")
+tema = st.text_input("Tema de la clase:")
 
-tema = st.text_input("¿Qué tema quieres planear hoy?", placeholder="Ej. El ciclo del agua")
-
-if st.button("🪄 Generar Planeación"):
+if st.button("Generar Planeación"):
     if tema:
-        with st.spinner("⏳ Gemini está redactando tu clase..."):
+        with st.spinner("Conectando con el cerebro de Google..."):
             try:
-                # Generamos el contenido sin usar versiones beta
-                respuesta = model.generate_content(f"Eres un maestro experto. Crea una planeación ABCD para: {tema}")
-                texto = respuesta.text
+                # Intento de generación
+                response = model.generate_content(f"Planeación para: {tema}")
+                st.write(response.text)
                 
-                st.markdown("### Planeación Generada:")
-                st.write(texto)
-                
-                # Guardamos en la base de datos
-                supabase.table("planeaciones").insert({"tema": tema, "contenido_ia": texto}).execute()
-                st.success("✅ ¡Éxito! Planeación guardada en la nube.")
-                
+                # Intento de guardado
+                supabase.table("planeaciones").insert({"tema": tema, "contenido_ia": response.text}).execute()
+                st.success("Guardado en la nube")
             except Exception as e:
-                # Este mensaje nos dirá si Google aún tiene algún bloqueo
-                st.error(f"La IA todavía tiene un detalle técnico: {e}")
-    else:
-        st.warning("Escribe un tema primero.")
+                st.error(f"Error técnico: {e}")
