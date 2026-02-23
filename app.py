@@ -1,20 +1,55 @@
-# Importaciones de todos los archivos (streamlit, fpdf, PIL, etc.)
+import streamlit as st
+from fpdf import FPDF
+import unicodedata
+import datetime
+import io
 
-# --- TODAS LAS CLASES PDF (RegistroPDF, PlaneacionPDF, EvaluacionPDF) ---
-# Aquí pegamos las clases que definimos en las fases 0.4, 0.5 y 0.7
+# --- 1. CLASES PDF (Copiadas de fases 0.4, 0.5, 0.7) ---
+class RegistroPDF(FPDF):
+    # ... (contenido de fase 0.4)
+    pass
 
-# --- LÓGICA DE LOGIN (de fase 0.1) ---
+class PlaneacionPDF(FPDF):
+    # ... (contenido de fase 0.5)
+    pass
+
+class EvaluacionPDF(FPDF):
+    # ... (contenido de fase 0.7)
+    pass
+
+# --- 2. INICIALIZACIÓN DE ESTADO ---
+if "step" not in st.session_state:
+    st.session_state.step = "login"
+
+# --- 3. LÓGICA DE NAVEGACIÓN ---
+
 if st.session_state.step == "login":
-    # Mostrar pantalla de acceso
+    st.title("Inicio de Sesión")
+    # Lógica de login aquí...
+    if st.button("Entrar"):
+        st.session_state.step = "plan"
+        st.rerun()
+
 elif st.session_state.step == "plan":
-    # Mostrar selección de planes
+    st.title("Selecciona tu Plan")
+    # Lógica de selección de plan aquí...
+    if st.button("Seleccionar Plan Premium"):
+        st.session_state.step = "app"
+        st.rerun()
+
 elif st.session_state.step == "app":
-    # --- DASHBOARD PRINCIPAL (de fase 0.2) ---
-    # Menú lateral para elegir qué herramienta usar:
+    # --- DASHBOARD PRINCIPAL ---
+    st.sidebar.title("Menú ProfeEduca")
+    menu = st.sidebar.radio("Herramientas", ["Escritos", "Planeaciones", "Evaluaciones"])
     
     if menu == "Escritos":
-        # Ejecutar función de fase0.4.py
+        st.subheader("Generador de Escritos Reflexivos")
+        # Aquí pegas el contenido del formulario de fase0.4.py
+        
     elif menu == "Planeaciones":
-        # Ejecutar función de fase0.5.py
+        st.subheader("Planeación Semanal ABCD")
+        # Aquí pegas el contenido del formulario de fase0.5.py
+        
     elif menu == "Evaluaciones":
-        # Ejecutar función de fase0.7.py
+        st.subheader("Reporte de Evaluación Trimestral")
+        # Aquí pegas el contenido del formulario de fase0.7.py
