@@ -4,34 +4,34 @@ from supabase import create_client
 
 st.set_page_config(page_title="ProfeEduca", page_icon="🍎")
 
-# --- LLAVES (PÉGALAS AQUÍ) ---
-# 1. Tu API Key de Google AI Studio
+# --- LLAVES ---
+# Asegúrate de que no tengan espacios al principio ni al final
 GOOGLE_KEY = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
-# 2. La URL de tu proyecto Supabase
 S_URL = "https://pmqmqeukhufaqecbuodg.supabase.co"
-# 3. La llave 'anon' 'public' de Supabase (empieza con eyJ...)
 S_KEY = "sb_publishable_MXI7GvNreB5ZEhUJxQ2mXw_rzQpuyZ4"
 
-# --- CONFIGURACIÓN DE IA ---
+# --- CONFIGURACIÓN ESTABLE ---
 try:
-    # transport='rest' es la medicina para el error 404 v1beta
+    # transport='rest' obliga a usar la ruta correcta y quita el error 404
     genai.configure(api_key=GOOGLE_KEY, transport='rest')
     model = genai.GenerativeModel('gemini-1.5-flash')
     supabase = create_client(S_URL, S_KEY)
 except Exception as e:
-    st.error(f"Error en configuración: {e}")
+    st.error(f"Revisa tus llaves: {e}")
 
 st.title("🍎 ProfeEduca")
 tema = st.text_input("¿Qué tema planeamos hoy?")
 
 if st.button("Generar planeación"):
     if tema:
-        with st.spinner("⏳ Conectando con la IA..."):
+        with st.spinner("⏳ La IA está trabajando..."):
             try:
-                response = model.generate_content(f"Crea una planeación educativa sobre: {tema}")
+                # Generar contenido
+                response = model.generate_content(f"Haz una planeación docente sobre: {tema}")
                 st.markdown(response.text)
-                # Guardado en base de datos
+                
+                # Guardar en Supabase
                 supabase.table("planeaciones").insert({"tema": tema, "contenido_ia": response.text}).execute()
-                st.success("✅ ¡Planeación guardada con éxito!")
+                st.success("✅ ¡Guardado con éxito!")
             except Exception as e:
                 st.error(f"Aviso: {e}")
