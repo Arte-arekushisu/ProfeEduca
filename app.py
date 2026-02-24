@@ -1,34 +1,47 @@
 import streamlit as st
 import requests
 
-# REEMPLAZA ESTO CON TU LLAVE NUEVA (la que acabas de crear)
-G_KEY = "PEGA_AQUÍ_TU_NUEVA_LLAVE"
+# 1. PEGA TU LLAVE NUEVA AQUÍ (Asegúrate de que no tenga espacios)
+G_KEY = "TU_NUEVA_LLAVE_AQUÍ"
 
-st.title("🍎 ProfeEduca: Gemini 3 Activado")
+st.title("🍎 ProfeEduca: Intento Definitivo")
 
 tema = st.text_input("¿Qué tema planeamos hoy?")
 
-if st.button("Generar Planeación"):
+if st.button("🚀 Generar Planeación"):
     if tema:
-        with st.spinner("⏳ Generando con Gemini 2.0 Flash..."):
-            # Usamos la ruta v1beta y el ID gemini-2.0-flash
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={G_KEY}"
+        with st.spinner("⏳ Conectando con la IA..."):
+            # Usamos la ruta estable v1beta y el modelo flash
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={G_KEY}"
             
+            # Estructura JSON simplificada al mínimo
             payload = {
-                "contents": [{
-                    "parts": [{"text": f"Crea una planeación educativa sobre: {tema}"}]
-                }]
+                "contents": [
+                    {
+                        "parts": [{"text": f"Genera una planeación de clase para: {tema}"}]
+                    }
+                ]
             }
             
             try:
+                # Enviamos la petición
                 response = requests.post(url, json=payload)
-                data = response.json()
                 
+                # Si es 200, todo salió bien
                 if response.status_code == 200:
-                    texto = data['candidates'][0]['content']['parts'][0]['text']
-                    st.markdown(texto)
+                    data = response.json()
+                    # Extraemos el texto con cuidado
+                    if 'candidates' in data:
+                        texto = data['candidates'][0]['content']['parts'][0]['text']
+                        st.markdown(texto)
+                    else:
+                        st.error("Google respondió pero no envió texto.")
                 else:
+                    # Si sale 400 u otro, mostramos el por qué exacto
                     st.error(f"Error {response.status_code}")
-                    st.json(data)
+                    st.json(response.json()) # Esto nos dirá qué palabra exacta no le gustó
+                    
             except Exception as e:
-                st.error(f"Error: {e}")
+                st.error(f"Fallo de conexión: {e}")
+    else:
+        st.warning("Por favor escribe un tema.")
