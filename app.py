@@ -4,34 +4,31 @@ from supabase import create_client
 
 st.set_page_config(page_title="ProfeEduca", page_icon="🍎")
 
-# --- LLAVES ---
-# Verifica que estas llaves no tengan espacios al final
-GOOGLE_API_KEY = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
-SUPABASE_URL = "https://pmqmqeukhufaqecbuodg.supabase.co"
-SUPABASE_KEY = "sb_publishable_MXI7GvNreB5ZEhUJxQ2mXw_rzQpuyZ4"
+# --- REEMPLAZA ESTO CON TUS LLAVES REALES ---
+GEMINI_KEY = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
+S_URL = "https://pmqmqeukhufaqecbuodg.supabase.co"
+S_KEY = "sb_publishable_MXI7GvNreB5ZEhUJxQ2mXw_rzQpuyZ4"
 
-# --- CONFIGURACIÓN SEGURA ---
+# --- CONEXIÓN BLINDADA ---
 try:
-    # Esta línea es el secreto para quitar el error 404 v1beta
-    genai.configure(api_key=GOOGLE_API_KEY, transport='rest')
+    # 'transport=rest' es el truco maestro para eliminar el error 404 v1beta
+    genai.configure(api_key=GEMINI_KEY, transport='rest')
     model = genai.GenerativeModel('gemini-1.5-flash')
-    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+    supabase = create_client(S_URL, S_KEY)
 except Exception as e:
-    st.error(f"Error en configuración de llaves: {e}")
+    st.error(f"Error en llaves: {e}")
 
 st.title("🍎 ProfeEduca")
 tema = st.text_input("¿Qué quieres planear hoy?")
 
-if st.button("Generar Planeación"):
+if st.button("Generar planeación"):
     if tema:
-        with st.spinner("⏳ Creando tu planeación..."):
+        with st.spinner("⏳ Conectando con la IA..."):
             try:
-                # Generar contenido
-                response = model.generate_content(f"Crea una planeación docente para: {tema}")
+                response = model.generate_content(f"Crea una planeación educativa sobre: {tema}")
                 st.markdown(response.text)
-                
-                # Guardar en Supabase
+                # Guardar
                 supabase.table("planeaciones").insert({"tema": tema, "contenido_ia": response.text}).execute()
-                st.success("✅ Guardado en la base de datos")
+                st.success("✅ ¡Guardado en la base de datos!")
             except Exception as e:
-                st.error(f"Error al generar: {e}")
+                st.error(f"Aviso: {e}")
