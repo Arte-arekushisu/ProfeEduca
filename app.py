@@ -1,80 +1,30 @@
 import streamlit as st
-from PIL import Image
-import base64
-import io
-import random
 import requests
 from supabase import create_client, Client
 
-# --- CONFIGURACIÓN Y CREDENCIALES ---
+# --- 1. CONFIGURACIÓN Y CREDENCIALES ---
 GEMINI_KEY = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
 SUPABASE_URL = "https://pmqmqeukhufaqecbuodg.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtcW1xZXVraHVmYXFlY2J1b2RnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NzY2MzksImV4cCI6MjA4NzA1MjYzOX0.Hr_3LlyI43zEoV4ZMn28gSKiBABK35VPTWip9rjC-zc"
 
-st.set_page_config(page_title="ProfeEduca F1: Registro", page_icon="👤", layout="wide")
+st.set_page_config(page_title="ProfeEduca F2: Menú Maestro", page_icon="🍎", layout="wide")
 
-# Inicializar Supabase de forma independiente
+# Inicializar Supabase (Conexión para validar usuario de F1)
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# --- ESTILO DARK-CORPORATE ---
+# --- 2. ESTILOS CSS PERSONALIZADOS ---
 st.markdown("""
     <style>
     .stApp { background: radial-gradient(circle at top, #0f172a 0%, #020617 100%); color: #f8fafc; }
-    .profile-pic { border-radius: 50%; width: 150px; height: 150px; border: 4px solid #38bdf8; box-shadow: 0 0 20px #38bdf866; }
-    .stButton>button { border-radius: 10px; background: linear-gradient(90deg, #0ea5e9 0%, #2563eb 100%); color: white; font-weight: bold; width: 100%; }
-    </style>
-""", unsafe_allow_html=True)
-
-# --- IA: GEMINI 1.5 FLASH (Validación de Perfil) ---
-def ia_validar_perfil(nombre, vision):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_KEY}"
-    prompt = f"Eres un mentor de CONAFE. El maestro {nombre} dice que su visión es: '{vision}'. Dale una breve frase de bienvenida personalizada que lo motive a usar el modelo ABCD."
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
-    try:
-        res = requests.post(url, json=payload)
-        return res.json()['candidates'][0]['content']['parts'][0]['text']
-    except:
-        return "Bienvenido al ecosistema ProfeEduca, transformando la educación comunitaria."
-
-# --- FLUJO DE LA FASE 1 ---
-if 'step' not in st.session_state: st.session_state.step = "login"
-
-st.title("🛡️ Fase 1: Identidad Digital")
-
-if st.session_state.step == "login":
-    col1, col2, col3 = st.columns([1, 1.5, 1])
-    with col2:
-        email = st.text_input("Correo Institucional")
-        if st.button("Iniciar Registro"):
-            if "@" in email:
-                st.session_state.email = email
-                st.session_state.step = "perfil"
-                st.rerun()
-
-elif st.session_state.step == "perfil":
-    st.subheader("Configura tu Perfil Profesional")
-    col_a, col_b = st.columns([1, 2])
-    
-    with col_a:
-        foto = st.file_uploader("Sube tu foto", type=['jpg', 'png'])
-        if foto: st.image(foto, width=150)
-        
-    with col_b:
-        nombre = st.text_input("Nombre Completo")
-        vision = st.text_area("¿Cuál es tu compromiso con la comunidad?")
-        
-        if st.button("Generar Bienvenida con IA"):
-            with st.spinner("La IA está analizando tu perfil..."):
-                mensaje = ia_validar_perfil(nombre, vision)
-                st.session_state.mensaje_ia = mensaje
-                st.info(mensaje)
-
-    if st.button("Finalizar y Sincronizar con Supabase"):
-        try:
-            # Guardar en Supabase (Asegúrate de tener la tabla 'usuarios')
-            data = {"email": st.session_state.email, "nombre": nombre, "mensaje_ia": st.session_state.get('mensaje_ia', "")}
-            supabase.table("usuarios").insert(data).execute()
-            st.success("¡Datos guardados! Fase 1 completada.")
-            st.balloons()
-        except Exception as e:
-            st.error(f"Error de conexión: {e}")
+    @keyframes worm-move {
+        0%, 100% { transform: translate(45px, -30px) scale(1); opacity: 0; }
+        25% { transform: translate(30px, -45px) scale(1.1); opacity: 1; }
+        50% { transform: translate(0px, -50px) scale(1.2); opacity: 1; }
+        75% { transform: translate(-30px, -45px) scale(1.1); opacity: 1; }
+        90% { transform: translate(-45px, -30px) scale(1); opacity: 0; }
+    }
+    .apple-container { position: relative; display: inline-block; font-size: 8rem; margin-top: 50px; }
+    .worm-icon { position: absolute; font-size: 3rem; animation: worm-move 5s ease-in-out infinite; }
+    .brand-header { font-size: 2.5rem; font-weight: 900; color: #38bdf8; text-shadow: 0 0 15px rgba(56, 189, 248, 0.4); text-align: center; }
+    .stButton>button { text-align: left; padding: 15px; background: transparent; color: #f8fafc; border: none; border-bottom: 1px solid rgba(56, 189, 248, 0.2); width: 100%; }
+    .stButton
