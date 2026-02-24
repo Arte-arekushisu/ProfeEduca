@@ -2,35 +2,32 @@ import streamlit as st
 import google.generativeai as genai
 from supabase import create_client
 
-# Configuración de página
+# Configuración básica
 st.set_page_config(page_title="ProfeEduca", page_icon="🍎")
 
-# Credenciales (Verifica que tu API KEY sea la NUEVA)
+# LLAVES (Copia y pega con cuidado, sin espacios extra)
 GEMINI_KEY = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
 SUPABASE_URL = "https://pmqmqeukhufaqecbuodg.supabase.co"
 SUPABASE_KEY = "sb_publishable_MXI7GvNreB5ZEhUJxQ2mXw_rzQpuyZ4"
 
-try:
-    # transport='rest' es la clave para eliminar el error 404 v1beta
-    genai.configure(api_key=GEMINI_KEY, transport='rest')
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-except Exception as e:
-    st.error(f"Error de configuración: {e}")
+# Conexión al modelo estable
+genai.configure(api_key=GEMINI_KEY)
+model = genai.GenerativeModel('gemini-1.5-flash')
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 st.title("🍎 ProfeEduca")
-tema = st.text_input("Tema de la clase:")
+tema = st.text_input("¿Qué quieres planear hoy?")
 
 if st.button("Generar Planeación"):
     if tema:
-        with st.spinner("⏳ Conectando con la IA..."):
+        with st.spinner("Generando..."):
             try:
-                # Usamos el modelo estable
-                response = model.generate_content(f"Planeación para: {tema}")
-                st.write(response.text)
+                # Generar contenido
+                response = model.generate_content(f"Haz una planeación sobre: {tema}")
+                st.markdown(response.text)
                 
-                # Guardado
+                # Guardar en base de datos
                 supabase.table("planeaciones").insert({"tema": tema, "contenido_ia": response.text}).execute()
-                st.success("✅ Guardado correctamente")
+                st.success("¡Listo y guardado!")
             except Exception as e:
-                st.error(f"Error técnico: {e}")
+                st.error(f"Error: {e}")
