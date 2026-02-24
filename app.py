@@ -11,11 +11,11 @@ S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6In
 
 # --- CONEXIÓN ---
 try:
-    # Configuramos Google para evitar el error 404
+    # EL CAMBIO CLAVE: transport='rest' evita el error 404 v1beta
     genai.configure(api_key=GOOGLE_KEY, transport='rest')
     model = genai.GenerativeModel('gemini-1.5-flash')
     
-    # Conexión simplificada a Supabase para evitar el error 'proxy'
+    # Conexión a Supabase
     supabase = create_client(S_URL, S_KEY)
 except Exception as e:
     st.error(f"Error de configuración: {e}")
@@ -27,18 +27,24 @@ tema = st.text_input("¿Qué tema quieres planear hoy?")
 
 if st.button("🚀 Generar y Guardar Planeación"):
     if tema:
-        with st.spinner("⏳ Creando planeación..."):
+        with st.spinner("⏳ La IA está trabajando..."):
             try:
-                # Generar con Gemini
-                response = model.generate_content(f"Plan de clase detallado sobre: {tema}")
+                # Generar contenido
+                response = model.generate_content(f"Actúa como un experto pedagogo. Crea una planeación de clase detallada para: {tema}")
                 
                 if response.text:
                     st.markdown(response.text)
-                    # Guardar en base de datos
+                    
+                    # Intentar guardar en base de datos
                     try:
                         supabase.table("planeaciones").insert({"tema": tema, "contenido_ia": response.text}).execute()
-                        st.success("✅ ¡Guardado en la base de datos!")
+                        st.success("✅ ¡Guardado con éxito!")
                     except Exception as db_e:
-                        st.warning(f"Se creó la planeación, pero no se guardó: {db_e}")
+                        st.warning(f"Se generó la clase, pero no se pudo guardar: {db_e}")
+                else:
+                    st.error("La IA no devolvió texto. Inténtalo de nuevo.")
             except Exception as e:
+                # Si esto falla, el error nos dirá exactamente por qué
                 st.error(f"Error con la IA: {e}")
+    else:
+        st.warning("Escribe un tema primero.")
