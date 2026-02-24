@@ -8,9 +8,9 @@ from groq import Groq
 GEMINI_KEY = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
 GROQ_KEY = "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"
 
-st.set_page_config(page_title="ProfeEduca | Planeación Semanal", page_icon="🍎", layout="wide")
+st.set_page_config(page_title="ProfeEduca | Sistema Blindado", page_icon="🍎", layout="wide")
 
-# --- 2. ESTILOS CSS (Identidad ProfeEduca) ---
+# --- 2. ESTILOS PROFEEDUCA (Fondo y Animación) ---
 st.markdown("""
     <style>
     .stApp { background: radial-gradient(circle at top, #0f172a 0%, #020617 100%); color: #f8fafc; }
@@ -29,7 +29,7 @@ st.markdown("""
 
 # --- 3. LÓGICA DE INTELIGENCIA HÍBRIDA ---
 def generar_planeacion_semanal(prompt):
-    # Intento 1: Gemini 2.0 Flash Lite (Balanceado)
+    # Intento 1: Gemini (Principal)
     url_gemini = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key={GEMINI_KEY}"
     try:
         res = requests.post(url_gemini, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=10)
@@ -38,15 +38,17 @@ def generar_planeacion_semanal(prompt):
     except:
         pass
 
-    # Intento 2 (Respaldo Inmediato): Groq Llama 3
+    # Intento 2: Groq (Emergencia con tu llave)
     try:
         client = Groq(api_key=GROQ_KEY)
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}]
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=2500
         )
-        return completion.choices[0].message.content, "Groq (Llama 3)"
-    except:
+        return completion.choices[0].message.content, "Groq (Llama 3.3)"
+    except Exception as e:
         return None, None
 
 # --- 4. FUNCIÓN PDF ---
@@ -61,55 +63,56 @@ def crear_pdf(datos, contenido):
     pdf.cell(95, 8, txt=f"E.C.A.: {datos['eca']}", border=1, ln=True)
     pdf.cell(190, 8, txt=f"Comunidad: {datos['comunidad']} | Período: 1 Semana", border=1, ln=True)
     pdf.ln(10)
-    pdf.multi_cell(0, 8, txt=contenido.encode('latin-1', 'ignore').decode('latin-1'))
+    # Limpieza de caracteres para el PDF
+    texto_pdf = contenido.encode('latin-1', 'ignore').decode('latin-1')
+    pdf.multi_cell(0, 8, txt=texto_pdf)
     return pdf.output(dest='S').encode('latin-1')
 
-# --- 5. INTERFAZ ---
-col_menu, col_visual = st.columns([1, 2])
+# --- 5. ESTRUCTURA VISUAL ---
+st.sidebar.markdown("### 🚀 Navegación")
+if st.sidebar.button("🏠 Inicio"): st.session_state.p = "inicio"
+if st.sidebar.button("📝 Planeaciones ABCD"): st.session_state.p = "plan"
 
-with col_menu:
-    st.markdown("### 🚀 Panel Maestro")
-    if st.button("🏠 Inicio"): st.session_state.p = "inicio"
-    if st.button("📝 Planeaciones ABCD"): st.session_state.p = "plan"
-    
 if 'p' not in st.session_state: st.session_state.p = "inicio"
 
-with col_visual:
-    st.markdown('<div class="apple-container"><span class="worm-icon">🐛</span>🍎</div>', unsafe_allow_html=True)
-    st.markdown('<div class="brand-header">📏 ProfeEduca ✏️</div>', unsafe_allow_html=True)
+# Encabezado con manzana
+st.markdown('<div class="apple-container"><span class="worm-icon">🐛</span>🍎</div>', unsafe_allow_html=True)
+st.markdown('<div class="brand-header">📏 ProfeEduca ✏️</div>', unsafe_allow_html=True)
 
 st.divider()
 
 if st.session_state.p == "plan":
-    st.subheader("🗓️ Generador Semanal Blindado")
+    st.subheader("🗓️ Planeación Semanal (4 Estaciones)")
     
-    with st.expander("Datos de la Planeación", expanded=True):
+    with st.expander("📝 Datos Generales", expanded=True):
         c1, c2 = st.columns(2)
-        ec = c1.text_input("E.C.")
-        eca = c1.text_input("E.C.A.")
-        comunidad = c2.text_input("Comunidad")
-        inst = c2.selectbox("Institución", ["CONAFE", "SEP", "Otros"])
-        rincon = st.text_input("Rincón Permanente")
+        ec_val = c1.text_input("E.C.")
+        eca_val = c1.text_input("E.C.A.")
+        comu_val = c2.text_input("Comunidad")
+        inst_val = c2.selectbox("Institución", ["CONAFE", "SEP", "Otros"])
+        rinc_val = st.text_input("Rincón Permanente")
 
-    tema = st.text_input("Tema central para la semana:")
+    tema_val = st.text_input("Tema central para la semana:")
 
-    if st.button("🚀 Generar Planeación Semanal"):
-        if tema and ec:
-            with st.spinner("Conectando con la red de IAs..."):
-                prompt = f"""Genera una planeación ABCD SEMANAL para '{tema}'. 
-                Contexto: Educación rural. 
-                Estructura: 4 estaciones, 3 actividades diarias por estación. 
-                Campos: Lenguajes, Saberes, Ética, De lo Humano. 
-                Distribuye de Lunes a Viernes de forma extensa."""
-                
-                resultado, motor = generar_planeacion_semanal(prompt)
+    if st.button("🚀 Planeaciones ABCD"):
+        if tema_val and ec_val:
+            with st.spinner("Generando planeación semanal..."):
+                prompt_pedagogico = f"""
+                Genera una planeación ABCD SEMANAL para '{tema_val}'. 
+                Estructura: 4 estaciones con 3 actividades diarias cada una.
+                Distribución: Lunes a Viernes.
+                Campos Formativos: Lenguajes, Saberes, Ética, De lo Humano.
+                Finaliza con una sugerencia de Demostración Pública para el viernes.
+                """
+                resultado, motor = generar_planeacion_semanal(prompt_pedagogico)
                 
                 if resultado:
-                    st.success(f"Generado con: {motor}")
+                    st.success(f"¡Listo! Motor: {motor}")
                     st.markdown(resultado)
-                    pdf_bytes = crear_pdf({"ec": ec, "eca": eca, "comunidad": comunidad, "inst": inst}, resultado)
-                    st.download_button("📥 Descargar PDF Semanal", data=pdf_bytes, file_name=f"Semana_{tema}.pdf")
+                    pdf_bytes = crear_pdf({"ec": ec_val, "eca": eca_val, "comunidad": comu_val, "inst": inst_val}, resultado)
+                    st.download_button("📥 Descargar PDF Semanal", data=pdf_bytes, file_name=f"Semana_{tema_val}.pdf")
                 else:
-                    st.error("Error crítico: Ambos motores están saturados. Intenta en 1 min.")
+                    st.error("🚨 Todos los motores saturados. Intenta de nuevo en un minuto.")
 else:
-    st.info("Bienvenido, Maestro. Selecciona 'Planeaciones ABCD' para planificar tu semana.")
+    st.markdown("### 👋 ¡Bienvenido al Generador Inteligente!")
+    st.write("Selecciona **Planeaciones ABCD** en el menú lateral para empezar a planear tu semana sin interrupciones.")
