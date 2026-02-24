@@ -1,67 +1,102 @@
 import streamlit as st
 import requests
-from supabase import create_client, Client
+from datetime import datetime
+from fpdf import FPDF
+import base64
 
-# --- 1. CONFIGURACIÓN ---
-# Usamos Gemini 1.5 Pro para mayor capacidad de redacción extensa
-IA_MODEL = "gemini-1.5-pro" 
+# --- 1. CONFIGURACIÓN Y CEREBRO ---
+IA_MODEL = "gemini-1.5-flash" 
 GEMINI_KEY = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
-SUPABASE_URL = "https://pmqmqeukhufaqecbuodg.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtcW1xZXVraHVmYXFlY2J1b2RnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NzY2MzksImV4cCI6MjA4NzA1MjYzOX0.Hr_3LlyI43zEoV4ZMn28gSKiBABK35VPTWip9rjC-zc"
 
-st.set_page_config(page_title="ProfeEduca F3: Generador", page_icon="📝", layout="wide")
+st.set_page_config(page_title="ProfeEduca | Planeaciones", page_icon="📝")
 
-# --- 2. MOTOR DE GENERACIÓN EXTENSA ---
-def generar_documento_abcd(tema, nivel, contexto):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{IA_MODEL}:generateContent?key={GEMINI_KEY}"
+# --- 2. FUNCIÓN PARA GENERAR PDF ---
+def crear_pdf(datos, contenido_ia):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", 'B', 16)
     
-    prompt = f"""
-    Actúa como un Asesor Pedagógico Senior experto en el Modelo ABCD de CONAFE.
-    Genera una UNIDAD DE APRENDIZAJE INTEGRAL para el tema: {tema}.
-    Nivel: {nivel}.
-    Contexto comunitario: {contexto}.
+    # Encabezado
+    pdf.cell(200, 10, txt=f"Planeación de Actividades - {datos['institucion']}", ln=True, align='C')
     
-    El documento debe incluir:
-    1. Propósito General.
-    2. Desafío (Pregunta generadora).
-    3. Trayecto de Aprendizaje (Pasos detallados).
-    4. Sugerencias de evaluación formativa.
-    5. Espacio para Registro de Proceso de Aprendizaje (RPA).
+    pdf.set_font("Arial", size=10)
+    pdf.ln(10)
     
-    Usa un lenguaje profesional pero cercano al contexto rural mexicano.
-    """
+    # Tabla de datos generales
+    pdf.cell(100, 10, txt=f"E.C.: {datos['ec']}", border=1)
+    pdf.cell(90, 10, txt=f"E.C.A.: {datos['eca']}", border=1, ln=True)
+    pdf.cell(100, 10, txt=f"Comunidad: {datos['comunidad']}", border=1)
+    pdf.cell(90, 10, txt=f"Fecha: {datos['fecha']}", border=1, ln=True)
+    pdf.cell(100, 10, txt=f"Rincón: {datos['rincon']}", border=1, ln=True)
     
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
-    try:
-        res = requests.post(url, json=payload)
-        return res.json()['candidates'][0]['content']['parts'][0]['text']
-    except:
-        return "⚠️ Error: La IA ha alcanzado su límite gratuito temporal. Intenta en un momento."
+    pdf.ln(10)
+    pdf.set_font("Arial", 'B', 12)
+    pdf.cell(200, 10, txt="Desarrollo de Estaciones y Campos Formativos", ln=True)
+    
+    pdf.set_font("Arial", size=10)
+    pdf.multi_cell(0, 10, txt=contenido_ia)
+    
+    return pdf.output(dest='S').encode('latin-1', 'ignore')
 
 # --- 3. INTERFAZ ---
-st.markdown("<h1 style='color: #38bdf8;'>📝 Generador de Unidades ABCD</h1>", unsafe_allow_html=True)
-st.write("Crea documentos pedagógicos extensos y personalizados con IA avanzada.")
+st.title("📝 Planeaciones ABCD")
+st.markdown("---")
 
-with st.container():
+with st.expander("🛠️ Datos del Educador y Comunidad", expanded=True):
     col1, col2 = st.columns(2)
     with col1:
-        tema_input = st.text_input("¿Qué tema quieres enseñar? (ej. Ecosistemas, Revolución Mexicana)")
-        nivel_input = st.selectbox("Nivel Educativo", ["Preescolar", "Primaria Menor", "Primaria Mayor", "Secundaria"])
+        ec = st.text_input("Nombre del E.C. (Abreviado)")
+        eca = st.text_input("Nombre del E.C.A. (Abreviado)")
+        comunidad = st.text_input("Comunidad")
     with col2:
-        contexto_input = st.text_area("Breve descripción de tu comunidad (contexto rural):")
+        fecha = st.date_today()
+        rincon = st.text_input("Rincón (Permanente)")
+        inst = st.selectbox("Institución", ["CONAFE", "SEP", "Otros"])
+        if inst == "Otros":
+            otra_inst = st.text_input("Nombre de la Institución")
+            logo_subido = st.file_uploader("Subir Logo")
 
-if st.button("🚀 Generar Documento Completo"):
-    if tema_input and contexto_input:
-        with st.spinner("La IA está redactando tu documento... esto puede tardar unos segundos debido a la extensión."):
-            documento = generar_documento_abcd(tema_input, nivel_input, contexto_input)
-            st.markdown("---")
-            st.markdown("### 📄 Resultado de la Planeación")
-            st.write(documento)
-            
-            # Botón para descargar como texto
-            st.download_button("📥 Descargar Planeación", documento, file_name=f"Planeacion_{tema_input}.txt")
+tema_interes = st.text_input("Tema de interés para las estaciones", placeholder="Ej. El cuidado del medio ambiente")
+notas = st.text_area("Observaciones o notas adicionales")
+
+if st.button("🚀 Generar Planeaciones ABCD"):
+    if not tema_interes or not ec:
+        st.error("Por favor rellena los campos obligatorios.")
     else:
-        st.warning("Por favor, llena los campos de tema y contexto.")
-
-st.divider()
-st.caption("ProfeEduca Fase 3 | Impulsado por Gemini 1.5 Pro")
+        with st.spinner("La IA está diseñando las 4 estaciones..."):
+            # Prompt optimizado para evitar el error de cuota
+            prompt = f"""Genera una planeación pedagógica extensa para {tema_interes}. 
+            Nivel: Comunitario. 
+            Estructura: 4 estaciones de aprendizaje. 
+            Cada estación debe tener 3 actividades detalladas enfocadas en:
+            1. Lenguajes. 2. Saberes y Pensamiento Científico. 3. Ética, Naturaleza y Sociedades. 4. De lo Humano y lo Comunitario.
+            Estilo: Aprendizaje autónomo (Relación Tutora)."""
+            
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{IA_MODEL}:generateContent?key={GEMINI_KEY}"
+            payload = {"contents": [{"parts": [{"text": prompt}]}]}
+            
+            res = requests.post(url, json=payload)
+            
+            if res.status_code == 200:
+                contenido = res.json()['candidates'][0]['content']['parts'][0]['text']
+                st.success("¡Planeación generada con éxito!")
+                
+                # Datos para el PDF
+                datos_doc = {
+                    "ec": ec, "eca": eca, "comunidad": comunidad,
+                    "fecha": str(fecha), "rincon": rincon, "institucion": inst
+                }
+                
+                pdf_bytes = crear_pdf(datos_doc, contenido)
+                
+                st.download_button(
+                    label="📥 Descargar Planeación en PDF",
+                    data=pdf_bytes,
+                    file_name=f"Planeacion_{tema_interes}.pdf",
+                    mime="application/pdf"
+                )
+                
+                st.markdown("### Previsualización del Contenido")
+                st.write(contenido)
+            else:
+                st.error("Límite de cuota excedido. Por favor espera 60 segundos.")
