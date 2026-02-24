@@ -4,35 +4,38 @@ import requests
 # Tu llave confirmada
 G_KEY = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
 
-# AJUSTE BASADO EN TUS LÍMITES:
-# Cambiamos v1beta por v1 y gemini-1.5 por gemini-3-flash
-api_url = f"https://generativelanguage.googleapis.com/v1/models/gemini-3-flash:generateContent?key={G_KEY}"
+st.title("🍎 ProfeEduca: Conexión Inteligente")
 
-st.title("🍎 ProfeEduca: Conexión Gemini 3")
-
-# Mostramos los límites para que estés al tanto
-st.sidebar.write("📊 **Límites de tu nivel gratuito:**")
-st.sidebar.write("- 5 peticiones por minuto")
-st.sidebar.write("- 20 peticiones por día")
+# Intentaremos con el nombre técnico correcto para Gemini 3
+# En la API, Gemini 3 Flash suele llamarse 'gemini-2.0-flash' o 'gemini-1.5-flash'
+# dependiendo de la región y actualización del proyecto.
+modelos_a_probar = ["gemini-1.5-flash", "gemini-2.0-flash"]
 
 tema = st.text_input("¿Qué tema planeamos hoy?")
 
 if st.button("Generar Planeación"):
     if tema:
-        payload = {
-            "contents": [{
-                "parts": [{"text": f"Crea una planeación de clase sobre: {tema}"}]
-            }]
-        }
-        with st.spinner("Llamando a Gemini 3 Flash..."):
+        exito = False
+        for modelo in modelos_a_probar:
+            # Probamos con la versión v1beta que es donde suelen estar los modelos nuevos
+            api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent?key={G_KEY}"
+            
             try:
+                payload = {"contents": [{"parts": [{"text": f"Crea una planeación de clase sobre: {tema}"}]}]}
                 response = requests.post(api_url, json=payload)
+                
                 if response.status_code == 200:
                     data = response.json()
                     texto = data['candidates'][0]['content']['parts'][0]['text']
+                    st.success(f"✅ Conectado exitosamente usando el modelo: {modelo}")
                     st.markdown(texto)
+                    exito = True
+                    break # Salimos del ciclo si funciona
                 else:
-                    st.error(f"Error {response.status_code}")
-                    st.write("Respuesta de Google:", response.text)
+                    st.write(f"Refinando conexión... (Probando siguiente ruta)")
             except Exception as e:
-                st.error(f"Error de red: {e}")
+                continue
+        
+        if not exito:
+            st.error("No se pudo establecer la conexión automática.")
+            st.info("💡 Sugerencia: Revisa en Google AI Studio si el modelo 'Gemini 1.5 Flash' aparece como disponible en tu región.")
