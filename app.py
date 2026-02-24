@@ -4,91 +4,71 @@ from datetime import datetime
 from fpdf import FPDF
 import io
 
-# --- CONFIGURACIÓN DE IA (Modelo Lite para evitar bloqueos) ---
-# Este modelo es ideal para textos largos y tiene mayor límite gratuito
+# Configuración del modelo Lite para evitar errores de cuota según tu tabla
 IA_MODEL = "gemini-2.0-flash-lite" 
 GEMINI_KEY = "AIzaSyBGZ7-k5lvJHp-CaX7ruwG90jEqbvC0zXM"
 
-# --- FUNCIÓN GENERADORA DE PDF ---
-def crear_pdf_final(datos, contenido_ia):
+st.set_page_config(page_title="ProfeEduca | Planeación", page_icon="🍎", layout="wide")
+
+# Estilos CSS corregidos (comillas cerradas)
+st.markdown("""
+    <style>
+    .stApp { background: radial-gradient(circle at top, #0f172a 0%, #020617 100%); color: #f8fafc; }
+    .brand-header { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 2.5rem; font-weight: 900; color: #38bdf8; }
+    </style>
+    """, unsafe_allow_html=True)
+
+# Función para el PDF profesional
+def generar_pdf_oficial(datos, contenido):
     pdf = FPDF()
     pdf.add_page()
-    
-    # Encabezado institucional
-    pdf.set_font("Arial", 'B', 15)
-    pdf.cell(200, 10, txt=f"PLANEACIÓN DOCENTE: {datos['inst']}", ln=True, align='C')
-    pdf.ln(5)
-    
-    # Bloque de datos del E.C. y E.C.A.
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(200, 10, txt=f"PLANEACIÓN ABCD - {datos['inst']}", ln=True, align='C')
     pdf.set_font("Arial", size=10)
-    pdf.cell(95, 8, txt=f"E.C.: {datos['ec']}", border=1)
-    pdf.cell(95, 8, txt=f"E.C.A.: {datos['eca']}", border=1, ln=True)
-    pdf.cell(95, 8, txt=f"Comunidad: {datos['comunidad']}", border=1)
-    pdf.cell(95, 8, txt=f"Fecha: {datos['fecha']}", border=1, ln=True)
-    pdf.cell(190, 8, txt=f"Rincón: {datos['rincon']}", border=1, ln=True)
-    
-    # Cuerpo de la planeación
+    pdf.ln(5)
+    pdf.cell(95, 10, txt=f"E.C.: {datos['ec']}", border=1)
+    pdf.cell(95, 10, txt=f"E.C.A.: {datos['eca']}", border=1, ln=True)
+    pdf.cell(190, 10, txt=f"Comunidad: {datos['comunidad']} | Fecha: {datos['fecha']}", border=1, ln=True)
     pdf.ln(10)
     pdf.set_font("Arial", 'B', 12)
-    pdf.cell(200, 10, txt="Propuesta Pedagógica: 4 Estaciones de Aprendizaje", ln=True)
+    pdf.cell(200, 10, txt="4 Estaciones de Aprendizaje", ln=True)
     pdf.set_font("Arial", size=10)
-    pdf.multi_cell(0, 7, txt=contenido_ia.encode('latin-1', 'ignore').decode('latin-1'))
-    
+    pdf.multi_cell(0, 10, txt=contenido.encode('latin-1', 'ignore').decode('latin-1'))
     return pdf.output(dest='S').encode('latin-1')
 
-# --- INTERFAZ STREAMLIT ---
-st.title("📏 Planeaciones ABCD ✏️")
+# Interfaz de usuario
+st.markdown('<div class="brand-header">📏 ProfeEduca ✏️</div>', unsafe_allow_html=True)
 
-with st.form("form_planeacion"):
+with st.container():
     col1, col2 = st.columns(2)
     with col1:
-        ec = st.text_input("Nombre E.C.")
-        eca = st.text_input("Nombre E.C.A.")
-        comunidad = st.text_input("Comunidad")
+        ec = st.text_input("E.C. (Abreviado)")
+        eca = st.text_input("E.C.A. (Abreviado)")
+        comunidad = st.text_input("Nombre de la Comunidad")
     with col2:
-        rincon = st.text_input("Rincón (Fijo)")
+        rincon = st.text_input("Rincón (Permanente)")
         inst = st.selectbox("Institución", ["CONAFE", "SEP", "Otros"])
-        if inst == "Otros":
-            nombre_o = st.text_input("Nombre de la Institución")
-        fecha_gen = datetime.now().strftime("%d/%m/%Y")
+        fecha_hoy = datetime.now().strftime("%d/%m/%Y")
 
-    tema = st.text_input("Tema de interés (Estaciones)")
-    notas = st.text_area("Observaciones manuales")
-    
-    submit = st.form_submit_button("🚀 Planeaciones ABCD")
+tema = st.text_input("Tema de interés para las estaciones:")
+notas = st.text_area("Observaciones adicionales:")
 
-if submit:
+if st.button("🚀 Planeaciones ABCD"):
     if tema and ec:
-        with st.spinner("Redactando planeación completa..."):
-            # Prompt optimizado para las 4 estaciones y campos formativos
-            prompt_doc = f"""
-            Redacta una planeación extensa para el tema '{tema}'.
-            Formato: 4 Estaciones de aprendizaje.
-            Cada estación debe tener 3 actividades claras para estos 4 campos:
-            1. Lenguajes. 
-            2. Saberes y Pensamiento Científico. 
-            3. Ética, Naturaleza y Sociedades. 
-            4. De lo Humano y lo Comunitario.
-            Estilo de aprendizaje autónomo y comunitario.
-            """
-            
+        with st.spinner("La IA está redactando las 4 estaciones..."):
+            prompt = f"Genera una planeación ABCD extensa sobre {tema} con 4 estaciones y 3 actividades por cada uno de los 4 campos formativos."
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{IA_MODEL}:generateContent?key={GEMINI_KEY}"
-            res = requests.post(url, json={"contents": [{"parts": [{"text": prompt_doc}]}]})
-            
-            if res.status_code == 200:
-                contenido = res.json()['candidates'][0]['content']['parts'][0]['text']
-                
-                datos_pdf = {
-                    "ec": ec, "eca": eca, "comunidad": comunidad,
-                    "fecha": fecha_gen, "rincon": rincon, 
-                    "inst": inst if inst != "Otros" else nombre_o,
-                    "notas": notas
-                }
-                
-                pdf_final = crear_pdf_final(datos_pdf, contenido)
-                
-                st.success("¡Documento listo!")
-                st.markdown(contenido)
-                st.download_button("📥 Descargar Planeación PDF", data=pdf_final, file_name=f"ABCD_{tema}.pdf")
-            else:
-                st.error("Límite temporal alcanzado en este modelo. Espera un momento.")
+            try:
+                res = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]})
+                if res.status_code == 200:
+                    plan_ia = res.json()['candidates'][0]['content']['parts'][0]['text']
+                    st.markdown(plan_ia)
+                    
+                    datos_pdf = {"ec": ec, "eca": eca, "comunidad": comunidad, "inst": inst, "fecha": fecha_hoy}
+                    pdf_bytes = generar_pdf_oficial(datos_pdf, plan_ia)
+                    
+                    st.download_button("📥 Descargar Planeación PDF", data=pdf_bytes, file_name=f"Planeacion_{tema}.pdf")
+                else:
+                    st.error(f"Error de cuota (Código {res.status_code}). Espera un minuto.")
+            except:
+                st.error("Error de conexión con la IA.")
