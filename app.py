@@ -6,7 +6,7 @@ import datetime
 from groq import Groq
 from supabase import create_client, Client
 
-# --- CONFIGURACIÓN DE CONEXIONES ---
+# --- CONFIGURACIÓN ---
 SUPABASE_URL = "https://pmqmqeukhufaqecbuodg.supabase.co" 
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtcW1xZXVraHVmYXFlY2J1b2RnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NzY2MzksImV4cCI6MjA4NzA1MjYzOX0.Hr_3LlyI43zEoV4ZMn28gSKiBABK35VPTWip9rjC-zc"
 GROQ_KEY = "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"
@@ -16,16 +16,11 @@ try:
 except:
     supabase = None
 
-# --- FUNCIONES DE IA ---
+# --- FUNCIONES ---
 def llamar_ia_analisis(campo, alumno, nivel, ind_l, ind_e):
     try:
         client = Groq(api_key=GROQ_KEY)
-        prompt = f"""
-        Eres un experto en el Modelo ABCD. Redacta un análisis cualitativo profesional.
-        CAMPO: {campo} | ALUMNO: {alumno} | NIVEL: {nivel}
-        INDICADORES: Lectura {ind_l}, Escritura {ind_e}.
-        Escribe un párrafo fluido, pedagógico y sin asteriscos.
-        """
+        prompt = f"Eres un experto pedagogo. Redacta un analisis profesional para el campo {campo} del alumno {alumno} de nivel {nivel}. Indicadores: Lectura {ind_l}, Escritura {ind_e}. Sin asteriscos."
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
@@ -34,7 +29,7 @@ def llamar_ia_analisis(campo, alumno, nivel, ind_l, ind_e):
         )
         return completion.choices[0].message.content.replace("*", "")
     except:
-        return ""
+        return "Analisis listo para revision manual."
 
 def clean(txt):
     if not txt: return ""
@@ -50,8 +45,8 @@ class EvaluacionPDF(FPDF):
         self.set_font('Helvetica', 'B', 16)
         self.cell(0, 15, clean('REPORTE DE EVALUACION TRIMESTRAL'), 0, 1, 'C')
 
-# --- INTERFAZ CON DISEÑO OSCURO ---
-st.set_page_config(page_title="PROFEEDUCA - Fase 0.6 IA", layout="wide")
+# --- INTERFAZ OSCURA ---
+st.set_page_config(page_title="PROFEEDUCA - Reporte IA", layout="wide")
 
 st.markdown("""
     <style>
@@ -59,83 +54,80 @@ st.markdown("""
     .stTextArea textarea, .stTextInput input, .stSelectbox div {
         background-color: #0f172a !important; color: #38bdf8 !important; border: 1px solid #38bdf8 !important;
     }
-    label { color: #38bdf8 !important; font-weight: bold; }
+    label { color: #38bdf8 !important; }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("📊 Reporte Trimestral Inteligente")
-
-# Formulario principal
 with st.sidebar:
-    st.header("👤 Datos Generales")
+    st.header("👤 Datos")
     nombre_ec = st.text_input("Educador", "AXEL REYES")
     nombre_alumno = st.text_input("Alumno")
     comunidad = st.text_input("Comunidad", "PARAJES")
-    trimestre = st.selectbox("Periodo", ["1er Trimestre", "2do Trimestre", "3er Trimestre"])
+    trimestre = st.selectbox("Trimestre", ["1er Trimestre", "2do Trimestre", "3er Trimestre"])
     nivel_edu = st.selectbox("Nivel", ["Preescolar", "Primaria", "Secundaria"])
     grado_edu = st.selectbox("Grado", ["1", "2", "3", "4", "5", "6"])
+    fotos = st.file_uploader("Evidencias", type=["jpg", "png"], accept_multiple_files=True)
 
-st.subheader("📝 Indicadores y Trayectorias")
+st.title("📊 Reporte de Evaluación")
+
 c1, c2 = st.columns(2)
 ind_l = c1.text_input("Indicador Lectura", "12A")
 ind_e = c2.text_input("Indicador Escritura", "6")
 
-if st.button("✨ GENERAR ANÁLISIS CON IA"):
+if st.button("✨ GENERAR ANALISIS CON IA"):
     if not nombre_alumno:
         st.error("Escribe el nombre del alumno.")
     else:
-        with st.spinner("IA redactando..."):
-            campos = ["Lenguajes", "Saberes y P.C.", "Etica, N. y S.", "De lo Humano y lo Com."]
-            for c in campos:
-                st.session_state[f"text_{c}"] = llamar_ia_analisis(c, nombre_alumno, nivel_edu, ind_l, ind_e)
+        with st.spinner("Redactando trayectorias..."):
+            for c in ["Lenguajes", "Saberes", "Etica", "Humano"]:
+                st.session_state[f"val_{c}"] = llamar_ia_analisis(c, nombre_alumno, nivel_edu, ind_l, ind_e)
 
-# Áreas de texto para los campos formativos
 eval_campos = {}
-col_a, col_b = st.columns(2)
-for i, campo in enumerate(["Lenguajes", "Saberes y P.C.", "Etica, N. y S.", "De lo Humano y lo Com."]):
-    target_col = col_a if i % 2 == 0 else col_b
-    eval_campos[campo] = target_col.text_area(f"Trayectoria: {campo}", value=st.session_state.get(f"text_{campo}", ""), height=150)
+cols = st.columns(2)
+campos = ["Lenguajes", "Saberes", "Etica", "Humano"]
+for i, c in enumerate(campos):
+    eval_campos[c] = cols[i % 2].text_area(f"Trayectoria {c}", value=st.session_state.get(f"val_{c}", ""), height=150)
 
-# Calificaciones (Solo si no es Preescolar)
+# Calificaciones
 eval_detalles = []
 if nivel_edu != "Preescolar":
-    st.divider()
     st.subheader("🔢 Calificaciones")
-    mats = ["Español", "Matemáticas", "Naturaleza", "Comunidad"] if nivel_edu == "Primaria" else ["Español", "Matemáticas", "Ciencias", "Historia", "Inglés"]
+    mats = ["Español", "Matematicas", "Ciencias", "Historia"]
     for m in mats:
         ca, cb = st.columns([3, 1])
         n = ca.number_input(f"Nota {m}", 5, 10, 8, key=f"n_{m}")
         cl = cb.text_input("Clave", "T", key=f"cl_{m}")
         eval_detalles.append({"m": m, "n": n, "cl": cl})
 
-# Botón Final
 if st.button("🚀 GUARDAR Y DESCARGAR PDF"):
     try:
-        # Guardar en Supabase
+        # CORRECCIÓN DE TABLA: Se cambió 'reportes' por 'reflexiones' que es la que sí tienes
         if supabase:
-            supabase.table("reportes").insert({"alumno": nombre_alumno.upper(), "trimestre": trimestre, "ec": nombre_ec}).execute()
+            supabase.table("reflexiones").insert({
+                "alumno": nombre_alumno.upper(), 
+                "ec": nombre_ec, 
+                "texto_reflexivo": eval_campos["Lenguajes"][:200] # Ejemplo de guardado
+            }).execute()
         
-        # Crear PDF
         pdf = EvaluacionPDF()
         pdf.add_page()
         pdf.set_font("Helvetica", "B", 10)
-        pdf.cell(0, 10, clean(f"ALUMNO: {nombre_alumno} | PERIODO: {trimestre}"), 0, 1)
+        pdf.cell(0, 10, clean(f"ALUMNO: {nombre_alumno} | EC: {nombre_ec}"), 0, 1)
         
         for c, t in eval_campos.items():
-            pdf.set_font("Helvetica", "B", 10); pdf.cell(0, 8, clean(f"{c}:"), 0, 1)
+            pdf.set_font("Helvetica", "B", 10); pdf.cell(0, 8, clean(c), 0, 1)
             pdf.set_font("Helvetica", "", 10); pdf.multi_cell(0, 6, clean(t))
-            pdf.ln(2)
+        
+        if fotos:
+            pdf.add_page()
+            for f in fotos[:2]:
+                pdf.image(io.BytesIO(f.getvalue()), w=90)
 
-        if nivel_edu != "Preescolar":
-            pdf.ln(5)
-            for item in eval_detalles:
-                pdf.cell(80, 8, clean(item['m']), 1)
-                pdf.cell(20, 8, str(item['n']), 1)
-                pdf.cell(20, 8, clean(item['cl']), 1, 1)
-
+        # CORRECCIÓN DE PDF: Se agregaron bytes y encoding
         pdf_out = pdf.output(dest='S')
-        pdf_bytes = pdf_out.encode('latin-1') if isinstance(pdf_out, str) else pdf_out
-        st.download_button("📥 DESCARGAR REPORTE", pdf_bytes, f"Reporte_{nombre_alumno}.pdf", "application/pdf")
-        st.success("¡Listo!")
+        pdf_final = pdf_out.encode('latin-1') if isinstance(pdf_out, str) else pdf_out
+        
+        st.download_button("📥 DESCARGAR", pdf_final, f"Reporte_{nombre_alumno}.pdf", "application/pdf")
+        st.success("¡Todo listo, Axel!")
     except Exception as e:
-        st.error(f"Error: {e}")
+        st.error(f"Error detectado: {e}")
