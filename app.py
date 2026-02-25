@@ -11,11 +11,11 @@ SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 GROQ_KEY = "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"
 
-# --- FUNCIONES DE LÓGICA ---
+# --- FUNCIONES ---
 def llamar_ia_redaccion_extensa(datos):
     try:
         client = Groq(api_key=GROQ_KEY)
-        prompt = f"Redacta un TEXTO REFLEXIVO DIARIO profesional para {datos['alumno']}. Logros: {datos['logros']}. Retos: {datos['dificultades']}. Nivel: {datos['nivel']}. No uses asteriscos."
+        prompt = f"Redacta un TEXTO REFLEXIVO DIARIO profesional para {datos['alumno']}. Logros: {datos['logros']}. Retos: {datos['dificultades']}. No uses asteriscos."
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
@@ -24,12 +24,13 @@ def llamar_ia_redaccion_extensa(datos):
         )
         return completion.choices[0].message.content.replace("*", "")
     except:
-        return f"Registro diario para {datos['alumno']}. Logros: {datos['logros']}."
+        return f"Crónica: {datos['logros']}"
 
 def clean(txt):
     if not txt: return ""
+    # Eliminamos acentos y caracteres raros para evitar errores en el PDF
     txt = "".join(c for c in unicodedata.normalize('NFD', str(txt)) if unicodedata.category(c) != 'Mn')
-    txt = txt.replace('ñ', 'n').replace('Ñ', 'N').replace('¿', '').replace('¡', '')
+    txt = txt.replace('ñ', 'n').replace('Ñ', 'N')
     return txt.encode('latin-1', 'ignore').decode('latin-1')
 
 class ReflexivoPDF(FPDF):
@@ -43,13 +44,12 @@ class ReflexivoPDF(FPDF):
 # --- INTERFAZ ---
 st.set_page_config(page_title="Texto Reflexivo Diario", layout="wide")
 st.markdown("<style>.stApp { background: #020617; color: #f8fafc; }</style>", unsafe_allow_html=True)
-st.title("📝 Texto Reflexivo Diario")
 
 with st.form("Form_Reflexivo_Diario"):
     c1, c2 = st.columns(2)
     with c1:
-        nombre_ec = st.text_input("Nombre del EC", "AXEL REYES")
-        nombre_alumno = st.text_input("Nombre del Alumno")
+        nombre_ec = st.text_input("Educador", "AXEL REYES")
+        nombre_alumno = st.text_input("Alumno")
         comunidad = st.text_input("Comunidad", "PARAJES")
     with c2:
         nivel = st.selectbox("Nivel", ["Preescolar", "Primaria Baja", "Primaria Alta", "Secundaria"])
@@ -63,21 +63,20 @@ with st.form("Form_Reflexivo_Diario"):
 
 if submit:
     if not nombre_alumno:
-        st.error("Ingresa el nombre del alumno.")
+        st.error("Escribe el nombre del alumno.")
     else:
         with st.spinner("Procesando..."):
-            # 1. IA redacta
-            texto_ia = llamar_ia_redaccion_extensa({"alumno": nombre_alumno, "logros": logros, "nivel": nivel, "dificultades": dificultades, "emociones": emociones, "compromiso": compromiso})
+            texto_ia = llamar_ia_redaccion_extensa({"alumno": nombre_alumno, "logros": logros, "nivel": nivel, "dificultades": dificultades})
             
-            # 2. Guardar en Supabase
+            # 1. Guardar en Supabase
             try:
                 registro = {"fecha": str(fecha), "ec": nombre_ec, "alumno": nombre_alumno.upper(), "comunidad": comunidad, "nivel": nivel, "texto_reflexivo": texto_ia}
                 supabase.table("reflexiones").insert(registro).execute()
-                st.success("✅ Guardado en la nube correctamente.")
+                st.success("✅ Sincronizado con Supabase.")
             except Exception as e:
-                st.error(f"Error al guardar en la nube: {e}")
+                st.error(f"Error en Nube: {e}")
 
-            # 3. Generación Segura de PDF
+            # 2. Generación de PDF Corregida
             try:
                 pdf = ReflexivoPDF()
                 pdf.add_page()
@@ -87,17 +86,20 @@ if submit:
                 pdf.set_font('Helvetica', '', 11)
                 pdf.multi_cell(0, 7, clean(texto_ia))
                 
-                # Generamos los bytes del PDF
+                # LA CORRECCIÓN CLAVE:
+                # Obtenemos el PDF como string y lo convertimos manualmente con codificación
                 pdf_output = pdf.output(dest='S')
-                
-                # Solo si se generó bien el PDF, mostramos el botón
-                if pdf_output:
-                    st.info(texto_ia)
-                    st.download_button(
-                        label="📥 DESCARGAR PDF",
-                        data=bytes(pdf_output),
-                        file_name=f"Reflexion_{nombre_alumno}.pdf",
-                        mime="application/pdf"
-                    )
+                if isinstance(pdf_output, str):
+                    pdf_bytes = pdf_output.encode('latin-1')
+                else:
+                    pdf_bytes = pdf_output
+
+                st.info(texto_ia)
+                st.download_button(
+                    label="📥 DESCARGAR PDF",
+                    data=pdf_bytes, # Ya son bytes puros, no necesita bytes()
+                    file_name=f"Reflexion_{nombre_alumno}.pdf",
+                    mime="application/pdf"
+                )
             except Exception as pdf_err:
                 st.error(f"Error al crear el archivo PDF: {pdf_err}")
