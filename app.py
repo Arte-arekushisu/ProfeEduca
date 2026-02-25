@@ -11,7 +11,7 @@ GROQ_KEY = "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"
 
 st.set_page_config(page_title="ProfeEduca ABCD Ultra", page_icon="🍎", layout="wide")
 
-# Estilos Visuales - FONDO OSCURO RESTAURADO
+# Estilos Visuales - FONDO OSCURO
 st.markdown("""
     <style>
     .stApp { 
@@ -25,7 +25,6 @@ st.markdown("""
         text-align: center; 
         padding: 20px;
     }
-    /* Estilo para que los inputs se vean bien en fondo oscuro */
     .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stSelectbox>div>div>select {
         background-color: #1e293b;
         color: white;
@@ -39,9 +38,9 @@ def llamar_ia(prompt):
         client = Groq(api_key=GROQ_KEY)
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
-            messages=[{"role": "system", "content": "Eres un experto en el modelo ABCD y la Nueva Escuela Mexicana. Generas planeaciones pedagógicas ultra detalladas, sin asteriscos (*), enfocadas en el contexto comunitario y multigrado."},
+            messages=[{"role": "system", "content": "Eres un experto en el modelo ABCD y la Nueva Escuela Mexicana. Generas planeaciones detalladas por día, sin asteriscos (*), enfocadas en el contexto comunitario y materias académicas específicas."},
                       {"role": "user", "content": prompt}],
-            temperature=0.4, max_tokens=5500
+            temperature=0.4, max_tokens=6000
         )
         texto = completion.choices[0].message.content
         return texto.replace("*", ""), "Groq"
@@ -94,12 +93,12 @@ with st.form("form_ultra"):
         fecha_hoy = datetime.now().strftime("%d/%m/%Y")
 
     tema_guia = st.text_area("Desarrollo de la Relación Tutora (Contenido base para el diálogo)")
-    obs_extra = st.text_area("PDA específicos o materiales locales disponibles")
+    obs_extra = st.text_area("Materias específicas para Post-Receso (Ej: Fracciones, Tipos de texto, etc.)")
 
     submit = st.form_submit_button("🚀 Generar Guía Completa")
 
 if submit:
-    with st.spinner("Construyendo la arquitectura pedagógica..."):
+    with st.spinner("Construyendo la arquitectura pedagógica semanal..."):
         prompt_final = f"""
         Genera una PLANEACIÓN PEDAGÓGICA ABCD PROFESIONAL para {duracion}.
         CONTEXTO: Aula multigrado con niveles: {', '.join(nivel)}.
@@ -107,26 +106,30 @@ if submit:
         
         REQUISITOS OBLIGATORIOS (SIN ASTERISCOS):
         
-        1. IDENTIFICACIÓN DE PDA (Procesos de Desarrollo de Aprendizaje): 
-           - Define al menos 2 PDA por nivel educativo presentes basado en el tema {tema_guia}.
-        
-        2. RUTA DE APRENDIZAJE DIARIA (8:00 AM - 2:00 PM):
-           - Describe el 'Gobierno Escolar' (inicio), 'Tutoría entre pares', 'Receso' y 'Cierre reflexivo'.
-        
-        3. RELACIÓN TUTORA (EL CORAZÓN):
-           - Una explicación profunda del tema {tema_guia}.
+        1. MOMENTOS INICIALES SEMANALES:
+           - Diseña una tabla o lista que contenga para cada día (Lunes a Viernes): Un PASE DE LISTA diferente, un REGALO DE LECTURA distinto y una DINÁMICA DE BIENVENIDA única.
+
+        2. RELACIÓN TUTORA (EL CORAZÓN):
+           - Una explicación académica profunda del tema {tema_guia}.
            - Incluye 5 PREGUNTAS DETONANTES que generen conflicto cognitivo.
-           - Propón un 'Producto Final' de la tutoría (RPA).
-        
-        4. 4 ESTACIONES DE TRABAJO AUTÓNOMO (DIFERENCIADAS):
-           - Estación 1 (Lenguajes): Pasos para el alumno y material reciclado.
-           - Estación 2 (Saberes y P. Científico): Actividad de lógica o experimentación.
-           - Estación 3 (Ética, Nat. y Soc.): Relación con el entorno de la comunidad.
-           - Estación 4 (De lo Humano y lo Comu.): Habilidades socioemocionales.
-           - Cada estación debe tener una instrucción clara de '¿Qué hacer si terminé rápido?'.
-        
-        5. CRONOGRAMA POST-RECESO:
-           - Actividades detalladas día por día (Lunes a Viernes) para proyectos comunitarios o materias complementarias.
+           - Propón un RPA (Registro de Proceso de Aprendizaje).
+
+        3. 4 ESTACIONES AUTÓNOMAS (DIFERENTES CADA DÍA):
+           - Genera actividades para 4 estaciones (Lenguajes, Saberes, Ética, De lo Humano).
+           - IMPORTANTE: Las actividades de las estaciones NO deben estar relacionadas con {tema_guia}. Deben ser temas generales de cultura o habilidades.
+           - Provee 3 actividades breves por estación para cada día de la semana.
+
+        4. CRONOGRAMA ACADÉMICO POST-RECESO (INDEPENDIENTE):
+           - Crea una secuencia diaria (Lunes a Viernes) enfocada exclusivamente en materias:
+             * Lunes: Español / Lenguajes.
+             * Martes: Matemáticas / Saberes.
+             * Miércoles: Ciencias / Naturaleza.
+             * Jueves: Formación Cívica / Ética.
+             * Viernes: Educación Física o Artes / De lo Humano.
+           - Utiliza como base estos requerimientos: {obs_extra}. Las actividades deben ser detalladas y adecuadas al grado/nivel {', '.join(nivel)}.
+
+        5. IDENTIFICACIÓN DE PDA:
+           - Define al menos 2 PDA por nivel educativo basados en el programa sintético actual.
         """
         
         respuesta, motor = llamar_ia(prompt_final)
