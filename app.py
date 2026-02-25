@@ -11,6 +11,28 @@ GROQ_KEY = "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"
 
 st.set_page_config(page_title="ProfeEduca ABCD Ultra", page_icon="🍎", layout="wide")
 
+# Estilos Visuales - FONDO OSCURO RESTAURADO
+st.markdown("""
+    <style>
+    .stApp { 
+        background: radial-gradient(circle at top, #0f172a 0%, #020617 100%); 
+        color: #f8fafc; 
+    }
+    .brand-header { 
+        font-size: 2.5rem; 
+        font-weight: 900; 
+        color: #38bdf8; 
+        text-align: center; 
+        padding: 20px;
+    }
+    /* Estilo para que los inputs se vean bien en fondo oscuro */
+    .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stSelectbox>div>div>select {
+        background-color: #1e293b;
+        color: white;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 # --- 2. LÓGICA DE INTELIGENCIA ---
 def llamar_ia(prompt):
     try:
@@ -32,19 +54,16 @@ def generar_pdf(datos, contenido_ia):
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
     
-    # Encabezado Tipo Registro Oficial
     pdf.set_font("Arial", 'B', 14)
     pdf.set_fill_color(40, 40, 40)
     pdf.set_text_color(255, 255, 255)
     pdf.cell(0, 12, txt="REGISTRO DE PLANEACIÓN PEDAGÓGICA - MODELO ABCD", ln=True, align='C', fill=True)
     pdf.ln(5)
     
-    # Tabla de Datos
     pdf.set_text_color(0, 0, 0)
     pdf.set_font("Arial", 'B', 8)
     pdf.set_fill_color(245, 245, 245)
     
-    # Filas
     pdf.cell(95, 8, txt=f" E.C.: {datos['ec'].upper()}", border=1, fill=True)
     pdf.cell(95, 8, txt=f" E.C.A.: {datos['eca'].upper()}", border=1, fill=True, ln=True)
     pdf.cell(95, 8, txt=f" COMUNIDAD: {datos['comu']}", border=1)
@@ -52,7 +71,6 @@ def generar_pdf(datos, contenido_ia):
     pdf.cell(190, 8, txt=f" UNIDAD DE APRENDIZAJE / RINCÓN: {datos['rincon']}", border=1, ln=True)
     pdf.ln(8)
 
-    # Contenido
     pdf.set_font("Arial", size=10)
     texto_limpio = contenido_ia.encode('latin-1', 'ignore').decode('latin-1')
     pdf.multi_cell(0, 6, txt=texto_limpio)
@@ -60,7 +78,7 @@ def generar_pdf(datos, contenido_ia):
     return pdf.output(dest='S').encode('latin-1')
 
 # --- 4. INTERFAZ ---
-st.markdown('<h1 style="color:#38bdf8; text-align:center;">📏 ProfeEduca ABCD Ultra ✏️</h1>', unsafe_allow_html=True)
+st.markdown('<div class="brand-header">📏 ProfeEduca ABCD Ultra ✏️</div>', unsafe_allow_html=True)
 
 with st.form("form_ultra"):
     col1, col2 = st.columns(2)
