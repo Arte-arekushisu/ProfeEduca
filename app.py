@@ -5,9 +5,9 @@ import datetime
 from groq import Groq
 
 # --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="PROFEEDUCA - Registro IA Alumno", layout="wide", page_icon="✍️")
+st.set_page_config(page_title="PROFEEDUCA - Reflexión Extendida", layout="wide", page_icon="✍️")
 
-# Estilo Visual Oscuro (Tu diseño original)
+# Estilo Visual Oscuro
 st.markdown("""
     <style>
     .stApp { 
@@ -22,35 +22,46 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Clave de API de Groq
 GROQ_KEY = "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"
 
-def llamar_ia_redaccion(datos):
+def llamar_ia_redaccion_extensa(datos):
     try:
         client = Groq(api_key=GROQ_KEY)
+        # Prompt modificado para solicitar EXPANSIÓN y DETALLE
         prompt = f"""
-        Como experto en el modelo pedagógico ABCD, redacta un texto reflexivo formal y coherente para el expediente del alumno.
+        Eres un asesor pedagógico experto en el Modelo ABCD y la Nueva Escuela Mexicana. 
+        Tu tarea es redactar una CRÓNICA REFLEXIVA EXTENSA Y DETALLADA (mínimo 3 párrafos largos) sobre la jornada del alumno.
+        
+        DATOS CLAVE:
         ALUMNO: {datos['alumno']}
         LOGROS: {datos['logros']}
         RETOS: {datos['dificultades']}
         SENTIMIENTOS: {datos['emociones']}
         COMPROMISO: {datos['compromiso']}
         
-        Redacta un solo cuerpo de texto profesional, fluido y en tercera persona. No uses asteriscos (*).
+        INSTRUCCIONES DE REDACCIÓN:
+        1. Usa un lenguaje pedagógico elevado pero humano.
+        2. Describe cómo los logros impactan en su proceso de aprendizaje.
+        3. Analiza las dificultades como áreas de oportunidad.
+        4. Relaciona sus emociones con su desempeño social en la comunidad.
+        5. Redacta en tercera persona y NO uses asteriscos (*).
+        6. Sé MUY EXTENSO en tu explicación.
         """
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.6
+            temperature=0.7,
+            max_tokens=2000 # Aumentado para permitir más texto
         )
         return completion.choices[0].message.content.replace("*", "")
-    except:
-        return "Error al conectar con la IA. Se usará el texto manual."
+    except Exception as e:
+        return f"Error de conexión: {str(e)}"
 
 def clean(txt):
     if not txt: return ""
+    # Normalización completa para evitar errores de PDF
     txt = "".join(c for c in unicodedata.normalize('NFD', str(txt)) if unicodedata.category(c) != 'Mn')
-    txt = txt.replace('ñ', 'n').replace('Ñ', 'N').replace('“', '"').replace('”', '"')
+    txt = txt.replace('ñ', 'n').replace('Ñ', 'N').replace('“', '"').replace('”', '"').replace('—', '-').replace('¿', '').replace('¡', '')
     return txt.encode('latin-1', 'ignore').decode('latin-1')
 
 class ReflexivoPDF(FPDF):
@@ -59,7 +70,7 @@ class ReflexivoPDF(FPDF):
         self.rect(0, 0, 210, 25, 'F')
         self.set_text_color(56, 189, 248)
         self.set_font('Helvetica', 'B', 16)
-        self.cell(0, 15, clean('REGISTRO SOCIAL Y TEXTO REFLEXIVO INDIVIDUAL'), 0, 1, 'C')
+        self.cell(0, 15, clean('INFORME PEDAGOGICO REFLEXIVO - ABCD'), 0, 1, 'C')
         self.ln(5)
 
     def tabla_datos(self, ec, alumno, comunidad, fecha, nivel):
@@ -74,64 +85,60 @@ class ReflexivoPDF(FPDF):
         self.ln(8)
 
 # --- INTERFAZ ---
-st.markdown('<h1 style="color:#38bdf8;">📝 Registro de Reflexión por Alumno con IA</h1>', unsafe_allow_html=True)
+st.markdown('<h1 style="color:#38bdf8;">📝 Registro de Reflexión Individual (Modo Extenso)</h1>', unsafe_allow_html=True)
 
-with st.form("Form_Reflexivo"):
-    col1, col2 = st.columns(2)
-    with col1:
+with st.form("Form_Reflexivo_Extenso"):
+    c1, c2 = st.columns(2)
+    with c1:
         nombre_ec = st.text_input("Nombre del EC", "AXEL REYES")
-        nombre_alumno = st.text_input("Nombre del Alumno", placeholder="Nombre completo del estudiante")
+        nombre_alumno = st.text_input("Nombre del Alumno")
+    with c2:
         comunidad = st.text_input("Comunidad", "PARAJES")
-    with col2:
-        fecha = st.date_input("Día del registro", datetime.date.today())
         nivel = st.selectbox("Nivel", ["Preescolar", "Primaria Baja", "Primaria Alta", "Secundaria"])
+    
+    fecha = st.date_input("Día del registro", datetime.date.today())
 
     st.divider()
-    
-    # Entradas de datos para la IA
-    logros = st.text_area("🚀 ¿Qué logró aprender hoy el alumno?", height=70)
-    dificultades = st.text_area("⚠️ ¿Qué retos enfrentó y cómo los superó?", height=70)
-    emociones = st.text_area("🌈 Registro Social: ¿Cómo se sintió durante la jornada?", height=70)
-    compromiso = st.text_area("🤝 Compromiso del alumno para la siguiente sesión", height=70)
+    logros = st.text_area("🚀 Logros y aprendizajes (Notas breves)")
+    dificultades = st.text_area("⚠️ Retos y dificultades (Notas breves)")
+    emociones = st.text_area("🌈 Registro Social/Emociones")
+    compromiso = st.text_area("🤝 Compromisos")
 
-    submit = st.form_submit_button("🔨 GENERAR REFLEXIÓN CON IA")
+    submit = st.form_submit_button("🚀 GENERAR REDACCIÓN EXTENSA Y PDF")
 
 if submit:
     if not nombre_alumno:
-        st.error("Por favor, ingresa el nombre del alumno.")
+        st.error("Por favor, escribe el nombre del alumno.")
     else:
-        with st.spinner("La IA está redactando el registro pedagógico..."):
-            info_ia = {
+        with st.spinner("La IA está analizando y redactando un informe detallado..."):
+            info = {
                 "alumno": nombre_alumno, "logros": logros, 
                 "dificultades": dificultades, "emociones": emociones, 
                 "compromiso": compromiso
             }
-            texto_redactado = llamar_ia_redaccion(info_ia)
+            # Llamada a la IA para el texto largo
+            texto_extenso = llamar_ia_redaccion_extensa(info)
             
-            # Mostrar vista previa
-            st.markdown("### 📄 Análisis Redactado por IA")
-            st.info(texto_redactado)
+            st.markdown("### 📄 Vista Previa del Análisis Pedagógico")
+            st.write(texto_extenso)
             
-            # Generar PDF
+            # Generación de PDF optimizada para texto largo
             pdf = ReflexivoPDF()
             pdf.add_page()
             pdf.tabla_datos(nombre_ec, nombre_alumno.upper(), comunidad, str(fecha), nivel)
             
-            # Título de sección en PDF
             pdf.set_font('Helvetica', 'B', 12)
-            pdf.set_fill_color(230, 230, 230)
-            pdf.cell(0, 10, clean("RELATO REFLEXIVO DE LA JORNADA"), 0, 1, 'L', True)
-            pdf.ln(3)
+            pdf.cell(0, 10, clean("CRONICA Y ANALISIS DEL PROCESO DE APRENDIZAJE"), 0, 1)
+            pdf.ln(2)
             
-            # Cuerpo del texto redactado por IA
             pdf.set_font('Helvetica', '', 11)
-            pdf.multi_cell(0, 7, clean(texto_redactado))
+            # multi_cell permite que el texto largo salte de página automáticamente
+            pdf.multi_cell(0, 7, clean(texto_extenso))
             
-            pdf_output = pdf.output(dest='S')
-            st.success(f"✅ Registro de {nombre_alumno} generado correctamente.")
+            pdf_bytes = pdf.output(dest='S')
             st.download_button(
-                label="📥 DESCARGAR PDF REFLEXIVO",
-                data=bytes(pdf_output),
-                file_name=f"Reflexion_IA_{nombre_alumno}_{fecha}.pdf",
+                label="📥 DESCARGAR INFORME EXTENSO (PDF)",
+                data=bytes(pdf_bytes),
+                file_name=f"Informe_{nombre_alumno}_{fecha}.pdf",
                 mime="application/pdf"
             )
