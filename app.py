@@ -4,7 +4,22 @@ import unicodedata
 import datetime
 
 # --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="PROFEEDUCA - Planeación Semanal", layout="wide", page_icon="📝")
+st.set_page_config(page_title="PROFEEDUCA - Texto Reflexivo", layout="wide", page_icon="✍️")
+
+# Estilo Visual Oscuro
+st.markdown("""
+    <style>
+    .stApp { 
+        background: radial-gradient(circle at top, #1e293b 0%, #020617 100%); 
+        color: #f8fafc; 
+    }
+    .stTextArea>div>div>textarea {
+        background-color: #0f172a;
+        color: #38bdf8;
+        border: 1px solid #38bdf8;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
 def clean(txt):
     if not txt: return ""
@@ -12,120 +27,75 @@ def clean(txt):
     txt = txt.replace('ñ', 'n').replace('Ñ', 'N').replace('“', '"').replace('”', '"')
     return txt.encode('latin-1', 'ignore').decode('latin-1')
 
-class PlaneacionPDF(FPDF):
+class ReflexivoPDF(FPDF):
     def header(self):
-        self.set_fill_color(128, 0, 0) 
+        self.set_fill_color(30, 41, 59)
         self.rect(0, 0, 210, 25, 'F')
-        self.set_text_color(255, 255, 255)
+        self.set_text_color(56, 189, 248)
         self.set_font('Helvetica', 'B', 16)
-        self.cell(0, 15, clean('PLANEACION SEMANAL'), 0, 1, 'C')
+        self.cell(0, 15, clean('REGISTRO SOCIAL Y TEXTO REFLEXIVO'), 0, 1, 'C')
         self.ln(5)
 
-    def tabla_datos(self, ec, eca, comunidad, fecha, nivel, grado):
+    def tabla_datos(self, ec, comunidad, fecha, nivel):
         self.set_text_color(0, 0, 0)
         self.set_font('Helvetica', 'B', 10)
-        self.set_fill_color(230, 230, 230)
-        w = 95
-        h = 8
-        # Fila 1
-        self.cell(w, h, clean(f" NOMBRE EC: {ec}"), 1, 0, 'L', True)
-        self.cell(w, h, clean(f" NOMBRE ECA: {eca}"), 1, 1, 'L', True)
-        # Fila 2
-        self.cell(w, h, clean(f" COMUNIDAD: {comunidad}"), 1, 0, 'L', True)
-        self.cell(w, h, clean(f" FECHA/SEMANA: {fecha}"), 1, 1, 'L', True)
-        # Fila 3 (Nuevos campos)
-        self.cell(w, h, clean(f" NIVEL: {nivel}"), 1, 0, 'L', True)
-        self.cell(w, h, clean(f" GRADO/MODALIDAD: {grado}"), 1, 1, 'L', True)
+        self.set_fill_color(240, 249, 255)
+        self.cell(95, 8, clean(f" EC: {ec}"), 1, 0, 'L', True)
+        self.cell(95, 8, clean(f" COMUNIDAD: {comunidad}"), 1, 1, 'L', True)
+        self.cell(95, 8, clean(f" FECHA: {fecha}"), 1, 0, 'L', True)
+        self.cell(95, 8, clean(f" NIVEL: {nivel}"), 1, 1, 'L', True)
         self.ln(5)
 
-    def seccion_dia(self, titulo):
-        self.set_font('Helvetica', 'B', 11)
-        self.set_fill_color(128, 0, 0)
-        self.set_text_color(255, 255, 255)
-        self.cell(0, 8, f" {clean(titulo)}", 0, 1, 'L', True)
-        self.ln(2)
-
 # --- INTERFAZ ---
-st.title("🛡️ PROFEEDUCA: Planeación Semanal")
+st.markdown('<h1 style="color:#38bdf8;">📝 Mi Reflexión Diaria</h1>', unsafe_allow_html=True)
+st.write("Registra los procesos, emociones y logros del día en la comunidad.")
 
-with st.form("Formulario_Final"):
-    st.subheader("📋 Información General y Nivel Educativo")
-    c1, c2, c3 = st.columns(3)
-    
-    with c1:
+with st.form("Form_Reflexivo"):
+    col1, col2 = st.columns(2)
+    with col1:
         nombre_ec = st.text_input("Nombre del EC", "AXEL REYES")
-        nombre_eca = st.text_input("Nombre del ECA")
-    
-    with c2:
-        comunidad = st.text_input("Comunidad", "CRUZ")
-        fecha_semana = st.date_input("Semana del:", datetime.date.today())
-    
-    with c3:
-        nivel_edu = st.selectbox("Nivel Educativo", ["Preescolar", "Primaria", "Secundaria"])
-        
-        # Lógica de grados según el nivel
-        if nivel_edu == "Preescolar":
-            opciones_grado = ["1", "2", "3", "Multigrado"]
-        elif nivel_edu == "Primaria":
-            opciones_grado = ["1", "2", "3", "4", "5", "6", "Multigrado"]
-        else: # Secundaria
-            opciones_grado = ["1", "2", "3", "Multigrado"]
-            
-        grado_edu = st.selectbox("Grado", opciones_grado)
+        comunidad = st.text_input("Comunidad", "PARAJES")
+    with col2:
+        fecha = st.date_input("Día del registro", datetime.date.today())
+        nivel = st.selectbox("Nivel", ["Preescolar", "Primaria", "Secundaria", "Multigrado"])
 
     st.divider()
-    st.subheader("🍎 Jornada Post-Receso")
     
-    dias = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes"]
-    datos_semana = {}
+    # Secciones del Texto Reflexivo
+    logros = st.text_area("🚀 ¿Qué logramos aprender hoy? (Logros del día)", height=100)
+    dificultades = st.text_area("⚠️ ¿Qué dificultades enfrentamos y cómo las resolvimos?", height=100)
+    emociones = st.text_area("🌈 Registro Social: ¿Cómo nos sentimos hoy en el grupo?", height=100)
+    compromiso = st.text_area("🤝 Compromiso para mañana", height=80)
 
-    for dia in dias:
-        with st.expander(f"📅 {dia.upper()}", expanded=(dia == "Lunes")):
-            col1, col2 = st.columns(2)
-            with col1:
-                m1 = st.text_input(f"Materia 1 - {dia}", key=f"m1_{dia}")
-                p1 = st.text_area(f"Actividades Materia 1", key=f"p1_{dia}", height=80)
-            with col2:
-                m2 = st.text_input(f"Materia 2 - {dia}", key=f"m2_{dia}")
-                p2 = st.text_area(f"Actividades Materia 2", key=f"p2_{dia}", height=80)
-            datos_semana[dia] = {"m1": m1, "p1": p1, "m2": m2, "p2": p2}
-    
-    submit = st.form_submit_button("🔨 PLANEACIONES ABCD")
+    submit = st.form_submit_button("🔨 GENERAR REGISTRO REFLEXIVO")
 
 if submit:
-    st.markdown("### 👁️ Vista Previa del Documento")
-    
-    pdf = PlaneacionPDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf = ReflexivoPDF()
     pdf.add_page()
+    pdf.tabla_datos(nombre_ec, comunidad, str(fecha), nivel)
     
-    # Tabla de datos ahora incluye nivel y grado
-    pdf.tabla_datos(nombre_ec, nombre_eca, comunidad, str(fecha_semana), nivel_edu, grado_edu)
+    # Contenido
+    secciones = {
+        "APRENDIZAJES Y LOGROS": logros,
+        "RETOS Y DIFICULTADES": dificultades,
+        "ESTADO SOCIOEMOCIONAL (REGISTRO SOCIAL)": emociones,
+        "COMPROMISOS": compromiso
+    }
 
-    for dia, info in datos_semana.items():
-        if info['m1'] or info['m2']:
-            pdf.seccion_dia(dia.upper())
-            # Materia 1
-            pdf.set_text_color(0,0,0)
-            pdf.set_font('Helvetica', 'B', 10)
-            pdf.cell(0, 6, clean(f"Materia: {info['m1']}"), 0, 1)
-            pdf.set_font('Helvetica', '', 10)
-            pdf.multi_cell(0, 5, clean(info['p1']))
-            pdf.ln(2)
-            # Materia 2
-            pdf.set_font('Helvetica', 'B', 10)
-            pdf.cell(0, 6, clean(f"Materia: {info['m2']}"), 0, 1)
-            pdf.set_font('Helvetica', '', 10)
-            pdf.multi_cell(0, 5, clean(info['p2']))
-            pdf.ln(5)
-    
+    for titulo, contenido in secciones.items():
+        pdf.set_font('Helvetica', 'B', 11)
+        pdf.set_fill_color(230, 230, 230)
+        pdf.cell(0, 8, clean(titulo), 0, 1, 'L', True)
+        pdf.ln(2)
+        pdf.set_font('Helvetica', '', 11)
+        pdf.multi_cell(0, 6, clean(contenido))
+        pdf.ln(5)
+
     pdf_output = pdf.output(dest='S')
-    pdf_bytes = bytes(pdf_output) if not isinstance(pdf_output, str) else pdf_output.encode('latin-1')
-
-    st.success("✅ Estructura generada correctamente.")
+    st.success("✅ Registro reflexivo guardado.")
     st.download_button(
-        label="📥 DESCARGAR PLANEACIÓN SEMANAL (PDF)",
-        data=pdf_bytes,
-        file_name=f"Planeacion_{nivel_edu}_{grado_edu}_{comunidad}.pdf",
+        label="📥 DESCARGAR PDF REFLEXIVO",
+        data=bytes(pdf_output),
+        file_name=f"Reflexion_{fecha}_{comunidad}.pdf",
         mime="application/pdf"
     )
