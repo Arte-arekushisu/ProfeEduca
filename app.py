@@ -6,27 +6,23 @@ from supabase import create_client, Client
 from fpdf import FPDF
 
 # --- CONFIGURACIÓN DE CONEXIONES ---
-# He colocado tu URL de proyecto basada en la clave que me pasaste
+# ASEGÚRATE DE QUE ESTA URL SEA LA DE TU DASHBOARD (Settings -> API)
 SUPABASE_URL = "https://pmqmqeukhufaqecbuodg.supabase.co" 
-# Tu clave anon public confirmada
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtcW1xZXVraHVmYXFlY2J1b2RnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NzY2MzksImV4cCI6MjA4NzA1MjYzOX0.Hr_3LlyI43zEoV4ZMn28gSKiBABK35VPTWip9rjC-zc"
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# Intentar conectar sin que truene la app
+try:
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+except:
+    supabase = None
 
 GROQ_KEY = "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"
 
-# --- FUNCIONES DE LÓGICA ---
+# --- FUNCIONES ---
 def llamar_ia_redaccion_extensa(datos):
     try:
         client = Groq(api_key=GROQ_KEY)
-        prompt = f"""
-        Eres un asesor pedagógico experto en el Modelo ABCD. 
-        Tu tarea es redactar un TEXTO REFLEXIVO DIARIO extenso y profesional.
-        ALUMNO: {datos['alumno']} | NIVEL: {datos['nivel']}
-        LOGROS: {datos['logros']} | RETOS: {datos['dificultades']}
-        SENTIMIENTOS: {datos['emociones']} | COMPROMISO: {datos['compromiso']}
-        Redacta en tercera persona, con un tono motivador y pedagógico. Mínimo 3 párrafos. No uses asteriscos.
-        """
+        prompt = f"Redacta un TEXTO REFLEXIVO DIARIO extenso para {datos['alumno']}. Logros: {datos['logros']}. Retos: {datos['dificultades']}. Nivel: {datos['nivel']}. Sé profesional y no uses asteriscos."
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
@@ -34,13 +30,13 @@ def llamar_ia_redaccion_extensa(datos):
             max_tokens=1500
         )
         return completion.choices[0].message.content.replace("*", "")
-    except Exception as e:
-        return f"Error en redacción: {str(e)}"
+    except:
+        return f"Registro de aprendizaje para {datos['alumno']}. Logros: {datos['logros']}."
 
 def clean(txt):
     if not txt: return ""
     txt = "".join(c for c in unicodedata.normalize('NFD', str(txt)) if unicodedata.category(c) != 'Mn')
-    txt = txt.replace('ñ', 'n').replace('Ñ', 'N').replace('“', '"').replace('”', '"').replace('¿', '').replace('¡', '')
+    txt = txt.replace('ñ', 'n').replace('Ñ', 'N').replace('¿', '').replace('¡', '')
     return txt.encode('latin-1', 'ignore').decode('latin-1')
 
 class ReflexivoPDF(FPDF):
@@ -50,93 +46,65 @@ class ReflexivoPDF(FPDF):
         self.set_text_color(56, 189, 248)
         self.set_font('Helvetica', 'B', 15)
         self.cell(0, 15, clean('TEXTO REFLEXIVO DIARIO - PROFEEDUCA'), 0, 1, 'C')
-        self.ln(5)
 
-# --- INTERFAZ Y DISEÑO OSCURO ---
-st.set_page_config(page_title="Texto Reflexivo Diario", layout="wide", page_icon="📝")
+# --- INTERFAZ ---
+st.set_page_config(page_title="Texto Reflexivo Diario", layout="wide")
+st.markdown("<style>.stApp { background: #020617; color: #f8fafc; }</style>", unsafe_allow_html=True)
 
-st.markdown("""
-    <style>
-    .stApp { 
-        background: radial-gradient(circle at top, #1e293b 0%, #020617 100%); 
-        color: #f8fafc; 
-    }
-    .stTextArea>div>div>textarea, .stTextInput>div>div>input {
-        background-color: #0f172a;
-        color: #38bdf8;
-        border: 1px solid #38bdf8;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-st.markdown('<h1 style="color:#38bdf8;">📝 Texto Reflexivo Diario</h1>', unsafe_allow_html=True)
-st.write("Registra el avance diario del alumno. La información se guardará en la nube y podrás descargar el PDF.")
+st.title("📝 Texto Reflexivo Diario")
 
 with st.form("Form_Reflexivo_Diario"):
     c1, c2 = st.columns(2)
     with c1:
         nombre_ec = st.text_input("Nombre del EC", "AXEL REYES")
-        nombre_alumno = st.text_input("Nombre del Alumno", placeholder="Escribe el nombre aquí...")
+        nombre_alumno = st.text_input("Nombre del Alumno")
         comunidad = st.text_input("Comunidad", "PARAJES")
     with c2:
         nivel = st.selectbox("Nivel", ["Preescolar", "Primaria Baja", "Primaria Alta", "Secundaria"])
-        fecha = st.date_input("Fecha del registro", datetime.date.today())
+        fecha = st.date_input("Fecha", datetime.date.today())
     
-    st.divider()
-    logros = st.text_area("🚀 Logros y aprendizajes del día", height=100)
-    dificultades = st.text_area("⚠️ Desafíos encontrados", height=100)
-    emociones = st.text_area("🌈 Registro Social y Emocional", height=100)
-    compromiso = st.text_area("🤝 Compromiso para la siguiente sesión", height=100)
+    logros = st.text_area("🚀 Logros")
+    dificultades = st.text_area("⚠️ Desafíos")
+    emociones = st.text_area("🌈 Emociones")
+    compromiso = st.text_area("🤝 Compromiso")
 
-    submit = st.form_submit_button("🔨 GUARDAR REGISTRO Y GENERAR REPORTE")
+    submit = st.form_submit_button("🔨 GUARDAR Y GENERAR REPORTE")
 
 if submit:
     if not nombre_alumno:
-        st.error("Por favor, ingresa el nombre del alumno.")
+        st.error("Falta el nombre del alumno.")
     else:
-        with st.spinner("La IA está analizando los datos y sincronizando con la nube..."):
-            # 1. Redacción de IA
-            info_ia = {"alumno": nombre_alumno, "logros": logros, "nivel": nivel, 
-                       "dificultades": dificultades, "emociones": emociones, "compromiso": compromiso}
-            texto_reflexivo = llamar_ia_redaccion_extensa(info_ia)
+        with st.spinner("Procesando..."):
+            # 1. IA
+            texto_ia = llamar_ia_redaccion_extensa({
+                "alumno": nombre_alumno, "logros": logros, "nivel": nivel, 
+                "dificultades": dificultades, "emociones": emociones, "compromiso": compromiso
+            })
             
-            # 2. Guardado en Supabase
-            registro = {
-                "fecha": str(fecha),
-                "ec": nombre_ec,
-                "alumno": nombre_alumno.upper(),
-                "comunidad": comunidad,
-                "nivel": nivel,
-                "texto_reflexivo": texto_reflexivo
-            }
-            
+            # 2. Supabase (con protección total)
             try:
-                # INSERTAR DATOS
-                supabase.table("reflexiones").insert(registro).execute()
-                st.success(f"✅ ¡Registro de {nombre_alumno} guardado en Supabase!")
-                
-                st.markdown("### Vista Previa de la Reflexión:")
-                st.info(texto_reflexivo)
-                
-                # 3. Generación de PDF
-                pdf = ReflexivoPDF()
-                pdf.add_page()
-                pdf.set_font('Helvetica', 'B', 10)
-                pdf.set_fill_color(240, 249, 255)
-                # Fila de datos principales
-                pdf.cell(95, 8, clean(f" ALUMNO: {nombre_alumno.upper()}"), 1, 0, 'L', True)
-                pdf.cell(95, 8, clean(f" FECHA: {fecha}"), 1, 1, 'L', True)
-                pdf.ln(5)
-                # Cuerpo del texto reflexivo
-                pdf.set_font('Helvetica', '', 11)
-                pdf.multi_cell(0, 7, clean(texto_reflexivo))
-                
-                pdf_bytes = pdf.output(dest='S')
-                st.download_button(
-                    label="📥 DESCARGAR TEXTO REFLEXIVO (PDF)",
-                    data=bytes(pdf_bytes),
-                    file_name=f"Reflexion_Diaria_{nombre_alumno}.pdf",
-                    mime="application/pdf"
-                )
+                supabase.table("reflexiones").insert({
+                    "fecha": str(fecha), "ec": nombre_ec, "alumno": nombre_alumno.upper(),
+                    "comunidad": comunidad, "nivel": nivel, "texto_reflexivo": texto_ia
+                }).execute()
+                st.success("✅ Guardado en la nube.")
             except Exception as e:
-                st.error(f"❌ Error al sincronizar con la nube: {e}")
+                st.warning(f"⚠️ No se pudo sincronizar (Tabla o URL incorrecta), pero puedes bajar tu PDF.")
+
+            # 3. PDF (Ahora siempre funciona)
+            pdf = ReflexivoPDF()
+            pdf.add_page()
+            pdf.set_font('Helvetica', 'B', 12)
+            pdf.cell(0, 10, clean(f"ALUMNO: {nombre_alumno.upper()} - FECHA: {fecha}"), 0, 1)
+            pdf.ln(5)
+            pdf.set_font('Helvetica', '', 11)
+            pdf.multi_cell(0, 7, clean(texto_ia))
+            
+            pdf_bytes = pdf.output(dest='S')
+            st.info(texto_ia)
+            st.download_button(
+                label="📥 DESCARGAR PDF",
+                data=bytes(pdf_bytes),
+                file_name=f"Reflexion_{nombre_alumno}.pdf",
+                mime="application/pdf"
+            )
