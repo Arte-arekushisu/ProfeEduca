@@ -38,9 +38,9 @@ def llamar_ia(prompt):
         client = Groq(api_key=GROQ_KEY)
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
-            messages=[{"role": "system", "content": "Eres un experto en el modelo ABCD y la Nueva Escuela Mexicana. Generas planeaciones detalladas por día, sin asteriscos (*), enfocadas en el contexto comunitario y materias académicas específicas."},
+            messages=[{"role": "system", "content": "Eres un experto creativo en el modelo ABCD de CONAFE. Generas planeaciones innovadoras, con nombres llamativos y contenido diversificado día por día, sin usar asteriscos (*)."},
                       {"role": "user", "content": prompt}],
-            temperature=0.4, max_tokens=6000
+            temperature=0.7, max_tokens=6000
         )
         texto = completion.choices[0].message.content
         return texto.replace("*", ""), "Groq"
@@ -93,43 +93,38 @@ with st.form("form_ultra"):
         fecha_hoy = datetime.now().strftime("%d/%m/%Y")
 
     tema_guia = st.text_area("Desarrollo de la Relación Tutora (Contenido base para el diálogo)")
-    obs_extra = st.text_area("Materias específicas para Post-Receso (Ej: Fracciones, Tipos de texto, etc.)")
+    obs_extra = st.text_area("Materias específicas para Post-Receso (Opcional)")
 
-    submit = st.form_submit_button("🚀 Generar Guía Completa")
+    submit = st.form_submit_button("🚀 Generar Planeación Creativa")
 
 if submit:
-    with st.spinner("Construyendo la arquitectura pedagógica semanal..."):
+    with st.spinner("La IA está diseñando una semana creativa..."):
         prompt_final = f"""
         Genera una PLANEACIÓN PEDAGÓGICA ABCD PROFESIONAL para {duracion}.
         CONTEXTO: Aula multigrado con niveles: {', '.join(nivel)}.
         ENFOQUE: {estilo}.
         
-        REQUISITOS OBLIGATORIOS (SIN ASTERISCOS):
+        INSTRUCCIONES DE LIBERTAD CREATIVA:
         
-        1. MOMENTOS INICIALES SEMANALES:
-           - Diseña una tabla o lista que contenga para cada día (Lunes a Viernes): Un PASE DE LISTA diferente, un REGALO DE LECTURA distinto y una DINÁMICA DE BIENVENIDA única.
+        1. MOMENTOS INICIALES (LUNES A VIERNES):
+           - Inventa dinámicas originales para el PASE DE LISTA, REGALO DE LECTURA y BIENVENIDA. Que cada día sea una experiencia distinta.
 
-        2. RELACIÓN TUTORA (EL CORAZÓN):
-           - Una explicación académica profunda del tema {tema_guia}.
-           - Incluye 5 PREGUNTAS DETONANTES que generen conflicto cognitivo.
-           - Propón un RPA (Registro de Proceso de Aprendizaje).
+        2. RELACIÓN TUTORA:
+           - Desarrolla el tema {tema_guia} con profundidad académica, 5 preguntas de alto nivel cognitivo y un producto final (RPA).
 
-        3. 4 ESTACIONES AUTÓNOMAS (DIFERENTES CADA DÍA):
-           - Genera actividades para 4 estaciones (Lenguajes, Saberes, Ética, De lo Humano).
-           - IMPORTANTE: Las actividades de las estaciones NO deben estar relacionadas con {tema_guia}. Deben ser temas generales de cultura o habilidades.
-           - Provee 3 actividades breves por estación para cada día de la semana.
+        3. 4 ESTACIONES AUTÓNOMAS (DIARIAS Y CREATIVAS):
+           - Crea 4 estaciones con NOMBRES FANTÁSTICOS Y LLAMATIVOS (libre elección de la IA).
+           - Propón 3 actividades por día para cada estación que NO tengan relación con {tema_guia}.
+           - Enfócate en retos, juegos lógicos, expresión artística y experimentos.
 
-        4. CRONOGRAMA ACADÉMICO POST-RECESO (INDEPENDIENTE):
-           - Crea una secuencia diaria (Lunes a Viernes) enfocada exclusivamente en materias:
-             * Lunes: Español / Lenguajes.
-             * Martes: Matemáticas / Saberes.
-             * Miércoles: Ciencias / Naturaleza.
-             * Jueves: Formación Cívica / Ética.
-             * Viernes: Educación Física o Artes / De lo Humano.
-           - Utiliza como base estos requerimientos: {obs_extra}. Las actividades deben ser detalladas y adecuadas al grado/nivel {', '.join(nivel)}.
+        4. CRONOGRAMA POST-RECESO ACADÉMICO:
+           - Secuencia diaria obligatoria: Lunes (Español), Martes (Mate), Miércoles (Ciencias), Jueves (Cívica), Viernes (Artes/Física).
+           - Integra estos requerimientos si existen: {obs_extra}. Las actividades deben ser académicamente sólidas para {', '.join(nivel)}.
 
-        5. IDENTIFICACIÓN DE PDA:
-           - Define al menos 2 PDA por nivel educativo basados en el programa sintético actual.
+        5. PDA Y EVALUACIÓN:
+           - Incluye los PDA correspondientes y una técnica de cierre reflexivo para el viernes.
+           
+        NO USES ASTERISCOS EN NINGUNA PARTE.
         """
         
         respuesta, motor = llamar_ia(prompt_final)
