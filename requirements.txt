@@ -1,0 +1,6 @@
+streamlit
+fpdf
+groq
+supabase
+requests
+Pillow
