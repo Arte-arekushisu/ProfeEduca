@@ -1,0 +1,6 @@
+import streamlit as st
+
+st.set_page_config(page_title="PROFEEDUCA MASTER", layout="wide")
+
+st.title("🎓 Bienvenido Axel - PROFEEDUCA")
+st.write("### Selecciona una Fase en el menú de la izquierda para trabajar.")
