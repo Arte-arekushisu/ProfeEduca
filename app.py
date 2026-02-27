@@ -5,34 +5,22 @@ import io
 import datetime
 from groq import Groq
 
-# --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="PROFEEDUCA - Fase 0.8 IA", layout="wide", page_icon="🤖")
-
-# --- LLAVE DE IA (GROQ) ---
+# --- CONFIGURACIÓN ---
+st.set_page_config(page_title="PROFEEDUCA - Fase 0.8.1 IA", layout="wide", page_icon="🛡️")
 GROQ_KEY = "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"
 
-# --- FUNCIONES DE IA NARRATIVA ---
-def llamar_ia_pedagogica(tipo, campo, alumno, nivel):
+# --- MOTOR DE IA ---
+def llamar_ia(prompt, temp=0.7):
     try:
         client = Groq(api_key=GROQ_KEY)
-        if tipo == "trayectoria":
-            # Prompt de cuento/diario reflexivo
-            prompt = (f"Como educador, redacta un texto reflexivo breve (estilo cuento pedagógico) "
-                      f"sobre el campo {campo} para el alumno {alumno} ({nivel}). "
-                      f"Habla de sus retos y logros con calidez humana. Máximo 50 palabras. Sin asteriscos.")
-        elif tipo == "resumen":
-            prompt = f"Redacta un resumen narrativo y emotivo de aprendizajes para {alumno}. Incluye que vimos y metas. Sin asteriscos."
-        else:
-            prompt = f"Redacta compromisos motivadores para {alumno}. Sin asteriscos."
-        
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.7, max_tokens=600
+            temperature=temp, max_tokens=1000
         )
         return completion.choices[0].message.content.replace("*", "")
-    except:
-        return "Érase una vez un gran esfuerzo que dio frutos..."
+    except Exception as e:
+        return f"Error de conexión: {str(e)}"
 
 def clean(txt):
     if not txt: return ""
@@ -40,111 +28,89 @@ def clean(txt):
     txt = txt.replace('ñ', 'n').replace('Ñ', 'N').replace('¿', '').replace('¡', '')
     return txt.encode('latin-1', 'ignore').decode('latin-1')
 
-class EvaluacionPDF(FPDF):
-    def header(self):
-        self.set_fill_color(0, 51, 102) 
-        self.rect(0, 0, 210, 25, 'F')
-        self.set_text_color(255, 255, 255)
-        self.set_font('Helvetica', 'B', 16)
-        self.cell(0, 15, clean('REPORTE DE EVALUACION Y APRENDIZAJES'), 0, 1, 'C')
-        self.ln(5)
-
-# --- ESTILOS SOS ---
+# --- INTERFAZ TOTAL DARK ---
 st.markdown("""
     <style>
     .stApp { background: #020617; color: #f8fafc; }
-    div[data-testid="stExpander"] { border: 2px solid #38bdf8 !important; border-radius: 10px; background-color: #0f172a; }
+    .error-box { padding: 10px; background-color: #450a0a; border: 1px solid #f87171; border-radius: 5px; color: #fca5a5; margin-bottom: 10px; }
     .stTextArea textarea { background-color: #1e293b !important; color: #38bdf8 !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- BARRA LATERAL ---
+# --- SIDEBAR CON SIMULADOR DE ERRORES ---
 with st.sidebar:
-    st.header("📌 Identificación")
+    st.header("⚙️ Configuración")
     nombre_ec = st.text_input("Educador", "AXEL REYES")
-    nombre_alumno = st.text_input("Alumno", placeholder="Ej. Juan Perez")
-    comunidad = st.text_input("Comunidad", "PARAJES")
+    nombre_alumno = st.text_input("Alumno")
     nivel_edu = st.selectbox("Nivel", ["Preescolar", "Primaria", "Secundaria"])
-    grado_edu = st.selectbox("Grado/Fase", ["1", "2", "3", "4", "5", "6"])
     
     st.divider()
-    st.header("🆘 CENTRO DE AYUDA")
-    with st.expander("🚨 BOTÓN SOS", expanded=False):
-        if st.button("🤖 Ayuda con la IA"):
-            st.info("Asegúrate de haber ingresado el nombre del alumno antes de pedirle a la IA que escriba.")
-        if st.button("⚙️ Error de PDF"):
-            st.warning("Si sale error de 'encoding', evita usar el signo '¿' o '¡' en los textos manuales.")
+    st.header("🛡️ CENTRO DE DIAGNÓSTICO")
+    modo_error = st.toggle("Simular Errores de Redacción")
+    
+    if st.button("🆘 ANALIZAR MI REPORTE (IA SOS)"):
+        if not nombre_alumno:
+            st.error("Error: No has puesto el nombre del alumno.")
+        else:
+            with st.spinner("IA analizando calidad pedagógica..."):
+                # La IA revisa lo que el usuario ha escrito hasta ahora
+                contexto_actual = f"Alumno: {nombre_alumno}. Nivel: {nivel_edu}. Campos: {st.session_state.get('t_Lenguajes', 'Vacío')}"
+                diagnostico = llamar_ia(f"Actúa como supervisor. Analiza si este reporte es profesional o está incompleto: {contexto_actual}. Da consejos breves.")
+                st.info(diagnostico)
 
-# --- CUERPO PRINCIPAL ---
-st.title("📊 PROFEEDUCA: Sistema de Evaluación IA")
+st.title("🛡️ PROFEEDUCA: Fase IA Auto-Correctora")
 
-if st.button("✨ GENERAR TODO EL REPORTE CON IA", use_container_width=True):
+# --- LÓGICA DE GENERACIÓN ---
+if st.button("✨ GENERAR REPORTE MAESTRO", use_container_width=True):
     if not nombre_alumno:
-        st.error("⚠️ ¡Falta el nombre del alumno!")
+        st.error("⚠️ El sistema no puede crear una historia sin un protagonista (Falta nombre).")
     else:
-        with st.spinner("La IA está redactando la historia de aprendizaje..."):
+        with st.spinner("IA redactando con estilo reflexivo..."):
             campos = ["Lenguajes", "Saberes y P.C.", "Etica, N. y S.", "De lo Humano y lo Com."]
             for c in campos:
-                st.session_state[f"t_{c}"] = llamar_ia_pedagogica("trayectoria", c, nombre_alumno, nivel_edu)
-            st.session_state["resumen_ia"] = llamar_ia_pedagogica("resumen", "", nombre_alumno, nivel_edu)
-            st.session_state["comp_ia"] = llamar_ia_pedagogica("compromiso", "", nombre_alumno, nivel_edu)
+                st.session_state[f"t_{c}"] = llamar_ia(f"Escribe una reflexión de cuento pedagógico para {nombre_alumno} en {c}. Nivel {nivel_edu}.")
+            st.session_state["resumen_ia"] = llamar_ia(f"Haz una crónica emotiva del periodo de {nombre_alumno}.")
 
-# Campos Formativos
-eval_campos = {}
-claves_prescolar = {}
+# --- CAMPOS FORMATIVOS ---
 campos_nombres = ["Lenguajes", "Saberes y P.C.", "Etica, N. y S.", "De lo Humano y lo Com."]
+eval_campos = {}
 
 cols = st.columns(2)
 for i, campo in enumerate(campos_nombres):
     with cols[i % 2]:
-        eval_campos[campo] = st.text_area(f"Reflexión: {campo}", value=st.session_state.get(f"t_{campo}", ""), height=120)
-        if nivel_edu == "Preescolar":
-            claves_prescolar[campo] = st.text_input(f"Clave {campo}", "T", key=f"cl_{campo}")
+        # SIMULACIÓN DE ERROR VISUAL
+        if modo_error and not st.session_state.get(f"t_{campo}"):
+            st.markdown(f'<div class="error-box">⚠️ El campo {campo} está vacío o es muy corto.</div>', unsafe_allow_html=True)
+            
+        eval_campos[campo] = st.text_area(f"Campo: {campo}", value=st.session_state.get(f"t_{campo}", ""), height=120)
 
 st.divider()
-resumen_txt = st.text_area("📝 Resumen de Aprendizajes", value=st.session_state.get("resumen_ia", ""), height=150)
-compromiso_txt = st.text_area("🤝 Compromisos", value=st.session_state.get("comp_ia", ""), height=100)
+resumen_txt = st.text_area("📝 Resumen General", value=st.session_state.get("resumen_ia", ""), height=150)
 
-# Calificaciones Primaria/Secundaria
-eval_detalles = []
-if nivel_edu != "Preescolar":
-    st.subheader(f"🔢 Calificaciones ({nivel_edu})")
-    materias = campos_nombres if nivel_edu == "Primaria" else ["Espanol", "Matematicas", "Ingles", "Ciencias"]
-    for mat in materias:
-        c1, c2 = st.columns([3, 1])
-        nota = c1.number_input(f"Nota: {mat}", 5, 10, 8, key=f"n_{mat}")
-        clv = c2.text_input(f"Clave", "T", key=f"c_{mat}")
-        eval_detalles.append({"m": mat, "n": nota, "c": clv})
-
-# --- GENERACIÓN PDF ---
-if st.button("🚀 FINALIZAR Y DESCARGAR PDF", use_container_width=True):
-    try:
-        pdf = EvaluacionPDF()
-        pdf.add_page()
-        pdf.set_font("Helvetica", "B", 10)
-        pdf.cell(100, 7, clean(f"EDUCADOR: {nombre_ec}"), 0, 0); pdf.cell(90, 7, clean(f"ALUMNO: {nombre_alumno}"), 0, 1)
-        pdf.ln(5)
-
-        for campo in campos_nombres:
-            pdf.set_fill_color(230, 245, 255)
-            h_txt = f"{campo} | CLAVE: {claves_prescolar.get(campo, '')}" if nivel_edu == "Preescolar" else campo
-            pdf.set_font("Helvetica", "B", 10); pdf.cell(0, 7, clean(h_txt), 1, 1, 'L', True)
-            pdf.set_font("Helvetica", "", 9); pdf.multi_cell(0, 5, clean(eval_campos[campo]), 1)
-            pdf.ln(2)
-
-        pdf.ln(5); pdf.set_font("Helvetica", "B", 10); pdf.cell(0, 7, clean("RESUMEN"), 1, 1, 'C', True)
-        pdf.set_font("Helvetica", "", 9); pdf.multi_cell(0, 5, clean(resumen_txt), 1)
-
-        if nivel_edu != "Preescolar":
-            pdf.ln(5); pdf.set_font("Helvetica", "B", 10)
-            for item in eval_detalles:
-                pdf.cell(90, 6, clean(item['m']), 1); pdf.cell(45, 6, str(item['n']), 1); pdf.cell(45, 6, clean(item['c']), 1, 1)
-
-        pdf.ln(20)
-        pdf.cell(90, 5, "____________________", 0, 0, 'C'); pdf.cell(90, 5, "____________________", 0, 1, 'C')
-        pdf.cell(90, 5, "FIRMA EC", 0, 0, 'C'); pdf.cell(90, 5, "FIRMA PADRE", 0, 1, 'C')
-
-        st.download_button("📥 DESCARGAR REPORTE", pdf.output(), f"Reporte_{nombre_alumno}.pdf", "application/pdf")
-        st.success("¡Perrón! Reporte generado.")
-    except Exception as e:
-        st.error(f"Error crítico: {e}")
+# --- BOTÓN DE DESCARGA CON PROTECCIÓN ---
+if st.button("🚀 GENERAR PDF FINAL"):
+    # VALIDACIÓN ANTES DE GENERAR
+    errores = []
+    if not nombre_alumno: errores.append("Falta el nombre del alumno.")
+    if len(resumen_txt) < 10: errores.append("El resumen es demasiado corto para un reporte profesional.")
+    
+    if errores:
+        st.error("🛑 BLOQUEO DE SEGURIDAD:")
+        for err in errores: st.write(f"- {err}")
+        if st.button("🤖 IA: CORREGIR ERRORES AUTOMÁTICAMENTE"):
+            st.session_state["resumen_ia"] = llamar_ia(f"Amplía este resumen de forma profesional y emotiva: {resumen_txt}")
+            st.rerun()
+    else:
+        try:
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Helvetica", "B", 16)
+            pdf.cell(0, 10, clean("REPORTE DE APRENDIZAJE PROFESIONAL"), 0, 1, 'C')
+            pdf.ln(10)
+            pdf.set_font("Helvetica", "", 12)
+            pdf.multi_cell(0, 10, clean(f"Alumno: {nombre_alumno}\n\nResumen:\n{resumen_txt}"))
+            
+            st.download_button("📥 DESCARGAR PDF CORREGIDO", pdf.output(), f"Reporte_{nombre_alumno}.pdf", "application/pdf")
+            st.success("¡PDF generado sin errores técnicos!")
+        except Exception as e:
+            st.error(f"Fallo técnico: {e}. Intenta usar el botón SOS.")
